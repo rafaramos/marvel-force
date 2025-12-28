@@ -29,7 +29,8 @@
 
     .wrapper {
       text-align: center;
-      max-width: 980px;
+      max-width: 1180px;
+      padding: 24px 18px 40px;
     }
 
     h1 {
@@ -37,17 +38,25 @@
       letter-spacing: 0.04em;
     }
 
+    .layout {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 18px;
+      align-items: start;
+    }
+
     .board {
       width: var(--board-size);
       height: var(--board-size);
       display: grid;
-      grid-template-columns: repeat(8, 1fr);
-      grid-template-rows: repeat(8, 1fr);
+      grid-template-columns: repeat(8, var(--square-size));
+      grid-template-rows: repeat(8, var(--square-size));
       background-color: var(--board-color);
       border: 8px solid #0b2a13;
       border-radius: 12px;
       box-shadow: 0 12px 24px rgba(0, 0, 0, 0.35);
       overflow: hidden;
+      justify-self: center;
     }
 
     .square {
@@ -71,6 +80,14 @@
       border-radius: 50%;
       box-shadow: 0 4px 10px rgba(0, 0, 0, 0.35);
       border: 3px solid rgba(255, 255, 255, 0.3);
+      display: grid;
+      place-items: center;
+      color: #0d0d0d;
+      font-weight: 700;
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
+      text-shadow: 0 1px 2px rgba(255, 255, 255, 0.55), 0 0 6px rgba(0, 0, 0, 0.35);
     }
 
     .piece--white {
@@ -93,10 +110,10 @@
     }
 
     .roster {
-      margin-top: 20px;
       display: grid;
       gap: 12px;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      grid-template-columns: 1fr;
+      align-self: stretch;
     }
 
     .card {
@@ -132,184 +149,200 @@
       gap: 6px 10px;
       font-size: 0.95rem;
     }
+
+    @media (max-width: 1024px) {
+      .layout {
+        grid-template-columns: 1fr;
+        justify-items: center;
+      }
+
+      .roster {
+        width: min(100%, 420px);
+      }
+    }
   </style>
 </head>
 <body>
   <main class="wrapper">
     <h1>Tablero 8x8 con 64 cuadros verdes</h1>
-    <section class="board" aria-label="Tablero de 64 cuadros verdes">
-      <!-- Fila 1 -->
-      <div class="square"><span class="piece piece--white" role="img" aria-label="Ficha blanca"></span></div>
-      <div class="square"><span class="piece piece--red" role="img" aria-label="Ficha roja"></span></div>
-      <div class="square"><span class="piece piece--violet" role="img" aria-label="Ficha violeta"></span></div>
-      <div class="square"></div>
-      <div class="square"></div>
-      <div class="square"><span class="piece piece--black" role="img" aria-label="Ficha negra"></span></div>
-      <div class="square"><span class="piece piece--black" role="img" aria-label="Ficha negra"></span></div>
-      <div class="square"><span class="piece piece--black" role="img" aria-label="Ficha negra"></span></div>
+    <section class="layout" aria-label="Tablero con información de fichas a los lados">
+      <section class="roster" aria-label="Características de las fichas de color">
+        <article class="card">
+          <h2><span class="swatch piece--white"></span> Avispa</h2>
+          <ul class="stats">
+            <li>Movimiento: 8</li>
+            <li>Ataque: 8</li>
+            <li>Defensa: 18</li>
+            <li>Daño c/c: 2</li>
+            <li>Daño a/d: 2</li>
+            <li>Resistencia c/c: 0</li>
+            <li>Resistencia a/d: 0</li>
+            <li>Distancia máxima: 3</li>
+            <li>Vida: 5</li>
+            <li>Agilidad: 20</li>
+          </ul>
+        </article>
+        <article class="card">
+          <h2><span class="swatch piece--red"></span> Hulk</h2>
+          <ul class="stats">
+            <li>Movimiento: 9</li>
+            <li>Ataque: 11</li>
+            <li>Defensa: 17</li>
+            <li>Daño c/c: 5</li>
+            <li>Daño a/d: 5</li>
+            <li>Resistencia c/c: 2</li>
+            <li>Resistencia a/d: 2</li>
+            <li>Distancia máxima: 0</li>
+            <li>Vida: 10</li>
+            <li>Agilidad: 10</li>
+          </ul>
+        </article>
+        <article class="card">
+          <h2><span class="swatch piece--violet"></span> Capitán América</h2>
+          <ul class="stats">
+            <li>Movimiento: 8</li>
+            <li>Ataque: 10</li>
+            <li>Defensa: 17</li>
+            <li>Daño c/c: 2</li>
+            <li>Daño a/d: 2</li>
+            <li>Resistencia c/c: 0</li>
+            <li>Resistencia a/d: 2</li>
+            <li>Distancia máxima: 3</li>
+            <li>Vida: 8</li>
+            <li>Agilidad: 40</li>
+          </ul>
+        </article>
+      </section>
 
-      <!-- Fila 2 -->
-      <div class="square"></div>
-      <div class="square"></div>
-      <div class="square"></div>
-      <div class="square"></div>
-      <div class="square"></div>
-      <div class="square"></div>
-      <div class="square"></div>
-      <div class="square"></div>
+      <section class="board" aria-label="Tablero de 64 cuadros verdes">
+        <!-- Fila 1 -->
+        <div class="square"><span class="piece piece--white" role="img" aria-label="Ficha blanca">Avispa</span></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"><span class="piece piece--black" role="img" aria-label="Ficha negra"></span></div>
 
-      <!-- Fila 3 -->
-      <div class="square"></div>
-      <div class="square"></div>
-      <div class="square"></div>
-      <div class="square"></div>
-      <div class="square"></div>
-      <div class="square"></div>
-      <div class="square"></div>
-      <div class="square"></div>
+        <!-- Fila 2 -->
+        <div class="square"><span class="piece piece--red" role="img" aria-label="Ficha roja"></span></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"><span class="piece piece--black" role="img" aria-label="Ficha negra"></span></div>
 
-      <!-- Fila 4 -->
-      <div class="square"></div>
-      <div class="square"></div>
-      <div class="square"></div>
-      <div class="square"></div>
-      <div class="square"></div>
-      <div class="square"></div>
-      <div class="square"></div>
-      <div class="square"></div>
+        <!-- Fila 3 -->
+        <div class="square"><span class="piece piece--violet" role="img" aria-label="Ficha violeta"></span></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"><span class="piece piece--black" role="img" aria-label="Ficha negra"></span></div>
 
-      <!-- Fila 5 -->
-      <div class="square"></div>
-      <div class="square"></div>
-      <div class="square"></div>
-      <div class="square"></div>
-      <div class="square"></div>
-      <div class="square"></div>
-      <div class="square"></div>
-      <div class="square"></div>
+        <!-- Fila 4 -->
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
 
-      <!-- Fila 6 -->
-      <div class="square"></div>
-      <div class="square"></div>
-      <div class="square"></div>
-      <div class="square"></div>
-      <div class="square"></div>
-      <div class="square"></div>
-      <div class="square"></div>
-      <div class="square"></div>
+        <!-- Fila 5 -->
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
 
-      <!-- Fila 7 -->
-      <div class="square"></div>
-      <div class="square"></div>
-      <div class="square"></div>
-      <div class="square"></div>
-      <div class="square"></div>
-      <div class="square"></div>
-      <div class="square"></div>
-      <div class="square"></div>
+        <!-- Fila 6 -->
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
 
-      <!-- Fila 8 -->
-      <div class="square"></div>
-      <div class="square"></div>
-      <div class="square"></div>
-      <div class="square"></div>
-      <div class="square"></div>
-      <div class="square"></div>
-      <div class="square"></div>
-      <div class="square"></div>
-    </section>
+        <!-- Fila 7 -->
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
 
-    <section class="roster" aria-label="Características de las fichas">
-      <article class="card">
-        <h2><span class="swatch piece--white"></span> Blanca</h2>
-        <ul class="stats">
-          <li>Movimiento: 3</li>
-          <li>Ataque: 6</li>
-          <li>Defensa: 5</li>
-          <li>Daño c/c: 4</li>
-          <li>Daño a/d: 2</li>
-          <li>Resistencia c/c: 5</li>
-          <li>Resistencia a/d: 3</li>
-          <li>Rango: 2</li>
-          <li>Vida: 12</li>
-          <li>Agilidad: 5</li>
-        </ul>
-      </article>
-      <article class="card">
-        <h2><span class="swatch piece--red"></span> Roja</h2>
-        <ul class="stats">
-          <li>Movimiento: 2</li>
-          <li>Ataque: 7</li>
-          <li>Defensa: 4</li>
-          <li>Daño c/c: 5</li>
-          <li>Daño a/d: 3</li>
-          <li>Resistencia c/c: 4</li>
-          <li>Resistencia a/d: 3</li>
-          <li>Rango: 3</li>
-          <li>Vida: 10</li>
-          <li>Agilidad: 4</li>
-        </ul>
-      </article>
-      <article class="card">
-        <h2><span class="swatch piece--violet"></span> Violeta</h2>
-        <ul class="stats">
-          <li>Movimiento: 4</li>
-          <li>Ataque: 5</li>
-          <li>Defensa: 6</li>
-          <li>Daño c/c: 3</li>
-          <li>Daño a/d: 4</li>
-          <li>Resistencia c/c: 6</li>
-          <li>Resistencia a/d: 5</li>
-          <li>Rango: 4</li>
-          <li>Vida: 11</li>
-          <li>Agilidad: 6</li>
-        </ul>
-      </article>
-      <article class="card">
-        <h2><span class="swatch piece--black"></span> Negra I</h2>
-        <ul class="stats">
-          <li>Movimiento: 2</li>
-          <li>Ataque: 5</li>
-          <li>Defensa: 6</li>
-          <li>Daño c/c: 4</li>
-          <li>Daño a/d: 3</li>
-          <li>Resistencia c/c: 6</li>
-          <li>Resistencia a/d: 5</li>
-          <li>Rango: 2</li>
-          <li>Vida: 13</li>
-          <li>Agilidad: 3</li>
-        </ul>
-      </article>
-      <article class="card">
-        <h2><span class="swatch piece--black"></span> Negra II</h2>
-        <ul class="stats">
-          <li>Movimiento: 3</li>
-          <li>Ataque: 6</li>
-          <li>Defensa: 4</li>
-          <li>Daño c/c: 5</li>
-          <li>Daño a/d: 2</li>
-          <li>Resistencia c/c: 4</li>
-          <li>Resistencia a/d: 4</li>
-          <li>Rango: 3</li>
-          <li>Vida: 9</li>
-          <li>Agilidad: 5</li>
-        </ul>
-      </article>
-      <article class="card">
-        <h2><span class="swatch piece--black"></span> Negra III</h2>
-        <ul class="stats">
-          <li>Movimiento: 1</li>
-          <li>Ataque: 8</li>
-          <li>Defensa: 5</li>
-          <li>Daño c/c: 6</li>
-          <li>Daño a/d: 1</li>
-          <li>Resistencia c/c: 5</li>
-          <li>Resistencia a/d: 2</li>
-          <li>Rango: 1</li>
-          <li>Vida: 15</li>
-          <li>Agilidad: 2</li>
-        </ul>
-      </article>
+        <!-- Fila 8 -->
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+      </section>
+
+      <section class="roster" aria-label="Características de las fichas negras">
+        <article class="card">
+          <h2><span class="swatch piece--black"></span> Negra I</h2>
+          <ul class="stats">
+            <li>Movimiento: 2</li>
+            <li>Ataque: 5</li>
+            <li>Defensa: 6</li>
+            <li>Daño c/c: 4</li>
+            <li>Daño a/d: 3</li>
+            <li>Resistencia c/c: 6</li>
+            <li>Resistencia a/d: 5</li>
+            <li>Rango: 2</li>
+            <li>Vida: 13</li>
+            <li>Agilidad: 3</li>
+          </ul>
+        </article>
+        <article class="card">
+          <h2><span class="swatch piece--black"></span> Negra II</h2>
+          <ul class="stats">
+            <li>Movimiento: 3</li>
+            <li>Ataque: 6</li>
+            <li>Defensa: 4</li>
+            <li>Daño c/c: 5</li>
+            <li>Daño a/d: 2</li>
+            <li>Resistencia c/c: 4</li>
+            <li>Resistencia a/d: 4</li>
+            <li>Rango: 3</li>
+            <li>Vida: 9</li>
+            <li>Agilidad: 5</li>
+          </ul>
+        </article>
+        <article class="card">
+          <h2><span class="swatch piece--black"></span> Negra III</h2>
+          <ul class="stats">
+            <li>Movimiento: 1</li>
+            <li>Ataque: 8</li>
+            <li>Defensa: 5</li>
+            <li>Daño c/c: 6</li>
+            <li>Daño a/d: 1</li>
+            <li>Resistencia c/c: 5</li>
+            <li>Resistencia a/d: 2</li>
+            <li>Rango: 1</li>
+            <li>Vida: 15</li>
+            <li>Agilidad: 2</li>
+          </ul>
+        </article>
+      </section>
     </section>
   </main>
 </body>
