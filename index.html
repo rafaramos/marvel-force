@@ -428,7 +428,7 @@
         danoAD: 5,
         resistenciaCC: 2,
         resistenciaAD: 2,
-        rango: 0,
+        rango: 1,
         vida: 10,
         agilidad: 10,
       },
@@ -467,7 +467,7 @@
         danoAD: 2,
         resistenciaCC: 1,
         resistenciaAD: 1,
-        rango: 0,
+        rango: 1,
         vida: 8,
         agilidad: 30,
       },
@@ -609,7 +609,7 @@
       const targetRow = Number(targetSquare.dataset.row);
       const targetCol = Number(targetSquare.dataset.col);
       const distance = Math.abs(targetRow - attackerRow) + Math.abs(targetCol - attackerCol);
-      return distance > 0 && distance <= maxRange && (attackerRow === targetRow || attackerCol === targetCol);
+      return distance > 0 && distance <= maxRange;
     }
 
     function highlightRange(piece) {
