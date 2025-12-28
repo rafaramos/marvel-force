@@ -540,6 +540,7 @@
 
     const AI_DELAY_MS = 900;
     const TURN_DELAY_MS = 250;
+    const ENEMY_ACTION_DELAY_MS = 500;
 
     const pieceStats = personajes;
 
@@ -648,6 +649,7 @@
         btn.type = 'button';
         btn.className = 'button';
         btn.textContent = ability === 'incapacitar' ? 'Incapacitar' : 'Explosión';
+        btn.disabled = piece.dataset.team === 'enemigo';
         btn.addEventListener('click', () => handleActionClick(ability));
         powerControls.appendChild(btn);
       });
@@ -770,6 +772,9 @@
     function setActivePiece(piece) {
       document.querySelectorAll('.piece').forEach((p) => p.classList.remove('piece--active'));
       piece.classList.add('piece--active');
+      const isEnemyTurn = piece.dataset.team === 'enemigo';
+      passButton.disabled = isEnemyTurn;
+      attackButton.disabled = isEnemyTurn;
       updateStatusBar(piece);
       updateCombatInfo();
       currentAction = 'attack';
@@ -1116,10 +1121,12 @@
     }
 
     board.addEventListener('click', (event) => {
+      const activePiece = turnOrder[turnIndex];
+      if (activePiece?.dataset.team === 'enemigo') return;
+
       const square = event.target.closest('.square');
       if (!square) return;
 
-      const activePiece = turnOrder[turnIndex];
       const targetPiece = square.querySelector('.piece');
 
       if (targetPiece && targetPiece !== activePiece) {
@@ -1172,6 +1179,117 @@
       }
     });
 
+    function sleep(ms) {
+      return new Promise((resolve) => setTimeout(resolve, ms));
+    }
+
+    function findClosestEnemy(piece) {
+      const origin = getPieceSquare(piece);
+      if (!origin) return null;
+      const opponents = pieces
+        .map((p) => p.element)
+        .filter((p) => p && p.dataset.team === 'aliado' && p.dataset.eliminated !== 'true');
+      let best = null;
+      let bestDistance = Infinity;
+      opponents.forEach((candidate) => {
+        const sq = getPieceSquare(candidate);
+        if (!sq) return;
+        const distance = attackDistance(origin, sq);
+        if (distance < bestDistance) {
+          bestDistance = distance;
+          best = candidate;
+        }
+      });
+      return best;
+    }
+
+    function chooseEnemyMoveSquare(piece, targetSquare) {
+      computeReachableSquares(piece);
+      const origin = getPieceSquare(piece);
+      const maxRange = rangeForPiece(piece);
+      if (origin && targetSquare && isWithinAttackRange(origin, targetSquare, maxRange)) {
+        return null;
+      }
+      let bestSquare = null;
+      let bestDistance = Infinity;
+      movementDistances.forEach((_, square) => {
+        const distance = attackDistance(square, targetSquare);
+        if (distance < bestDistance) {
+          bestDistance = distance;
+          bestSquare = square;
+        }
+      });
+      return bestSquare;
+    }
+
+    function selectBestEnemyAction(piece, targetPiece) {
+      const stats = pieceMap.get(piece);
+      const abilities = stats?.habilidades?.activas || [];
+      const targetStats = pieceMap.get(targetPiece);
+      const targetSquare = getPieceSquare(targetPiece);
+      const origin = getPieceSquare(piece);
+      const inRange = origin && targetSquare && isWithinAttackRange(origin, targetSquare, rangeForPiece(piece));
+      if (!inRange) return 'move';
+
+      if (abilities.includes('explosion')) {
+        const deltas = [-1, 0, 1];
+        let neighbors = 0;
+        deltas.forEach((dr) => {
+          deltas.forEach((dc) => {
+            const sq = getSquareAt(Number(targetSquare.dataset.row) + dr, Number(targetSquare.dataset.col) + dc);
+            if (sq?.querySelector('.piece')) neighbors += 1;
+          });
+        });
+        if (neighbors >= 2) {
+          return 'explosion';
+        }
+      }
+
+      if (abilities.includes('incapacitar') && targetStats?.incapacitatedTurns === 0) {
+        return 'incapacitar';
+      }
+
+      return 'attack';
+    }
+
+    async function performEnemyTurn(piece) {
+      const target = findClosestEnemy(piece);
+      if (!target) {
+        finishTurn(piece);
+        return;
+      }
+
+      const targetSquare = getPieceSquare(target);
+      const chosenAction = selectBestEnemyAction(piece, target);
+
+      if (chosenAction === 'move') {
+        const moveSquare = chooseEnemyMoveSquare(piece, targetSquare);
+        if (moveSquare) {
+          const distance = movementDistances.get(moveSquare) ?? 0;
+          clearHighlights();
+          highlightMovement(piece);
+          moveSquare.classList.add('square--target');
+          await sleep(ENEMY_ACTION_DELAY_MS);
+          moveSquare.appendChild(piece);
+          spendMovement(piece, distance);
+          clearHighlights();
+          highlightMovement(piece);
+          highlightRange(piece);
+          updateStatusBar(piece);
+        }
+      }
+
+      await sleep(ENEMY_ACTION_DELAY_MS);
+      const refreshedTarget = findClosestEnemy(piece) || target;
+      const action = selectBestEnemyAction(piece, refreshedTarget);
+      if (action === 'move') {
+        finishTurn(piece);
+        return;
+      }
+      selectedTarget = refreshedTarget;
+      handleActionClick(action);
+    }
+
     function applyRegeneration(piece) {
       const stats = pieceMap.get(piece);
       if (!stats || !hasPassive(stats, 'regeneracion')) return;
@@ -1216,6 +1334,9 @@
       clearHighlights();
       highlightMovement(piece);
       highlightRange(piece);
+      if (piece.dataset.team === 'enemigo') {
+        performEnemyTurn(piece);
+      }
     }
 
     passButton.addEventListener('click', () => {
