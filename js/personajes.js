@@ -36,7 +36,7 @@ const personajes = {
     defensa: 17,
     danoCC: 2,
     danoAD: 2,
-    resistenciaCC: 0,
+    resistenciaCC: 1,
     resistenciaAD: 2,
     rango: 3,
     vida: 8,
@@ -44,7 +44,7 @@ const personajes = {
     imagen: 'imagenes/capitan.webp',
     poderes: poderes.capitan,
   },
-  negra1: {
+  spiderman: {
     name: 'Spider-man',
     movimiento: 10,
     ataque: 12,
@@ -57,9 +57,9 @@ const personajes = {
     vida: 9,
     agilidad: 50,
     imagen: 'imagenes/spider-man.webp',
-    poderes: poderes.negra1,
+    poderes: poderes.spiderman,
   },
-  negra2: {
+  lobezno: {
     name: 'Lobezno',
     movimiento: 8,
     ataque: 10,
@@ -72,9 +72,9 @@ const personajes = {
     vida: 8,
     agilidad: 30,
     imagen: 'imagenes/lobezno.webp',
-    poderes: poderes.negra2,
+    poderes: poderes.lobezno,
   },
-  negra3: {
+  ciclope: {
     name: 'Cíclope',
     movimiento: 6,
     ataque: 11,
@@ -82,11 +82,11 @@ const personajes = {
     danoCC: 2,
     danoAD: 4,
     resistenciaCC: 0,
-    resistenciaAD: 0,
+    resistenciaAD: 2,
     rango: 10,
     vida: 5,
     agilidad: 20,
     imagen: 'imagenes/ciclope.webp',
-    poderes: poderes.negra3,
+    poderes: poderes.ciclope,
   },
 };
