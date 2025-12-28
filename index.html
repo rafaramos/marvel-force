@@ -3,11 +3,14 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Tablero 8x8</title>
+  <title>Tablero 12x10</title>
   <style>
     :root {
-      --square-size: 100px;
-      --board-size: calc(var(--square-size) * 8);
+      --square-size: 70px;
+      --board-columns: 12;
+      --board-rows: 10;
+      --board-width: calc(var(--square-size) * var(--board-columns));
+      --board-height: calc(var(--square-size) * var(--board-rows));
       --board-color: #1f8a3b;
       --square-border: #0f4d20;
     }
@@ -90,11 +93,11 @@
     }
 
     .board {
-      width: calc(var(--board-size) + 16px);
-      height: calc(var(--board-size) + 16px);
+      width: calc(var(--board-width) + 16px);
+      height: calc(var(--board-height) + 16px);
       display: grid;
-      grid-template-columns: repeat(8, var(--square-size));
-      grid-template-rows: repeat(8, var(--square-size));
+      grid-template-columns: repeat(var(--board-columns), var(--square-size));
+      grid-template-rows: repeat(var(--board-rows), var(--square-size));
       background-color: var(--board-color);
       border: 8px solid #0b2a13;
       border-radius: 12px;
@@ -368,148 +371,7 @@
           <ol id="heroLog" class="history__list"></ol>
         </div>
       </aside>
-
-      <section class="board" aria-label="Tablero de 64 cuadros verdes">
-        <!-- Fila 1 -->
-        <div class="square">
-          <span class="piece piece--white" data-team="aliado" data-key="avispa" role="img" aria-label="Avispa">
-            <img class="piece__image" src="imagenes/avispa.webp" alt="Avispa" />
-            <span class="piece__name">Avispa</span>
-          </span>
-        </div>
-        <div class="square"></div>
-        <div class="square"></div>
-        <div class="square"></div>
-        <div class="square"></div>
-        <div class="square"></div>
-        <div class="square"></div>
-        <div class="square">
-          <span class="piece piece--black" data-team="enemigo" data-key="duende" role="img" aria-label="Duende">
-            <img class="piece__image" src="imagenes/duende.webp" alt="Duende" />
-            <span class="piece__name">Duende</span>
-          </span>
-        </div>
-
-        <!-- Fila 2 -->
-        <div class="square">
-          <span class="piece piece--red" data-team="aliado" data-key="hulk" role="img" aria-label="Hulk">
-            <img class="piece__image" src="imagenes/hulk.webp" alt="Hulk" />
-            <span class="piece__name">Hulk</span>
-          </span>
-        </div>
-        <div class="square"></div>
-        <div class="square"></div>
-        <div class="square"></div>
-        <div class="square"></div>
-        <div class="square"></div>
-        <div class="square"></div>
-        <div class="square">
-          <span class="piece piece--black" data-team="enemigo" data-key="chaquetaAmarilla" role="img" aria-label="Chaqueta Amarilla">
-            <img class="piece__image" src="imagenes/chaqueta-amarilla.webp" alt="Chaqueta Amarilla" />
-            <span class="piece__name">Chaqueta Amarilla</span>
-          </span>
-        </div>
-
-        <!-- Fila 3 -->
-        <div class="square">
-          <span class="piece piece--violet" data-team="aliado" data-key="capitan" role="img" aria-label="Capitán América">
-            <img class="piece__image" src="imagenes/capitan.webp" alt="Capitán América" />
-            <span class="piece__name">Capitán América</span>
-          </span>
-        </div>
-        <div class="square"></div>
-        <div class="square"></div>
-        <div class="square"></div>
-        <div class="square"></div>
-        <div class="square"></div>
-        <div class="square"></div>
-        <div class="square">
-          <span class="piece piece--black" data-team="enemigo" data-key="dientesDeSable" role="img" aria-label="Dientes de Sable">
-            <img class="piece__image" src="imagenes/dientes-de-sable.webp" alt="Dientes de Sable" />
-            <span class="piece__name">Dientes de Sable</span>
-          </span>
-        </div>
-
-        <!-- Fila 4 -->
-        <div class="square">
-          <span class="piece piece--blue" data-team="aliado" data-key="spider" role="img" aria-label="Spider-Man">
-            <img class="piece__image" src="imagenes/spider-man.webp" alt="Spider-Man" />
-            <span class="piece__name">Spider-Man</span>
-          </span>
-        </div>
-        <div class="square"></div>
-        <div class="square"></div>
-        <div class="square"></div>
-        <div class="square"></div>
-        <div class="square"></div>
-        <div class="square"></div>
-        <div class="square">
-          <span class="piece piece--black" data-team="enemigo" data-key="boomerang" role="img" aria-label="Boomerang">
-            <img class="piece__image" src="imagenes/boomerang.webp" alt="Boomerang" />
-            <span class="piece__name">Boomerang</span>
-          </span>
-        </div>
-
-        <!-- Fila 5 -->
-        <div class="square">
-          <span class="piece piece--gold" data-team="aliado" data-key="lobezno" role="img" aria-label="Lobezno">
-            <img class="piece__image" src="imagenes/lobezno.webp" alt="Lobezno" />
-            <span class="piece__name">Lobezno</span>
-          </span>
-        </div>
-        <div class="square"></div>
-        <div class="square"></div>
-        <div class="square"></div>
-        <div class="square"></div>
-        <div class="square"></div>
-        <div class="square"></div>
-        <div class="square">
-          <span class="piece piece--black" data-team="enemigo" data-key="juggernaut" role="img" aria-label="Juggernaut">
-            <img class="piece__image" src="imagenes/juggernaut.webp" alt="Juggernaut" />
-            <span class="piece__name">Juggernaut</span>
-          </span>
-        </div>
-
-        <!-- Fila 6 -->
-        <div class="square">
-          <span class="piece piece--white" data-team="aliado" data-key="ciclope" role="img" aria-label="Cíclope">
-            <img class="piece__image" src="imagenes/ciclope.webp" alt="Cíclope" />
-            <span class="piece__name">Cíclope</span>
-          </span>
-        </div>
-        <div class="square"></div>
-        <div class="square"></div>
-        <div class="square"></div>
-        <div class="square"></div>
-        <div class="square"></div>
-        <div class="square"></div>
-        <div class="square">
-          <span class="piece piece--black" data-team="enemigo" data-key="mole" role="img" aria-label="Mole">
-            <img class="piece__image" src="imagenes/mole.webp" alt="Mole" />
-            <span class="piece__name">Mole</span>
-          </span>
-        </div>
-
-        <!-- Fila 7 -->
-        <div class="square"></div>
-        <div class="square"></div>
-        <div class="square"></div>
-        <div class="square"></div>
-        <div class="square"></div>
-        <div class="square"></div>
-        <div class="square"></div>
-        <div class="square"></div>
-
-        <!-- Fila 8 -->
-        <div class="square"></div>
-        <div class="square"></div>
-        <div class="square"></div>
-        <div class="square"></div>
-        <div class="square"></div>
-        <div class="square"></div>
-        <div class="square"></div>
-        <div class="square"></div>
-      </section>
+      <section class="board" aria-label="Tablero de 120 cuadros verdes"></section>
       <aside class="card-panel" aria-label="Vida enemigos">
         <h3>Enemigos</h3>
         <div class="life-list" id="enemyCards"></div>
@@ -526,6 +388,57 @@
   <script src="js/personajes.js"></script>
   <script>
     const board = document.querySelector('.board');
+    const pieceStats = personajes;
+    const BOARD_ROWS = 10;
+    const BOARD_COLS = 12;
+
+    const initialPositions = [
+      { key: 'avispa', team: 'aliado', row: 1, col: 1, className: 'piece--white' },
+      { key: 'hulk', team: 'aliado', row: 2, col: 1, className: 'piece--red' },
+      { key: 'capitan', team: 'aliado', row: 3, col: 1, className: 'piece--violet' },
+      { key: 'spider', team: 'aliado', row: 4, col: 1, className: 'piece--blue' },
+      { key: 'lobezno', team: 'aliado', row: 5, col: 1, className: 'piece--gold' },
+      { key: 'ciclope', team: 'aliado', row: 6, col: 1, className: 'piece--white' },
+      { key: 'duende', team: 'enemigo', row: 1, col: 12, className: 'piece--black' },
+      { key: 'chaquetaAmarilla', team: 'enemigo', row: 2, col: 12, className: 'piece--black' },
+      { key: 'dientesDeSable', team: 'enemigo', row: 3, col: 12, className: 'piece--black' },
+      { key: 'boomerang', team: 'enemigo', row: 4, col: 12, className: 'piece--black' },
+      { key: 'juggernaut', team: 'enemigo', row: 5, col: 12, className: 'piece--black' },
+      { key: 'mole', team: 'enemigo', row: 6, col: 12, className: 'piece--black' },
+    ];
+
+    function createPieceElement({ key, team, className }) {
+      const stats = pieceStats[key];
+      const piece = document.createElement('span');
+      piece.className = `piece ${className}`;
+      piece.dataset.team = team;
+      piece.dataset.key = key;
+      piece.setAttribute('role', 'img');
+      piece.setAttribute('aria-label', stats?.name || key);
+      piece.innerHTML = `
+        <img class="piece__image" src="${stats?.imagen || ''}" alt="${stats?.name || key}" />
+        <span class="piece__name">${stats?.name || key}</span>
+      `;
+      return piece;
+    }
+
+    function buildBoard() {
+      board.innerHTML = '';
+      for (let row = 1; row <= BOARD_ROWS; row += 1) {
+        for (let col = 1; col <= BOARD_COLS; col += 1) {
+          const square = document.createElement('div');
+          square.className = 'square';
+          const occupant = initialPositions.find((item) => item.row === row && item.col === col);
+          if (occupant) {
+            square.appendChild(createPieceElement(occupant));
+          }
+          board.appendChild(square);
+        }
+      }
+    }
+
+    buildBoard();
+
     const squares = Array.from(board.querySelectorAll('.square'));
     const tooltip = document.getElementById('tooltip');
     const passButton = document.getElementById('passTurn');
@@ -542,12 +455,10 @@
     const TURN_DELAY_MS = 250;
     const ENEMY_ACTION_DELAY_MS = 500;
 
-    const pieceStats = personajes;
-
     const squaresByCoord = new Map();
     squares.forEach((square, index) => {
-      const row = Math.floor(index / 8) + 1;
-      const col = (index % 8) + 1;
+      const row = Math.floor(index / BOARD_COLS) + 1;
+      const col = (index % BOARD_COLS) + 1;
       square.dataset.row = row;
       square.dataset.col = col;
       squaresByCoord.set(`${row},${col}`, square);
