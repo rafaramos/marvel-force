@@ -1,0 +1,938 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tablero 8x8</title>
+  <style>
+    :root {
+      --square-size: 100px;
+      --board-size: calc(var(--square-size) * 8);
+      --board-color: #1f8a3b;
+      --square-border: #0f4d20;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(180deg, #0f4d20 0%, #0d3618 100%);
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      color: #f4f4f4;
+    }
+
+    .wrapper {
+      text-align: center;
+      max-width: 1400px;
+      padding: 24px 18px 40px;
+    }
+
+    .controls {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .button {
+      background: #f4f4f4;
+      color: #0d3618;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 16px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 6px 14px rgba(0, 0, 0, 0.25);
+      transition: transform 120ms ease, box-shadow 120ms ease, background 120ms ease;
+    }
+
+    .button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+      background: #ffffff;
+    }
+
+    .button:active {
+      transform: translateY(0);
+      box-shadow: 0 6px 14px rgba(0, 0, 0, 0.28);
+    }
+
+    .button--primary {
+      background: #f17c00;
+      color: #fff8f0;
+    }
+
+    .button--primary:hover {
+      background: #ff9400;
+    }
+
+    .button--pulse {
+      animation: pulse 0.8s ease-in-out infinite;
+      box-shadow: 0 0 0 0 rgba(241, 124, 0, 0.65);
+    }
+
+    @keyframes pulse {
+      0% {
+        box-shadow: 0 0 0 0 rgba(241, 124, 0, 0.65);
+      }
+      70% {
+        box-shadow: 0 0 0 12px rgba(241, 124, 0, 0);
+      }
+      100% {
+        box-shadow: 0 0 0 0 rgba(241, 124, 0, 0);
+      }
+    }
+
+    .board {
+      width: calc(var(--board-size) + 16px);
+      height: calc(var(--board-size) + 16px);
+      display: grid;
+      grid-template-columns: repeat(8, var(--square-size));
+      grid-template-rows: repeat(8, var(--square-size));
+      background-color: var(--board-color);
+      border: 8px solid #0b2a13;
+      border-radius: 12px;
+      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.35);
+      overflow: hidden;
+      box-sizing: content-box;
+      justify-self: center;
+    }
+
+    .square {
+      position: relative;
+      width: var(--square-size);
+      height: var(--square-size);
+      border: 1px solid var(--square-border);
+      background-color: var(--board-color);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .piece {
+      position: absolute;
+      width: 70%;
+      height: 70%;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      border-radius: 50%;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.35);
+      border: 3px solid rgba(255, 255, 255, 0.3);
+      display: grid;
+      place-items: center;
+      color: #0d0d0d;
+      font-weight: 700;
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
+      text-shadow: 0 1px 2px rgba(255, 255, 255, 0.55), 0 0 6px rgba(0, 0, 0, 0.35);
+      z-index: 3;
+    }
+
+    .piece--white {
+      background: radial-gradient(circle at 30% 30%, #ffffff, #dcdcdc 60%, #b3b3b3);
+    }
+
+    .piece--black {
+      background: radial-gradient(circle at 30% 30%, #555, #1f1f1f 60%, #0a0a0a);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .piece--red {
+      background: radial-gradient(circle at 30% 30%, #ffdddd, #c62828 65%, #8b0000);
+      border-color: rgba(255, 255, 255, 0.25);
+    }
+
+    .piece--violet {
+      background: radial-gradient(circle at 30% 30%, #f5e9ff, #8e44ad 60%, #4a148c);
+      border-color: rgba(255, 255, 255, 0.3);
+    }
+
+    .piece--active {
+      outline: 4px solid #fbd34d;
+      outline-offset: 1px;
+      box-shadow: 0 0 0 5px rgba(251, 211, 77, 0.4);
+      animation: blink 1s ease-in-out infinite alternate;
+    }
+
+    @keyframes blink {
+      from {
+        filter: brightness(1);
+      }
+      to {
+        filter: brightness(1.25);
+      }
+    }
+
+    .square::before,
+    .square::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 120ms ease;
+    }
+
+    .square::before {
+      z-index: 1;
+    }
+
+    .square::after {
+      z-index: 2;
+    }
+
+    .square--range::after {
+      opacity: 1;
+      box-shadow: inset 0 0 0 5px rgba(255, 132, 0, 0.45);
+      background: radial-gradient(circle at 50% 50%, rgba(255, 132, 0, 0.28), transparent 65%);
+    }
+
+    .square--target {
+      box-shadow: inset 0 0 0 4px rgba(255, 171, 64, 0.9), inset 0 0 0 7px rgba(255, 171, 64, 0.35);
+    }
+
+    .square--move::before {
+      opacity: 1;
+      box-shadow: inset 0 0 0 4px rgba(0, 0, 0, 0.45);
+      background: radial-gradient(circle at 50% 50%, rgba(0, 0, 0, 0.28), transparent 70%);
+    }
+
+    .tooltip {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: #0f4d20;
+      color: #f4f4f4;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 12px;
+      padding: 14px 16px;
+      box-shadow: 0 16px 32px rgba(0, 0, 0, 0.4);
+      pointer-events: none;
+      white-space: nowrap;
+      font-size: 0.95rem;
+      z-index: 20;
+      min-width: 240px;
+    }
+
+    .tooltip h3 {
+      margin: 0 0 6px;
+      font-size: 1rem;
+    }
+
+    .tooltip ul {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 4px 8px;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 260px auto 260px;
+      gap: 16px;
+      align-items: center;
+    }
+
+    .card-panel {
+      background: rgba(0, 0, 0, 0.25);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 12px;
+      padding: 12px;
+      box-shadow: 0 10px 22px rgba(0, 0, 0, 0.35);
+    }
+
+    .card-panel h3 {
+      margin: 0 0 8px;
+      font-size: 1rem;
+      letter-spacing: 0.02em;
+    }
+
+    .life-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .life-card {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(15, 77, 32, 0.65);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 10px;
+      padding: 8px 10px;
+      font-weight: 700;
+      color: #f4f4f4;
+      text-align: left;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    }
+
+    .life-card__name {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .life-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      display: inline-block;
+      border: 1px solid rgba(0, 0, 0, 0.4);
+      box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.25);
+    }
+
+    .life-value {
+      font-variant-numeric: tabular-nums;
+    }
+
+    .status-bar {
+      margin-bottom: 12px;
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      align-items: center;
+      font-weight: 700;
+    }
+  </style>
+</head>
+<body>
+  <main class="wrapper">
+    <div class="controls" aria-label="Controles de turno">
+      <button class="button" id="passTurn" type="button">Pasar</button>
+      <button class="button button--primary" id="attack" type="button">Atacar</button>
+    </div>
+    <div class="status-bar" aria-live="polite">
+      <span id="turnInfo">Turno:</span>
+      <span id="movementInfo"></span>
+    </div>
+    <div id="combatInfo" aria-live="polite" style="margin-bottom: 12px; font-weight: 700;"></div>
+
+    <div class="layout">
+      <aside class="card-panel" aria-label="Vida aliados">
+        <h3>Aliados</h3>
+        <div class="life-list" id="allyCards"></div>
+      </aside>
+
+      <section class="board" aria-label="Tablero de 64 cuadros verdes">
+        <!-- Fila 1 -->
+        <div class="square"><span class="piece piece--white" role="img" aria-label="Ficha blanca">Avispa</span></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"><span class="piece piece--black" role="img" aria-label="Ficha negra">Spider-man</span></div>
+
+        <!-- Fila 2 -->
+        <div class="square"><span class="piece piece--red" role="img" aria-label="Ficha roja">Hulk</span></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"><span class="piece piece--black" role="img" aria-label="Ficha negra">Lobezno</span></div>
+
+        <!-- Fila 3 -->
+        <div class="square"><span class="piece piece--violet" role="img" aria-label="Ficha violeta">Capitán América</span></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"><span class="piece piece--black" role="img" aria-label="Ficha negra">Cíclope</span></div>
+
+        <!-- Fila 4 -->
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+
+        <!-- Fila 5 -->
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+
+        <!-- Fila 6 -->
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+
+        <!-- Fila 7 -->
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+
+        <!-- Fila 8 -->
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+      </section>
+
+      <aside class="card-panel" aria-label="Vida enemigos">
+        <h3>Enemigos</h3>
+        <div class="life-list" id="enemyCards"></div>
+      </aside>
+    </div>
+  </main>
+  <div id="tooltip" class="tooltip" hidden></div>
+
+  <script>
+    const board = document.querySelector('.board');
+    const squares = Array.from(board.querySelectorAll('.square'));
+    const tooltip = document.getElementById('tooltip');
+    const passButton = document.getElementById('passTurn');
+    const attackButton = document.getElementById('attack');
+    const turnInfo = document.getElementById('turnInfo');
+    const movementInfo = document.getElementById('movementInfo');
+    const allyCards = document.getElementById('allyCards');
+    const enemyCards = document.getElementById('enemyCards');
+
+    const pieceStats = {
+      avispa: {
+        name: 'Avispa',
+        movimiento: 8,
+        ataque: 8,
+        defensa: 18,
+        danoCC: 2,
+        danoAD: 2,
+        resistenciaCC: 0,
+        resistenciaAD: 0,
+        rango: 3,
+        vida: 5,
+        agilidad: 20,
+      },
+      hulk: {
+        name: 'Hulk',
+        movimiento: 9,
+        ataque: 11,
+        defensa: 17,
+        danoCC: 5,
+        danoAD: 5,
+        resistenciaCC: 2,
+        resistenciaAD: 2,
+        rango: 1,
+        vida: 10,
+        agilidad: 10,
+      },
+      capitan: {
+        name: 'Capitán América',
+        movimiento: 8,
+        ataque: 10,
+        defensa: 17,
+        danoCC: 2,
+        danoAD: 2,
+        resistenciaCC: 0,
+        resistenciaAD: 2,
+        rango: 3,
+        vida: 8,
+        agilidad: 40,
+      },
+      negra1: {
+        name: 'Spider-man',
+        movimiento: 10,
+        ataque: 12,
+        defensa: 18,
+        danoCC: 2,
+        danoAD: 2,
+        resistenciaCC: 0,
+        resistenciaAD: 0,
+        rango: 2,
+        vida: 9,
+        agilidad: 50,
+      },
+      negra2: {
+        name: 'Lobezno',
+        movimiento: 8,
+        ataque: 10,
+        defensa: 16,
+        danoCC: 2,
+        danoAD: 2,
+        resistenciaCC: 1,
+        resistenciaAD: 1,
+        rango: 1,
+        vida: 8,
+        agilidad: 30,
+      },
+      negra3: {
+        name: 'Cíclope',
+        movimiento: 6,
+        ataque: 11,
+        defensa: 15,
+        danoCC: 2,
+        danoAD: 4,
+        resistenciaCC: 0,
+        resistenciaAD: 0,
+        rango: 10,
+        vida: 5,
+        agilidad: 20,
+      },
+    };
+
+    squares.forEach((square, index) => {
+      const row = Math.floor(index / 8) + 1;
+      const col = (index % 8) + 1;
+      square.dataset.row = row;
+      square.dataset.col = col;
+    });
+
+    const pieceMap = new Map();
+
+    function pieceColor(element) {
+      if (element.classList.contains('piece--white')) return '#dcdcdc';
+      if (element.classList.contains('piece--red')) return '#c62828';
+      if (element.classList.contains('piece--violet')) return '#8e44ad';
+      return '#1f1f1f';
+    }
+
+    function attachPieceData(piece, key, team) {
+      const stats = { ...pieceStats[key], currentVida: pieceStats[key].vida };
+      piece.dataset.key = key;
+      piece.dataset.team = team;
+      piece.dataset.rango = stats.rango;
+      piece.dataset.movimiento = stats.movimiento;
+      piece.dataset.stats = JSON.stringify(stats);
+      pieceMap.set(piece, stats);
+    }
+
+    const pieces = [
+      { element: document.querySelector('.piece--white'), key: 'avispa', team: 'aliado' },
+      { element: document.querySelector('.piece--red'), key: 'hulk', team: 'aliado' },
+      { element: document.querySelector('.piece--violet'), key: 'capitan', team: 'aliado' },
+      ...Array.from(board.querySelectorAll('.piece--black')).map((element, index) => ({
+        element,
+        key: `negra${index + 1}`,
+        team: 'enemigo',
+      })),
+    ];
+
+    pieces.forEach(({ element, key, team }) => {
+      if (element) {
+        attachPieceData(element, key, team);
+      }
+    });
+
+    function renderLifeCards() {
+      allyCards.innerHTML = '';
+      enemyCards.innerHTML = '';
+
+      pieces.forEach(({ element }) => {
+        if (!element) return;
+        const stats = pieceMap.get(element);
+        const container = element.dataset.team === 'aliado' ? allyCards : enemyCards;
+        const card = document.createElement('div');
+        card.className = 'life-card';
+        card.innerHTML = `
+          <span class="life-card__name"><span class="life-dot" style="background:${pieceColor(
+            element
+          )}"></span>${stats.name}</span>
+          <span class="life-value">Vida: ${Math.max(stats.currentVida, 0)}</span>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    renderLifeCards();
+
+    const turnOrder = pieces
+      .map(({ element }) => element)
+      .filter(Boolean)
+      .sort((a, b) => {
+        const statsA = pieceMap.get(a);
+        const statsB = pieceMap.get(b);
+        if (statsA.agilidad === statsB.agilidad) {
+          return Math.random() < 0.5 ? -1 : 1;
+        }
+        return statsB.agilidad - statsA.agilidad;
+      });
+
+    let turnIndex = 0;
+    let selectedTarget = null;
+    let pendingAttackInfo = null;
+
+    function getPieceSquare(piece) {
+      return piece.closest('.square');
+    }
+
+    function clearMoveHighlights() {
+      squares.forEach((square) => square.classList.remove('square--move'));
+    }
+
+    function clearRangeHighlights() {
+      squares.forEach((square) => square.classList.remove('square--range', 'square--target'));
+    }
+
+    function clearHighlights() {
+      clearMoveHighlights();
+      clearRangeHighlights();
+      tooltip.hidden = true;
+      selectedTarget = null;
+    }
+
+    function highlightMovement(piece) {
+      const parent = getPieceSquare(piece);
+      if (!parent) return;
+      const row = Number(parent.dataset.row);
+      const col = Number(parent.dataset.col);
+      const maxMove = remainingMovement(piece);
+      if (maxMove <= 0) return;
+      squares.forEach((square) => {
+        const targetRow = Number(square.dataset.row);
+        const targetCol = Number(square.dataset.col);
+        const manhattan = Math.abs(targetRow - row) + Math.abs(targetCol - col);
+        if (manhattan > 0 && manhattan <= maxMove) {
+          square.classList.add('square--move');
+        }
+      });
+    }
+
+    function isWithinAttackRange(attackerSquare, targetSquare, maxRange) {
+      const attackerRow = Number(attackerSquare.dataset.row);
+      const attackerCol = Number(attackerSquare.dataset.col);
+      const targetRow = Number(targetSquare.dataset.row);
+      const targetCol = Number(targetSquare.dataset.col);
+      const distance = Math.abs(targetRow - attackerRow) + Math.abs(targetCol - attackerCol);
+      return distance > 0 && distance <= maxRange;
+    }
+
+    function highlightRange(piece) {
+      clearRangeHighlights();
+      const origin = getPieceSquare(piece);
+      if (!origin) return;
+      const maxRange = rangeForPiece(piece);
+      if (maxRange <= 0) return;
+      squares.forEach((square) => {
+        if (isWithinAttackRange(origin, square, maxRange)) {
+          square.classList.add('square--range');
+        }
+      });
+    }
+
+    function setActivePiece(piece) {
+      document.querySelectorAll('.piece').forEach((p) => p.classList.remove('piece--active'));
+      piece.classList.add('piece--active');
+      updateStatusBar(piece);
+      updateCombatInfo();
+    }
+
+    function updateStatusBar(piece) {
+      const stats = pieceMap.get(piece);
+      if (!stats) return;
+      turnInfo.textContent = `Turno: ${stats.name}`;
+      movementInfo.textContent = `Movimiento restante: ${remainingMovement(piece)}`;
+    }
+
+    function attackDistance(attackerSquare, targetSquare) {
+      return (
+        Math.abs(Number(attackerSquare.dataset.row) - Number(targetSquare.dataset.row)) +
+        Math.abs(Number(attackerSquare.dataset.col) - Number(targetSquare.dataset.col))
+      );
+    }
+
+    function calculateDamage(attackerStats, defenderStats, distance, isCritical) {
+      const isMelee = distance <= 1;
+      const baseDamage = isMelee ? attackerStats.danoCC : attackerStats.danoAD;
+      const resistance = isMelee ? defenderStats.resistenciaCC : defenderStats.resistenciaAD;
+      const totalDamage = Math.max((isCritical ? baseDamage * 2 : baseDamage) - resistance, 0);
+      return { totalDamage, isMelee };
+    }
+
+    function eliminatePiece(piece) {
+      const index = turnOrder.indexOf(piece);
+      if (index !== -1) {
+        turnOrder.splice(index, 1);
+        if (index <= turnIndex && turnIndex > 0) {
+          turnIndex -= 1;
+        }
+      }
+      piece.dataset.eliminated = 'true';
+      piece.remove();
+    }
+
+    function rangeForPiece(piece) {
+      const r = parseInt(piece.dataset.rango, 10);
+      return r === 0 ? 1 : r;
+    }
+
+    function showTooltip(piece) {
+      const stats = pieceMap.get(piece);
+      if (!stats) return;
+      tooltip.innerHTML = `
+        <h3>${stats.name}</h3>
+        <ul>
+          <li>Mov: ${stats.movimiento}</li>
+          <li>Atk: ${stats.ataque}</li>
+          <li>Def: ${stats.defensa}</li>
+          <li>C/C: ${stats.danoCC}</li>
+          <li>A/D: ${stats.danoAD}</li>
+          <li>Res C/C: ${stats.resistenciaCC}</li>
+          <li>Res A/D: ${stats.resistenciaAD}</li>
+          <li>Rango: ${stats.rango}</li>
+          <li>Vida: ${Math.max(stats.currentVida, 0)}</li>
+          <li>Agilidad: ${stats.agilidad}</li>
+        </ul>
+      `;
+      tooltip.hidden = false;
+    }
+
+    function positionTooltip(target) {
+      tooltip.style.left = '50%';
+      tooltip.style.top = '50%';
+    }
+
+    function hideTooltip() {
+      tooltip.hidden = true;
+    }
+
+    function updateCombatInfo() {
+      const combatBox = document.getElementById('combatInfo');
+      if (!pendingAttackInfo) {
+        combatBox.textContent = '';
+        return;
+      }
+      const { attacker, defender, difference, roll, success, critical, damage, defenderVida, attackerName, defenderName } =
+        pendingAttackInfo;
+      let rollText = roll ? ` | Tirada 2d6: ${roll}` : '';
+      let successText = '';
+      if (roll) {
+        successText = success ? critical ? ' (Crítico)' : ' (Éxito)' : ' (Fallo)';
+      }
+      const damageText = roll ? ` | Daño: ${damage} | Vida defensor: ${defenderVida}` : '';
+      combatBox.textContent = `Ataque ${attackerName} (${attacker}) vs ${defenderName} (${defender}) | Diferencia: ${difference}${rollText}${successText}${damageText}`;
+    }
+
+    function prepareAttackInfo(attacker, defender) {
+      const attackerStats = pieceMap.get(attacker);
+      const defenderStats = pieceMap.get(defender);
+      pendingAttackInfo = {
+        attacker: attackerStats.ataque,
+        defender: defenderStats.defensa,
+        difference: attackerStats.ataque - defenderStats.defensa,
+        roll: null,
+        success: null,
+        critical: false,
+        damage: 0,
+        defenderVida: defenderStats.currentVida,
+        attackerName: attackerStats.name,
+        defenderName: defenderStats.name,
+      };
+      attackButton.classList.add('button--pulse');
+      updateCombatInfo();
+    }
+
+    function resolveAttack(attacker, defender) {
+      const attackerStats = pieceMap.get(attacker);
+      const defenderStats = pieceMap.get(defender);
+      const attackerSquare = getPieceSquare(attacker);
+      const targetSquare = getPieceSquare(defender);
+      const distance = attackDistance(attackerSquare, targetSquare);
+
+      const die1 = Math.floor(Math.random() * 6) + 1;
+      const die2 = Math.floor(Math.random() * 6) + 1;
+      const roll = die1 + die2;
+      const critical = roll === 12;
+      let success = false;
+      if (critical) {
+        success = true;
+      } else if (roll === 2) {
+        success = false;
+      } else if (roll + attackerStats.ataque >= defenderStats.defensa) {
+        success = true;
+      }
+
+      const { totalDamage } = calculateDamage(attackerStats, defenderStats, distance, critical);
+      if (success) {
+        defenderStats.currentVida = Math.max(defenderStats.currentVida - totalDamage, 0);
+      }
+
+      pendingAttackInfo = {
+        attacker: attackerStats.ataque,
+        defender: defenderStats.defensa,
+        difference: attackerStats.ataque - defenderStats.defensa,
+        roll,
+        success,
+        critical,
+        damage: success ? totalDamage : 0,
+        defenderVida: defenderStats.currentVida,
+        attackerName: attackerStats.name,
+        defenderName: defenderStats.name,
+      };
+
+      if (success && defenderStats.currentVida <= 0) {
+        eliminatePiece(defender);
+      }
+
+      renderLifeCards();
+      hideTooltip();
+      clearRangeHighlights();
+      selectedTarget = null;
+      attackButton.classList.remove('button--pulse');
+      updateCombatInfo();
+      nextTurn();
+    }
+
+    function clearTargetSelection(preserveAttack = false) {
+      squares.forEach((square) => square.classList.remove('square--target'));
+      selectedTarget = null;
+      if (!preserveAttack) {
+        pendingAttackInfo = null;
+      }
+      attackButton.classList.remove('button--pulse');
+      hideTooltip();
+      updateCombatInfo();
+      if (turnOrder.length > 0) {
+        highlightRange(turnOrder[turnIndex]);
+      }
+    }
+
+    attackButton.addEventListener('click', () => {
+      const attacker = turnOrder[turnIndex];
+      if (!selectedTarget) {
+        alert('Selecciona primero un enemigo dentro de tu rango.');
+        return;
+      }
+      const attackerSquare = getPieceSquare(attacker);
+      const targetSquare = getPieceSquare(selectedTarget);
+      const maxRange = rangeForPiece(attacker);
+      if (!isWithinAttackRange(attackerSquare, targetSquare, maxRange)) {
+        alert('El objetivo está fuera de rango.');
+        return;
+      }
+      resolveAttack(attacker, selectedTarget);
+    });
+
+    const movementPool = new Map();
+
+    function remainingMovement(piece) {
+      return movementPool.get(piece) ?? Number(piece.dataset.movimiento);
+    }
+
+    function resetMovement(piece) {
+      movementPool.set(piece, Number(piece.dataset.movimiento));
+    }
+
+    function spendMovement(piece, amount) {
+      const left = Math.max(remainingMovement(piece) - amount, 0);
+      movementPool.set(piece, left);
+    }
+
+    board.addEventListener('click', (event) => {
+      const square = event.target.closest('.square');
+      if (!square) return;
+
+      const activePiece = turnOrder[turnIndex];
+      const targetPiece = square.querySelector('.piece');
+
+      if (targetPiece && targetPiece !== activePiece) {
+        if (targetPiece.dataset.team === activePiece.dataset.team) return;
+        const attackerSquare = getPieceSquare(activePiece);
+        const maxRange = rangeForPiece(activePiece);
+        if (!isWithinAttackRange(attackerSquare, square, maxRange)) {
+          alert('Objetivo fuera de rango.');
+          clearTargetSelection();
+          return;
+        }
+        clearTargetSelection();
+        square.classList.add('square--target');
+        selectedTarget = targetPiece;
+        prepareAttackInfo(activePiece, targetPiece);
+        return;
+      }
+
+      if (!square.classList.contains('square--move')) return;
+      if (square.querySelector('.piece')) return;
+      const currentSquare = getPieceSquare(activePiece);
+      const distance = attackDistance(currentSquare, square);
+      if (distance > remainingMovement(activePiece)) return;
+      square.appendChild(activePiece);
+      spendMovement(activePiece, distance);
+      clearHighlights();
+      highlightMovement(activePiece);
+      highlightRange(activePiece);
+      updateStatusBar(activePiece);
+    });
+
+    function attachTooltipEvents(piece) {
+      piece.addEventListener('pointerenter', () => {
+        const activePiece = turnOrder[turnIndex];
+        if (piece === activePiece || piece.dataset.team === activePiece.dataset.team) {
+          hideTooltip();
+          return;
+        }
+        showTooltip(piece);
+        positionTooltip(piece);
+      });
+
+      piece.addEventListener('pointerleave', () => {
+        hideTooltip();
+      });
+    }
+
+    pieces.forEach(({ element }) => {
+      if (element) {
+        attachTooltipEvents(element);
+      }
+    });
+
+    function startTurn(piece) {
+      if (!piece) return;
+      resetMovement(piece);
+      setActivePiece(piece);
+      clearTargetSelection(true);
+      clearHighlights();
+      highlightMovement(piece);
+      highlightRange(piece);
+    }
+
+    function nextTurn() {
+      if (turnOrder.length === 0) return;
+      turnIndex = (turnIndex + 1) % turnOrder.length;
+      startTurn(turnOrder[turnIndex]);
+    }
+
+    passButton.addEventListener('click', () => {
+      nextTurn();
+    });
+
+    startTurn(turnOrder[turnIndex]);
+  </script>
+</body>
+</html>
