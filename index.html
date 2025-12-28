@@ -50,10 +50,28 @@
     }
 
     .square {
+      position: relative;
       width: var(--square-size);
       height: var(--square-size);
       border: 1px solid var(--square-border);
       background-color: var(--board-color);
+    }
+
+    .piece {
+      position: absolute;
+      inset: 15%;
+      border-radius: 50%;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.35);
+      border: 3px solid rgba(255, 255, 255, 0.3);
+    }
+
+    .piece--white {
+      background: radial-gradient(circle at 30% 30%, #ffffff, #dcdcdc 60%, #b3b3b3);
+    }
+
+    .piece--black {
+      background: radial-gradient(circle at 30% 30%, #555, #1f1f1f 60%, #0a0a0a);
+      border-color: rgba(255, 255, 255, 0.2);
     }
   </style>
 </head>
@@ -63,7 +81,7 @@
     <section class="board" aria-label="Tablero de 64 cuadros verdes">
       <!-- Generamos 64 cuadros -->
       <!-- Cada cuadro mantiene el fondo verde para que el tablero completo sea verde -->
-      <div class="square"></div><div class="square"></div><div class="square"></div><div class="square"></div><div class="square"></div><div class="square"></div><div class="square"></div><div class="square"></div>
+      <div class="square"><span class="piece piece--white" role="img" aria-label="Ficha blanca"></span></div><div class="square"></div><div class="square"></div><div class="square"></div><div class="square"></div><div class="square"></div><div class="square"></div><div class="square"><span class="piece piece--black" role="img" aria-label="Ficha negra"></span></div>
       <div class="square"></div><div class="square"></div><div class="square"></div><div class="square"></div><div class="square"></div><div class="square"></div><div class="square"></div><div class="square"></div>
       <div class="square"></div><div class="square"></div><div class="square"></div><div class="square"></div><div class="square"></div><div class="square"></div><div class="square"></div><div class="square"></div>
       <div class="square"></div><div class="square"></div><div class="square"></div><div class="square"></div><div class="square"></div><div class="square"></div><div class="square"></div><div class="square"></div>
