@@ -29,7 +29,7 @@
 
     .wrapper {
       text-align: center;
-      max-width: 1180px;
+      max-width: 1400px;
       padding: 24px 18px 40px;
     }
 
@@ -181,18 +181,21 @@
     }
 
     .tooltip {
-      position: absolute;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
       background: #0f4d20;
       color: #f4f4f4;
       border: 1px solid rgba(255, 255, 255, 0.2);
-      border-radius: 8px;
-      padding: 10px 12px;
-      box-shadow: 0 8px 18px rgba(0, 0, 0, 0.35);
+      border-radius: 12px;
+      padding: 14px 16px;
+      box-shadow: 0 16px 32px rgba(0, 0, 0, 0.4);
       pointer-events: none;
       white-space: nowrap;
-      font-size: 0.9rem;
-      z-index: 10;
-      transform: translate(-50%, -110%);
+      font-size: 0.95rem;
+      z-index: 20;
+      min-width: 240px;
     }
 
     .tooltip h3 {
@@ -207,6 +210,66 @@
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 4px 8px;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 260px auto 260px;
+      gap: 16px;
+      align-items: center;
+    }
+
+    .card-panel {
+      background: rgba(0, 0, 0, 0.25);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 12px;
+      padding: 12px;
+      box-shadow: 0 10px 22px rgba(0, 0, 0, 0.35);
+    }
+
+    .card-panel h3 {
+      margin: 0 0 8px;
+      font-size: 1rem;
+      letter-spacing: 0.02em;
+    }
+
+    .life-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .life-card {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(15, 77, 32, 0.65);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 10px;
+      padding: 8px 10px;
+      font-weight: 700;
+      color: #f4f4f4;
+      text-align: left;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    }
+
+    .life-card__name {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .life-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      display: inline-block;
+      border: 1px solid rgba(0, 0, 0, 0.4);
+      box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.25);
+    }
+
+    .life-value {
+      font-variant-numeric: tabular-nums;
     }
 
     .status-bar {
@@ -231,87 +294,99 @@
     </div>
     <div id="combatInfo" aria-live="polite" style="margin-bottom: 12px; font-weight: 700;"></div>
 
-    <section class="board" aria-label="Tablero de 64 cuadros verdes">
-      <!-- Fila 1 -->
-      <div class="square"><span class="piece piece--white" role="img" aria-label="Ficha blanca">Avispa</span></div>
-      <div class="square"></div>
-      <div class="square"></div>
-      <div class="square"></div>
-      <div class="square"></div>
-      <div class="square"></div>
-      <div class="square"></div>
-      <div class="square"><span class="piece piece--black" role="img" aria-label="Ficha negra">Spider-man</span></div>
+    <div class="layout">
+      <aside class="card-panel" aria-label="Vida aliados">
+        <h3>Aliados</h3>
+        <div class="life-list" id="allyCards"></div>
+      </aside>
 
-      <!-- Fila 2 -->
-      <div class="square"><span class="piece piece--red" role="img" aria-label="Ficha roja">Hulk</span></div>
-      <div class="square"></div>
-      <div class="square"></div>
-      <div class="square"></div>
-      <div class="square"></div>
-      <div class="square"></div>
-      <div class="square"></div>
-      <div class="square"><span class="piece piece--black" role="img" aria-label="Ficha negra">Lobezno</span></div>
+      <section class="board" aria-label="Tablero de 64 cuadros verdes">
+        <!-- Fila 1 -->
+        <div class="square"><span class="piece piece--white" role="img" aria-label="Ficha blanca">Avispa</span></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"><span class="piece piece--black" role="img" aria-label="Ficha negra">Spider-man</span></div>
 
-      <!-- Fila 3 -->
-      <div class="square"><span class="piece piece--violet" role="img" aria-label="Ficha violeta">Capitán América</span></div>
-      <div class="square"></div>
-      <div class="square"></div>
-      <div class="square"></div>
-      <div class="square"></div>
-      <div class="square"></div>
-      <div class="square"></div>
-      <div class="square"><span class="piece piece--black" role="img" aria-label="Ficha negra">Cíclope</span></div>
+        <!-- Fila 2 -->
+        <div class="square"><span class="piece piece--red" role="img" aria-label="Ficha roja">Hulk</span></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"><span class="piece piece--black" role="img" aria-label="Ficha negra">Lobezno</span></div>
 
-      <!-- Fila 4 -->
-      <div class="square"></div>
-      <div class="square"></div>
-      <div class="square"></div>
-      <div class="square"></div>
-      <div class="square"></div>
-      <div class="square"></div>
-      <div class="square"></div>
-      <div class="square"></div>
+        <!-- Fila 3 -->
+        <div class="square"><span class="piece piece--violet" role="img" aria-label="Ficha violeta">Capitán América</span></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"><span class="piece piece--black" role="img" aria-label="Ficha negra">Cíclope</span></div>
 
-      <!-- Fila 5 -->
-      <div class="square"></div>
-      <div class="square"></div>
-      <div class="square"></div>
-      <div class="square"></div>
-      <div class="square"></div>
-      <div class="square"></div>
-      <div class="square"></div>
-      <div class="square"></div>
+        <!-- Fila 4 -->
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
 
-      <!-- Fila 6 -->
-      <div class="square"></div>
-      <div class="square"></div>
-      <div class="square"></div>
-      <div class="square"></div>
-      <div class="square"></div>
-      <div class="square"></div>
-      <div class="square"></div>
-      <div class="square"></div>
+        <!-- Fila 5 -->
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
 
-      <!-- Fila 7 -->
-      <div class="square"></div>
-      <div class="square"></div>
-      <div class="square"></div>
-      <div class="square"></div>
-      <div class="square"></div>
-      <div class="square"></div>
-      <div class="square"></div>
-      <div class="square"></div>
+        <!-- Fila 6 -->
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
 
-      <!-- Fila 8 -->
-      <div class="square"></div>
-      <div class="square"></div>
-      <div class="square"></div>
-      <div class="square"></div>
-      <div class="square"></div>
-      <div class="square"></div>
-      <div class="square"></div>
-      <div class="square"></div>
-    </section>
+        <!-- Fila 7 -->
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+
+        <!-- Fila 8 -->
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+        <div class="square"></div>
+      </section>
+
+      <aside class="card-panel" aria-label="Vida enemigos">
+        <h3>Enemigos</h3>
+        <div class="life-list" id="enemyCards"></div>
+      </aside>
+    </div>
   </main>
   <div id="tooltip" class="tooltip" hidden></div>
 
@@ -323,6 +398,8 @@
     const attackButton = document.getElementById('attack');
     const turnInfo = document.getElementById('turnInfo');
     const movementInfo = document.getElementById('movementInfo');
+    const allyCards = document.getElementById('allyCards');
+    const enemyCards = document.getElementById('enemyCards');
 
     const pieceStats = {
       avispa: {
@@ -414,6 +491,13 @@
 
     const pieceMap = new Map();
 
+    function pieceColor(element) {
+      if (element.classList.contains('piece--white')) return '#dcdcdc';
+      if (element.classList.contains('piece--red')) return '#c62828';
+      if (element.classList.contains('piece--violet')) return '#8e44ad';
+      return '#1f1f1f';
+    }
+
     function attachPieceData(piece, key, team) {
       const stats = pieceStats[key];
       piece.dataset.key = key;
@@ -440,6 +524,28 @@
         attachPieceData(element, key, team);
       }
     });
+
+    function renderLifeCards() {
+      allyCards.innerHTML = '';
+      enemyCards.innerHTML = '';
+
+      pieces.forEach(({ element }) => {
+        if (!element) return;
+        const stats = pieceMap.get(element);
+        const container = element.dataset.team === 'aliado' ? allyCards : enemyCards;
+        const card = document.createElement('div');
+        card.className = 'life-card';
+        card.innerHTML = `
+          <span class="life-card__name"><span class="life-dot" style="background:${pieceColor(
+            element
+          )}"></span>${stats.name}</span>
+          <span class="life-value">Vida: ${stats.vida}</span>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    renderLifeCards();
 
     const turnOrder = pieces
       .map(({ element }) => element)
@@ -525,9 +631,8 @@
     }
 
     function positionTooltip(target) {
-      const rect = target.getBoundingClientRect();
-      tooltip.style.left = `${rect.left + rect.width / 2}px`;
-      tooltip.style.top = `${rect.top - 12}px`;
+      tooltip.style.left = '50%';
+      tooltip.style.top = '50%';
     }
 
     function hideTooltip() {
