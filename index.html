@@ -611,7 +611,7 @@
           const nr = row + dr;
           const nc = col + dc;
           const key = `${nr},${nc}`;
-          if (nr < 1 || nr > 8 || nc < 1 || nc > 8) continue;
+          if (nr < 1 || nr > BOARD_ROWS || nc < 1 || nc > BOARD_COLS) continue;
           const nextCost = cost + 1;
           if (nextCost > maxMove) continue;
           if (visited.has(key) && visited.get(key) <= nextCost) continue;
