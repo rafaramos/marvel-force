@@ -152,11 +152,26 @@
       outline: 4px solid #fbd34d;
       outline-offset: 1px;
       box-shadow: 0 0 0 5px rgba(251, 211, 77, 0.4);
+      animation: blink 1s ease-in-out infinite alternate;
+    }
+
+    @keyframes blink {
+      from {
+        filter: brightness(1);
+      }
+      to {
+        filter: brightness(1.25);
+      }
     }
 
     .square--range {
       box-shadow: inset 0 0 0 4px rgba(255, 132, 0, 0.5);
       background: radial-gradient(circle at 50% 50%, rgba(255, 132, 0, 0.25), transparent 65%);
+    }
+
+    .square--move {
+      box-shadow: inset 0 0 0 4px rgba(0, 0, 0, 0.55);
+      background: radial-gradient(circle at 50% 50%, rgba(0, 0, 0, 0.3), transparent 70%);
     }
 
     .tooltip {
@@ -306,7 +321,7 @@
         <div class="square"></div>
         <div class="square"></div>
         <div class="square"></div>
-        <div class="square"><span class="piece piece--black" role="img" aria-label="Ficha negra"></span></div>
+        <div class="square"><span class="piece piece--black" role="img" aria-label="Ficha negra">Spider-man</span></div>
 
         <!-- Fila 2 -->
         <div class="square"><span class="piece piece--red" role="img" aria-label="Ficha roja">Hulk</span></div>
@@ -316,7 +331,7 @@
         <div class="square"></div>
         <div class="square"></div>
         <div class="square"></div>
-        <div class="square"><span class="piece piece--black" role="img" aria-label="Ficha negra"></span></div>
+        <div class="square"><span class="piece piece--black" role="img" aria-label="Ficha negra">Lobezno</span></div>
 
         <!-- Fila 3 -->
         <div class="square"><span class="piece piece--violet" role="img" aria-label="Ficha violeta">Capitán América</span></div>
@@ -326,7 +341,7 @@
         <div class="square"></div>
         <div class="square"></div>
         <div class="square"></div>
-        <div class="square"><span class="piece piece--black" role="img" aria-label="Ficha negra"></span></div>
+        <div class="square"><span class="piece piece--black" role="img" aria-label="Ficha negra">Cíclope</span></div>
 
         <!-- Fila 4 -->
         <div class="square"></div>
@@ -381,48 +396,48 @@
 
       <section class="roster" aria-label="Características de las fichas negras">
         <article class="card">
-          <h2><span class="swatch piece--black"></span> Negra I</h2>
+          <h2><span class="swatch piece--black"></span> Spider-man</h2>
           <ul class="stats">
-            <li>Movimiento: 2</li>
-            <li>Ataque: 5</li>
-            <li>Defensa: 6</li>
-            <li>Daño c/c: 4</li>
-            <li>Daño a/d: 3</li>
-            <li>Resistencia c/c: 6</li>
-            <li>Resistencia a/d: 5</li>
-            <li>Rango: 2</li>
-            <li>Vida: 13</li>
-            <li>Agilidad: 3</li>
-          </ul>
-        </article>
-        <article class="card">
-          <h2><span class="swatch piece--black"></span> Negra II</h2>
-          <ul class="stats">
-            <li>Movimiento: 3</li>
-            <li>Ataque: 6</li>
-            <li>Defensa: 4</li>
-            <li>Daño c/c: 5</li>
+            <li>Movimiento: 10</li>
+            <li>Ataque: 12</li>
+            <li>Defensa: 18</li>
+            <li>Daño c/c: 2</li>
             <li>Daño a/d: 2</li>
-            <li>Resistencia c/c: 4</li>
-            <li>Resistencia a/d: 4</li>
-            <li>Rango: 3</li>
+            <li>Resistencia c/c: 0</li>
+            <li>Resistencia a/d: 0</li>
+            <li>Distancia máxima: 2</li>
             <li>Vida: 9</li>
-            <li>Agilidad: 5</li>
+            <li>Agilidad: 50</li>
           </ul>
         </article>
         <article class="card">
-          <h2><span class="swatch piece--black"></span> Negra III</h2>
+          <h2><span class="swatch piece--black"></span> Lobezno</h2>
           <ul class="stats">
-            <li>Movimiento: 1</li>
-            <li>Ataque: 8</li>
-            <li>Defensa: 5</li>
-            <li>Daño c/c: 6</li>
-            <li>Daño a/d: 1</li>
-            <li>Resistencia c/c: 5</li>
-            <li>Resistencia a/d: 2</li>
-            <li>Rango: 1</li>
-            <li>Vida: 15</li>
-            <li>Agilidad: 2</li>
+            <li>Movimiento: 8</li>
+            <li>Ataque: 10</li>
+            <li>Defensa: 16</li>
+            <li>Daño c/c: 2</li>
+            <li>Daño a/d: 2</li>
+            <li>Resistencia c/c: 1</li>
+            <li>Resistencia a/d: 1</li>
+            <li>Distancia máxima: 0</li>
+            <li>Vida: 8</li>
+            <li>Agilidad: 30</li>
+          </ul>
+        </article>
+        <article class="card">
+          <h2><span class="swatch piece--black"></span> Cíclope</h2>
+          <ul class="stats">
+            <li>Movimiento: 6</li>
+            <li>Ataque: 11</li>
+            <li>Defensa: 15</li>
+            <li>Daño c/c: 2</li>
+            <li>Daño a/d: 4</li>
+            <li>Resistencia c/c: 0</li>
+            <li>Resistencia a/d: 0</li>
+            <li>Distancia máxima: 10</li>
+            <li>Vida: 5</li>
+            <li>Agilidad: 20</li>
           </ul>
         </article>
       </section>
@@ -478,43 +493,43 @@
         agilidad: 40,
       },
       negra1: {
-        name: 'Negra I',
-        movimiento: 2,
-        ataque: 5,
-        defensa: 6,
-        danoCC: 4,
-        danoAD: 3,
-        resistenciaCC: 6,
-        resistenciaAD: 5,
+        name: 'Spider-man',
+        movimiento: 10,
+        ataque: 12,
+        defensa: 18,
+        danoCC: 2,
+        danoAD: 2,
+        resistenciaCC: 0,
+        resistenciaAD: 0,
         rango: 2,
-        vida: 13,
-        agilidad: 3,
+        vida: 9,
+        agilidad: 50,
       },
       negra2: {
-        name: 'Negra II',
-        movimiento: 3,
-        ataque: 6,
-        defensa: 4,
-        danoCC: 5,
+        name: 'Lobezno',
+        movimiento: 8,
+        ataque: 10,
+        defensa: 16,
+        danoCC: 2,
         danoAD: 2,
-        resistenciaCC: 4,
-        resistenciaAD: 4,
-        rango: 3,
-        vida: 9,
-        agilidad: 5,
+        resistenciaCC: 1,
+        resistenciaAD: 1,
+        rango: 0,
+        vida: 8,
+        agilidad: 30,
       },
       negra3: {
-        name: 'Negra III',
-        movimiento: 1,
-        ataque: 8,
-        defensa: 5,
-        danoCC: 6,
-        danoAD: 1,
-        resistenciaCC: 5,
-        resistenciaAD: 2,
-        rango: 1,
-        vida: 15,
-        agilidad: 2,
+        name: 'Cíclope',
+        movimiento: 6,
+        ataque: 11,
+        defensa: 15,
+        danoCC: 2,
+        danoAD: 4,
+        resistenciaCC: 0,
+        resistenciaAD: 0,
+        rango: 10,
+        vida: 5,
+        agilidad: 20,
       },
     };
 
@@ -532,6 +547,7 @@
       piece.dataset.key = key;
       piece.dataset.team = team;
       piece.dataset.rango = stats.rango;
+      piece.dataset.movimiento = stats.movimiento;
       piece.dataset.stats = JSON.stringify(stats);
       pieceMap.set(piece, stats);
     }
@@ -555,7 +571,15 @@
 
     const turnOrder = pieces
       .map(({ element }) => element)
-      .filter(Boolean);
+      .filter(Boolean)
+      .sort((a, b) => {
+        const statsA = pieceMap.get(a);
+        const statsB = pieceMap.get(b);
+        if (statsA.agilidad === statsB.agilidad) {
+          return Math.random() < 0.5 ? -1 : 1;
+        }
+        return statsB.agilidad - statsA.agilidad;
+      });
 
     let turnIndex = 0;
     let attackMode = false;
@@ -565,13 +589,31 @@
     }
 
     function clearHighlights() {
-      squares.forEach((square) => square.classList.remove('square--range'));
+      squares.forEach((square) => square.classList.remove('square--range', 'square--move'));
       tooltip.hidden = true;
+    }
+
+    function highlightMovement(piece) {
+      const parent = getPieceSquare(piece);
+      if (!parent) return;
+      const row = Number(parent.dataset.row);
+      const col = Number(parent.dataset.col);
+      const maxMove = Number(piece.dataset.movimiento);
+      squares.forEach((square) => {
+        const targetRow = Number(square.dataset.row);
+        const targetCol = Number(square.dataset.col);
+        const manhattan = Math.abs(targetRow - row) + Math.abs(targetCol - col);
+        if (manhattan > 0 && manhattan <= maxMove) {
+          square.classList.add('square--move');
+        }
+      });
     }
 
     function setActivePiece(piece) {
       document.querySelectorAll('.piece').forEach((p) => p.classList.remove('piece--active'));
       piece.classList.add('piece--active');
+      clearHighlights();
+      highlightMovement(piece);
     }
 
     function rangeForPiece(piece) {
@@ -665,18 +707,28 @@
     });
 
     board.addEventListener('click', (event) => {
-      if (!attackMode) return;
-      const targetPiece = event.target.closest('.piece');
-      if (!targetPiece) return;
-      const attacker = turnOrder[turnIndex];
-      if (targetPiece.dataset.team === attacker.dataset.team) return;
-      const square = getPieceSquare(targetPiece);
-      if (!square.classList.contains('square--range')) return;
-      const confirmAttack = window.confirm(`¿${attacker.textContent} ataca a ${targetPiece.textContent}?`);
-      if (confirmAttack) {
-        hideTooltip();
-        alert(`${attacker.textContent} atacó a ${targetPiece.textContent}.`);
-        nextTurn();
+      const square = event.target.closest('.square');
+      if (!square) return;
+
+      const activePiece = turnOrder[turnIndex];
+
+      if (attackMode) {
+        const targetPiece = event.target.closest('.piece');
+        if (!targetPiece) return;
+        if (targetPiece.dataset.team === activePiece.dataset.team) return;
+        if (!square.classList.contains('square--range')) return;
+        const confirmAttack = window.confirm(`¿${activePiece.textContent} ataca a ${targetPiece.textContent}?`);
+        if (confirmAttack) {
+          hideTooltip();
+          alert(`${activePiece.textContent} atacó a ${targetPiece.textContent}.`);
+          nextTurn();
+        }
+      } else {
+        if (!square.classList.contains('square--move')) return;
+        if (square.querySelector('.piece')) return;
+        square.appendChild(activePiece);
+        clearHighlights();
+        highlightMovement(activePiece);
       }
     });
 
