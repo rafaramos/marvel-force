@@ -603,19 +603,23 @@
       });
     }
 
+    function isWithinAttackRange(attackerSquare, targetSquare, maxRange) {
+      const attackerRow = Number(attackerSquare.dataset.row);
+      const attackerCol = Number(attackerSquare.dataset.col);
+      const targetRow = Number(targetSquare.dataset.row);
+      const targetCol = Number(targetSquare.dataset.col);
+      const distance = Math.abs(targetRow - attackerRow) + Math.abs(targetCol - attackerCol);
+      return distance > 0 && distance <= maxRange && (attackerRow === targetRow || attackerCol === targetCol);
+    }
+
     function highlightRange(piece) {
       clearRangeHighlights();
       const origin = getPieceSquare(piece);
       if (!origin) return;
-      const row = Number(origin.dataset.row);
-      const col = Number(origin.dataset.col);
       const maxRange = rangeForPiece(piece);
       if (maxRange <= 0) return;
       squares.forEach((square) => {
-        const targetRow = Number(square.dataset.row);
-        const targetCol = Number(square.dataset.col);
-        const manhattan = Math.abs(targetRow - row) + Math.abs(targetCol - col);
-        if (manhattan > 0 && manhattan <= maxRange) {
+        if (isWithinAttackRange(origin, square, maxRange)) {
           square.classList.add('square--range');
         }
       });
@@ -748,11 +752,8 @@
       }
       const attackerSquare = getPieceSquare(attacker);
       const targetSquare = getPieceSquare(selectedTarget);
-      const manhattan =
-        Math.abs(Number(attackerSquare.dataset.row) - Number(targetSquare.dataset.row)) +
-        Math.abs(Number(attackerSquare.dataset.col) - Number(targetSquare.dataset.col));
       const maxRange = rangeForPiece(attacker);
-      if (manhattan > maxRange) {
+      if (!isWithinAttackRange(attackerSquare, targetSquare, maxRange)) {
         alert('El objetivo está fuera de rango.');
         return;
       }
@@ -784,11 +785,8 @@
       if (targetPiece && targetPiece !== activePiece) {
         if (targetPiece.dataset.team === activePiece.dataset.team) return;
         const attackerSquare = getPieceSquare(activePiece);
-        const manhattan =
-          Math.abs(Number(attackerSquare.dataset.row) - Number(square.dataset.row)) +
-          Math.abs(Number(attackerSquare.dataset.col) - Number(square.dataset.col));
         const maxRange = rangeForPiece(activePiece);
-        if (manhattan > maxRange) {
+        if (!isWithinAttackRange(attackerSquare, square, maxRange)) {
           alert('Objetivo fuera de rango.');
           clearTargetSelection();
           return;
