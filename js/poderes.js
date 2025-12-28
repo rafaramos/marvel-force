@@ -156,8 +156,22 @@ const poderes = {
     ],
     pasivos: [
       {
-        nombre: 'Masa Irresistible',
-        descripcion: 'Recibe menos daño de los ataques a distancia y no puede ser empujado.',
+      nombre: 'Masa Irresistible',
+      descripcion: 'Recibe menos daño de los ataques a distancia y no puede ser empujado.',
+    },
+    ],
+  },
+  mole: {
+    activos: [
+      {
+        nombre: 'Golpe de Túnel',
+        descripcion: 'Se sumerge bajo tierra, emerge junto a un enemigo y ataca ignorando obstáculos intermedios.',
+      },
+    ],
+    pasivos: [
+      {
+        nombre: 'Sigilo Subterráneo',
+        descripcion: 'Es más difícil de detectar o alcanzar si terminó su movimiento en casillas vacías.',
       },
     ],
   },

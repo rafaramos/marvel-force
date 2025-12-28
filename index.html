@@ -117,52 +117,38 @@
 
     .piece {
       position: absolute;
-      width: 70%;
-      height: 70%;
+      width: 80%;
+      height: 80%;
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      border-radius: 50%;
+      border-radius: 12px;
       box-shadow: 0 4px 10px rgba(0, 0, 0, 0.35);
       border: 3px solid rgba(255, 255, 255, 0.3);
       display: grid;
       place-items: center;
-      color: #0d0d0d;
-      font-weight: 700;
-      font-size: 0.7rem;
-      text-transform: uppercase;
-      letter-spacing: 0.02em;
-      text-shadow: 0 1px 2px rgba(255, 255, 255, 0.55), 0 0 6px rgba(0, 0, 0, 0.35);
+      background: #0d0d0d;
+      overflow: hidden;
       z-index: 3;
     }
 
-    .piece--white {
-      background: radial-gradient(circle at 30% 30%, #ffffff, #dcdcdc 60%, #b3b3b3);
+    .piece__image {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
     }
 
-    .piece--black {
-      background: radial-gradient(circle at 30% 30%, #555, #1f1f1f 60%, #0a0a0a);
-      border-color: rgba(255, 255, 255, 0.2);
-    }
-
-    .piece--blue {
-      background: radial-gradient(circle at 30% 30%, #e2f1ff, #1e88e5 65%, #0d47a1);
-      border-color: rgba(255, 255, 255, 0.3);
-    }
-
-    .piece--gold {
-      background: radial-gradient(circle at 30% 30%, #fff4d8, #f4a300 60%, #b06c00);
-      border-color: rgba(255, 255, 255, 0.35);
-    }
-
-    .piece--red {
-      background: radial-gradient(circle at 30% 30%, #ffdddd, #c62828 65%, #8b0000);
-      border-color: rgba(255, 255, 255, 0.25);
-    }
-
-    .piece--violet {
-      background: radial-gradient(circle at 30% 30%, #f5e9ff, #8e44ad 60%, #4a148c);
-      border-color: rgba(255, 255, 255, 0.3);
+    .piece__name {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
     }
 
     .piece--active {
@@ -337,34 +323,34 @@
 
       <section class="board" aria-label="Tablero de 64 cuadros verdes">
         <!-- Fila 1 -->
-        <div class="square"><span class="piece piece--white" data-team="aliado" data-key="avispa" role="img" aria-label="Ficha blanca">Avispa</span></div>
-        <div class="square"><span class="piece piece--blue" data-team="aliado" data-key="spider" role="img" aria-label="Ficha azul">Spider-Man</span></div>
-        <div class="square"><span class="piece piece--white" data-team="aliado" data-key="ciclope" role="img" aria-label="Ficha blanca">Cíclope</span></div>
+        <div class="square"><span class="piece piece--white" data-team="aliado" data-key="avispa" role="img" aria-label="Avispa"><img class="piece__image" src="imagenes/avispa.webp" alt="Avispa" /><span class="piece__name">Avispa</span></span></div>
+        <div class="square"><span class="piece piece--blue" data-team="aliado" data-key="spider" role="img" aria-label="Spider-Man"><img class="piece__image" src="imagenes/spider-man.webp" alt="Spider-Man" /><span class="piece__name">Spider-Man</span></span></div>
+        <div class="square"><span class="piece piece--white" data-team="aliado" data-key="ciclope" role="img" aria-label="Cíclope"><img class="piece__image" src="imagenes/ciclope.webp" alt="Cíclope" /><span class="piece__name">Cíclope</span></span></div>
         <div class="square"></div>
         <div class="square"></div>
         <div class="square"></div>
-        <div class="square"><span class="piece piece--black" data-team="enemigo" data-key="duende" role="img" aria-label="Ficha negra">Duende</span></div>
-        <div class="square"><span class="piece piece--black" data-team="enemigo" data-key="chaquetaAmarilla" role="img" aria-label="Ficha negra">Chaqueta Amarilla</span></div>
+        <div class="square"><span class="piece piece--black" data-team="enemigo" data-key="duende" role="img" aria-label="Duende"><img class="piece__image" src="imagenes/duende.webp" alt="Duende" /><span class="piece__name">Duende</span></span></div>
+        <div class="square"><span class="piece piece--black" data-team="enemigo" data-key="chaquetaAmarilla" role="img" aria-label="Chaqueta Amarilla"><img class="piece__image" src="imagenes/chaqueta-amarilla.webp" alt="Chaqueta Amarilla" /><span class="piece__name">Chaqueta Amarilla</span></span></div>
 
         <!-- Fila 2 -->
-        <div class="square"><span class="piece piece--red" data-team="aliado" data-key="hulk" role="img" aria-label="Ficha roja">Hulk</span></div>
+        <div class="square"><span class="piece piece--red" data-team="aliado" data-key="hulk" role="img" aria-label="Hulk"><img class="piece__image" src="imagenes/hulk.webp" alt="Hulk" /><span class="piece__name">Hulk</span></span></div>
         <div class="square"></div>
         <div class="square"></div>
-        <div class="square"><span class="piece piece--violet" data-team="aliado" data-key="capitan" role="img" aria-label="Ficha violeta">Capitán América</span></div>
-        <div class="square"><span class="piece piece--gold" data-team="aliado" data-key="lobezno" role="img" aria-label="Ficha dorada">Lobezno</span></div>
+        <div class="square"><span class="piece piece--violet" data-team="aliado" data-key="capitan" role="img" aria-label="Capitán América"><img class="piece__image" src="imagenes/capitan.webp" alt="Capitán América" /><span class="piece__name">Capitán América</span></span></div>
+        <div class="square"><span class="piece piece--gold" data-team="aliado" data-key="lobezno" role="img" aria-label="Lobezno"><img class="piece__image" src="imagenes/lobezno.webp" alt="Lobezno" /><span class="piece__name">Lobezno</span></span></div>
         <div class="square"></div>
-        <div class="square"><span class="piece piece--black" data-team="enemigo" data-key="dientesDeSable" role="img" aria-label="Ficha negra">Dientes de Sable</span></div>
-        <div class="square"><span class="piece piece--black" data-team="enemigo" data-key="boomerang" role="img" aria-label="Ficha negra">Boomerang</span></div>
+        <div class="square"><span class="piece piece--black" data-team="enemigo" data-key="dientesDeSable" role="img" aria-label="Dientes de Sable"><img class="piece__image" src="imagenes/dientes-de-sable.webp" alt="Dientes de Sable" /><span class="piece__name">Dientes de Sable</span></span></div>
+        <div class="square"><span class="piece piece--black" data-team="enemigo" data-key="boomerang" role="img" aria-label="Boomerang"><img class="piece__image" src="imagenes/boomerang.webp" alt="Boomerang" /><span class="piece__name">Boomerang</span></span></div>
 
         <!-- Fila 3 -->
+        <div class="square"><span class="piece piece--black" data-team="enemigo" data-key="mole" role="img" aria-label="Mole"><img class="piece__image" src="imagenes/mole.webp" alt="Mole" /><span class="piece__name">Mole</span></span></div>
         <div class="square"></div>
         <div class="square"></div>
         <div class="square"></div>
         <div class="square"></div>
         <div class="square"></div>
         <div class="square"></div>
-        <div class="square"></div>
-        <div class="square"><span class="piece piece--black" data-team="enemigo" data-key="juggernaut" role="img" aria-label="Ficha negra">Juggernaut</span></div>
+        <div class="square"><span class="piece piece--black" data-team="enemigo" data-key="juggernaut" role="img" aria-label="Juggernaut"><img class="piece__image" src="imagenes/juggernaut.webp" alt="Juggernaut" /><span class="piece__name">Juggernaut</span></span></div>
 
         <!-- Fila 4 -->
         <div class="square"></div>
