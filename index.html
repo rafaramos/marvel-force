@@ -524,7 +524,7 @@
     }
 
     function attachPieceData(piece, key, team) {
-      const stats = pieceStats[key];
+      const stats = { ...pieceStats[key], currentVida: pieceStats[key].vida };
       piece.dataset.key = key;
       piece.dataset.team = team;
       piece.dataset.rango = stats.rango;
@@ -564,7 +564,7 @@
           <span class="life-card__name"><span class="life-dot" style="background:${pieceColor(
             element
           )}"></span>${stats.name}</span>
-          <span class="life-value">Vida: ${stats.vida}</span>
+          <span class="life-value">Vida: ${Math.max(stats.currentVida, 0)}</span>
         `;
         container.appendChild(card);
       });
@@ -660,6 +660,33 @@
       movementInfo.textContent = `Movimiento restante: ${remainingMovement(piece)}`;
     }
 
+    function attackDistance(attackerSquare, targetSquare) {
+      return (
+        Math.abs(Number(attackerSquare.dataset.row) - Number(targetSquare.dataset.row)) +
+        Math.abs(Number(attackerSquare.dataset.col) - Number(targetSquare.dataset.col))
+      );
+    }
+
+    function calculateDamage(attackerStats, defenderStats, distance, isCritical) {
+      const isMelee = distance <= 1;
+      const baseDamage = isMelee ? attackerStats.danoCC : attackerStats.danoAD;
+      const resistance = isMelee ? defenderStats.resistenciaCC : defenderStats.resistenciaAD;
+      const totalDamage = Math.max((isCritical ? baseDamage * 2 : baseDamage) - resistance, 0);
+      return { totalDamage, isMelee };
+    }
+
+    function eliminatePiece(piece) {
+      const index = turnOrder.indexOf(piece);
+      if (index !== -1) {
+        turnOrder.splice(index, 1);
+        if (index <= turnIndex && turnIndex > 0) {
+          turnIndex -= 1;
+        }
+      }
+      piece.dataset.eliminated = 'true';
+      piece.remove();
+    }
+
     function rangeForPiece(piece) {
       const r = parseInt(piece.dataset.rango, 10);
       return r === 0 ? 1 : r;
@@ -679,7 +706,7 @@
           <li>Res C/C: ${stats.resistenciaCC}</li>
           <li>Res A/D: ${stats.resistenciaAD}</li>
           <li>Rango: ${stats.rango}</li>
-          <li>Vida: ${stats.vida}</li>
+          <li>Vida: ${Math.max(stats.currentVida, 0)}</li>
           <li>Agilidad: ${stats.agilidad}</li>
         </ul>
       `;
@@ -701,13 +728,15 @@
         combatBox.textContent = '';
         return;
       }
-      const { attacker, defender, difference, roll, success } = pendingAttackInfo;
+      const { attacker, defender, difference, roll, success, critical, damage, defenderVida, attackerName, defenderName } =
+        pendingAttackInfo;
       let rollText = roll ? ` | Tirada 2d6: ${roll}` : '';
       let successText = '';
       if (roll) {
-        successText = success ? ' (Éxito)' : ' (Fallo)';
+        successText = success ? critical ? ' (Crítico)' : ' (Éxito)' : ' (Fallo)';
       }
-      combatBox.textContent = `Ataque ${attacker} vs Defensa ${defender} | Diferencia: ${difference}${rollText}${successText}`;
+      const damageText = roll ? ` | Daño: ${damage} | Vida defensor: ${defenderVida}` : '';
+      combatBox.textContent = `Ataque ${attackerName} (${attacker}) vs ${defenderName} (${defender}) | Diferencia: ${difference}${rollText}${successText}${damageText}`;
     }
 
     function prepareAttackInfo(attacker, defender) {
@@ -719,6 +748,11 @@
         difference: attackerStats.ataque - defenderStats.defensa,
         roll: null,
         success: null,
+        critical: false,
+        damage: 0,
+        defenderVida: defenderStats.currentVida,
+        attackerName: attackerStats.name,
+        defenderName: defenderStats.name,
       };
       attackButton.classList.add('button--pulse');
       updateCombatInfo();
@@ -727,24 +761,46 @@
     function resolveAttack(attacker, defender) {
       const attackerStats = pieceMap.get(attacker);
       const defenderStats = pieceMap.get(defender);
+      const attackerSquare = getPieceSquare(attacker);
+      const targetSquare = getPieceSquare(defender);
+      const distance = attackDistance(attackerSquare, targetSquare);
+
       const die1 = Math.floor(Math.random() * 6) + 1;
       const die2 = Math.floor(Math.random() * 6) + 1;
       const roll = die1 + die2;
+      const critical = roll === 12;
       let success = false;
-      if (roll === 12) {
+      if (critical) {
         success = true;
       } else if (roll === 2) {
         success = false;
       } else if (roll + attackerStats.ataque >= defenderStats.defensa) {
         success = true;
       }
+
+      const { totalDamage } = calculateDamage(attackerStats, defenderStats, distance, critical);
+      if (success) {
+        defenderStats.currentVida = Math.max(defenderStats.currentVida - totalDamage, 0);
+      }
+
       pendingAttackInfo = {
         attacker: attackerStats.ataque,
         defender: defenderStats.defensa,
         difference: attackerStats.ataque - defenderStats.defensa,
         roll,
         success,
+        critical,
+        damage: success ? totalDamage : 0,
+        defenderVida: defenderStats.currentVida,
+        attackerName: attackerStats.name,
+        defenderName: defenderStats.name,
       };
+
+      if (success && defenderStats.currentVida <= 0) {
+        eliminatePiece(defender);
+      }
+
+      renderLifeCards();
       hideTooltip();
       clearRangeHighlights();
       selectedTarget = null;
@@ -762,7 +818,9 @@
       attackButton.classList.remove('button--pulse');
       hideTooltip();
       updateCombatInfo();
-      highlightRange(turnOrder[turnIndex]);
+      if (turnOrder.length > 0) {
+        highlightRange(turnOrder[turnIndex]);
+      }
     }
 
     attackButton.addEventListener('click', () => {
@@ -822,9 +880,7 @@
       if (!square.classList.contains('square--move')) return;
       if (square.querySelector('.piece')) return;
       const currentSquare = getPieceSquare(activePiece);
-      const distance =
-        Math.abs(Number(currentSquare.dataset.row) - Number(square.dataset.row)) +
-        Math.abs(Number(currentSquare.dataset.col) - Number(square.dataset.col));
+      const distance = attackDistance(currentSquare, square);
       if (distance > remainingMovement(activePiece)) return;
       square.appendChild(activePiece);
       spendMovement(activePiece, distance);
@@ -857,6 +913,7 @@
     });
 
     function startTurn(piece) {
+      if (!piece) return;
       resetMovement(piece);
       setActivePiece(piece);
       clearTargetSelection(true);
@@ -866,6 +923,7 @@
     }
 
     function nextTurn() {
+      if (turnOrder.length === 0) return;
       turnIndex = (turnIndex + 1) % turnOrder.length;
       startTurn(turnOrder[turnIndex]);
     }
