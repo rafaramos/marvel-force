@@ -49,7 +49,7 @@ const poderes = {
       },
     ],
   },
-  negra1: {
+  spider: {
     activos: [
       {
         nombre: 'Red Progresiva',
@@ -63,7 +63,7 @@ const poderes = {
       },
     ],
   },
-  negra2: {
+  lobezno: {
     activos: [
       {
         nombre: 'Corte Giratorio',
@@ -77,7 +77,7 @@ const poderes = {
       },
     ],
   },
-  negra3: {
+  ciclope: {
     activos: [
       {
         nombre: 'Ráfaga Óptica',
@@ -88,6 +88,76 @@ const poderes = {
       {
         nombre: 'Disciplina Estratégica',
         descripcion: 'Gana precisión adicional cuando no se mueve durante su turno.',
+      },
+    ],
+  },
+  chaquetaAmarilla: {
+    activos: [
+      {
+        nombre: 'Descarga Bioeléctrica',
+        descripcion: 'Impacta a un objetivo cercano con electricidad, ralentizándolo durante un turno.',
+      },
+    ],
+    pasivos: [
+      {
+        nombre: 'Armadura Ajustable',
+        descripcion: 'Reduce parte del daño recibido después de moverse al menos una casilla.',
+      },
+    ],
+  },
+  duende: {
+    activos: [
+      {
+        nombre: 'Bomba Calabaza',
+        descripcion: 'Lanza un explosivo de área que inflige daño a todo lo que haya en su radio.',
+      },
+    ],
+    pasivos: [
+      {
+        nombre: 'Planeador Insidioso',
+        descripcion: 'Puede reposicionarse una casilla extra después de atacar a distancia.',
+      },
+    ],
+  },
+  dientesDeSable: {
+    activos: [
+      {
+        nombre: 'Emboscada Bestial',
+        descripcion: 'Se desplaza rápidamente hasta un enemigo cercano y causa un tajo profundo.',
+      },
+    ],
+    pasivos: [
+      {
+        nombre: 'Instinto Predador',
+        descripcion: 'Gana daño adicional cuando persigue a enemigos con poca vida.',
+      },
+    ],
+  },
+  boomerang: {
+    activos: [
+      {
+        nombre: 'Lluvia de Boomerangs',
+        descripcion: 'Ataque a distancia que puede golpear hasta dos objetivos en línea.',
+      },
+    ],
+    pasivos: [
+      {
+        nombre: 'Rebote Controlado',
+        descripcion: 'Recupera alcance adicional si el ataque previo falló.',
+      },
+    ],
+  },
+  juggernaut: {
+    activos: [
+      {
+        nombre: 'Arremetida Imparable',
+        descripcion: 'Se mueve varias casillas en línea recta arrasando con cualquier enemigo en su camino.',
+      },
+    ],
+    pasivos: [
+      {
+        nombre: 'Masa Irresistible',
+        descripcion: 'Recibe menos daño de los ataques a distancia y no puede ser empujado.',
       },
     ],
   },

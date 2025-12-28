@@ -145,6 +145,16 @@
       border-color: rgba(255, 255, 255, 0.2);
     }
 
+    .piece--blue {
+      background: radial-gradient(circle at 30% 30%, #e2f1ff, #1e88e5 65%, #0d47a1);
+      border-color: rgba(255, 255, 255, 0.3);
+    }
+
+    .piece--gold {
+      background: radial-gradient(circle at 30% 30%, #fff4d8, #f4a300 60%, #b06c00);
+      border-color: rgba(255, 255, 255, 0.35);
+    }
+
     .piece--red {
       background: radial-gradient(circle at 30% 30%, #ffdddd, #c62828 65%, #8b0000);
       border-color: rgba(255, 255, 255, 0.25);
@@ -327,34 +337,34 @@
 
       <section class="board" aria-label="Tablero de 64 cuadros verdes">
         <!-- Fila 1 -->
-        <div class="square"><span class="piece piece--white" role="img" aria-label="Ficha blanca">Avispa</span></div>
+        <div class="square"><span class="piece piece--white" data-team="aliado" data-key="avispa" role="img" aria-label="Ficha blanca">Avispa</span></div>
+        <div class="square"><span class="piece piece--blue" data-team="aliado" data-key="spider" role="img" aria-label="Ficha azul">Spider-Man</span></div>
+        <div class="square"><span class="piece piece--white" data-team="aliado" data-key="ciclope" role="img" aria-label="Ficha blanca">Cíclope</span></div>
         <div class="square"></div>
         <div class="square"></div>
         <div class="square"></div>
-        <div class="square"></div>
-        <div class="square"></div>
-        <div class="square"></div>
-        <div class="square"><span class="piece piece--black" role="img" aria-label="Ficha negra">Spider-man</span></div>
+        <div class="square"><span class="piece piece--black" data-team="enemigo" data-key="duende" role="img" aria-label="Ficha negra">Duende</span></div>
+        <div class="square"><span class="piece piece--black" data-team="enemigo" data-key="chaquetaAmarilla" role="img" aria-label="Ficha negra">Chaqueta Amarilla</span></div>
 
         <!-- Fila 2 -->
-        <div class="square"><span class="piece piece--red" role="img" aria-label="Ficha roja">Hulk</span></div>
+        <div class="square"><span class="piece piece--red" data-team="aliado" data-key="hulk" role="img" aria-label="Ficha roja">Hulk</span></div>
         <div class="square"></div>
         <div class="square"></div>
+        <div class="square"><span class="piece piece--violet" data-team="aliado" data-key="capitan" role="img" aria-label="Ficha violeta">Capitán América</span></div>
+        <div class="square"><span class="piece piece--gold" data-team="aliado" data-key="lobezno" role="img" aria-label="Ficha dorada">Lobezno</span></div>
         <div class="square"></div>
-        <div class="square"></div>
-        <div class="square"></div>
-        <div class="square"></div>
-        <div class="square"><span class="piece piece--black" role="img" aria-label="Ficha negra">Lobezno</span></div>
+        <div class="square"><span class="piece piece--black" data-team="enemigo" data-key="dientesDeSable" role="img" aria-label="Ficha negra">Dientes de Sable</span></div>
+        <div class="square"><span class="piece piece--black" data-team="enemigo" data-key="boomerang" role="img" aria-label="Ficha negra">Boomerang</span></div>
 
         <!-- Fila 3 -->
-        <div class="square"><span class="piece piece--violet" role="img" aria-label="Ficha violeta">Capitán América</span></div>
         <div class="square"></div>
         <div class="square"></div>
         <div class="square"></div>
         <div class="square"></div>
         <div class="square"></div>
         <div class="square"></div>
-        <div class="square"><span class="piece piece--black" role="img" aria-label="Ficha negra">Cíclope</span></div>
+        <div class="square"></div>
+        <div class="square"><span class="piece piece--black" data-team="enemigo" data-key="juggernaut" role="img" aria-label="Ficha negra">Juggernaut</span></div>
 
         <!-- Fila 4 -->
         <div class="square"></div>
@@ -443,29 +453,28 @@
       if (element.classList.contains('piece--white')) return '#dcdcdc';
       if (element.classList.contains('piece--red')) return '#c62828';
       if (element.classList.contains('piece--violet')) return '#8e44ad';
+      if (element.classList.contains('piece--blue')) return '#1e88e5';
+      if (element.classList.contains('piece--gold')) return '#f4a300';
       return '#1f1f1f';
     }
 
     function attachPieceData(piece, key, team) {
-      const stats = { ...pieceStats[key], currentVida: pieceStats[key].vida };
+      const stats = pieceStats[key];
+      if (!stats) return;
+      const computedStats = { ...stats, currentVida: stats.vida };
       piece.dataset.key = key;
       piece.dataset.team = team;
       piece.dataset.rango = stats.rango;
       piece.dataset.movimiento = stats.movimiento;
-      piece.dataset.stats = JSON.stringify(stats);
-      pieceMap.set(piece, stats);
+      piece.dataset.stats = JSON.stringify(computedStats);
+      pieceMap.set(piece, computedStats);
     }
 
-    const pieces = [
-      { element: document.querySelector('.piece--white'), key: 'avispa', team: 'aliado' },
-      { element: document.querySelector('.piece--red'), key: 'hulk', team: 'aliado' },
-      { element: document.querySelector('.piece--violet'), key: 'capitan', team: 'aliado' },
-      ...Array.from(board.querySelectorAll('.piece--black')).map((element, index) => ({
-        element,
-        key: `negra${index + 1}`,
-        team: 'enemigo',
-      })),
-    ];
+    const pieces = Array.from(board.querySelectorAll('.piece')).map((element) => ({
+      element,
+      key: element.dataset.key,
+      team: element.dataset.team,
+    }));
 
     pieces.forEach(({ element, key, team }) => {
       if (element) {
