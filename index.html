@@ -582,7 +582,7 @@
       });
 
     let turnIndex = 0;
-    let attackMode = false;
+    let selectedTarget = null;
 
     function getPieceSquare(piece) {
       return piece.closest('.square');
@@ -591,6 +591,7 @@
     function clearHighlights() {
       squares.forEach((square) => square.classList.remove('square--range', 'square--move'));
       tooltip.hidden = true;
+      selectedTarget = null;
     }
 
     function highlightMovement(piece) {
@@ -619,22 +620,6 @@
     function rangeForPiece(piece) {
       const r = parseInt(piece.dataset.rango, 10);
       return r === 0 ? 1 : r;
-    }
-
-    function highlightRange(piece) {
-      const parent = getPieceSquare(piece);
-      if (!parent) return;
-      const row = Number(parent.dataset.row);
-      const col = Number(parent.dataset.col);
-      const maxRange = rangeForPiece(piece);
-      squares.forEach((square) => {
-        const targetRow = Number(square.dataset.row);
-        const targetCol = Number(square.dataset.col);
-        const manhattan = Math.abs(targetRow - row) + Math.abs(targetCol - col);
-        if (manhattan > 0 && manhattan <= maxRange) {
-          square.classList.add('square--range');
-        }
-      });
     }
 
     function showTooltip(piece) {
@@ -668,9 +653,14 @@
       tooltip.hidden = true;
     }
 
+    function clearTargetSelection() {
+      squares.forEach((square) => square.classList.remove('square--range'));
+      selectedTarget = null;
+      hideTooltip();
+    }
+
     function nextTurn() {
       clearHighlights();
-      attackMode = false;
       turnIndex = (turnIndex + 1) % turnOrder.length;
       setActivePiece(turnOrder[turnIndex]);
     }
@@ -680,30 +670,24 @@
     });
 
     attackButton.addEventListener('click', () => {
-      const currentPiece = turnOrder[turnIndex];
-      attackMode = true;
-      clearHighlights();
-      highlightRange(currentPiece);
-    });
-
-    board.addEventListener('mouseenter', (event) => {
-      const targetPiece = event.target.closest('.piece');
-      if (!attackMode || !targetPiece) return;
       const attacker = turnOrder[turnIndex];
-      if (targetPiece.dataset.team === attacker.dataset.team) return;
-      const square = getPieceSquare(targetPiece);
-      if (!square.classList.contains('square--range')) return;
-      showTooltip(targetPiece);
-      positionTooltip(targetPiece);
-    }, true);
-
-    board.addEventListener('mousemove', (event) => {
-      if (tooltip.hidden) return;
-      positionTooltip(event.target.closest('.piece') || event.target);
-    });
-
-    board.addEventListener('mouseleave', () => {
+      if (!selectedTarget) {
+        alert('Selecciona primero un enemigo dentro de tu rango.');
+        return;
+      }
+      const attackerSquare = getPieceSquare(attacker);
+      const targetSquare = getPieceSquare(selectedTarget);
+      const manhattan =
+        Math.abs(Number(attackerSquare.dataset.row) - Number(targetSquare.dataset.row)) +
+        Math.abs(Number(attackerSquare.dataset.col) - Number(targetSquare.dataset.col));
+      const maxRange = rangeForPiece(attacker);
+      if (manhattan > maxRange) {
+        alert('El objetivo está fuera de rango.');
+        return;
+      }
       hideTooltip();
+      alert(`${attacker.textContent} atacó a ${selectedTarget.textContent}.`);
+      nextTurn();
     });
 
     board.addEventListener('click', (event) => {
@@ -711,25 +695,33 @@
       if (!square) return;
 
       const activePiece = turnOrder[turnIndex];
+      const targetPiece = square.querySelector('.piece');
 
-      if (attackMode) {
-        const targetPiece = event.target.closest('.piece');
-        if (!targetPiece) return;
+      if (targetPiece && targetPiece !== activePiece) {
         if (targetPiece.dataset.team === activePiece.dataset.team) return;
-        if (!square.classList.contains('square--range')) return;
-        const confirmAttack = window.confirm(`¿${activePiece.textContent} ataca a ${targetPiece.textContent}?`);
-        if (confirmAttack) {
-          hideTooltip();
-          alert(`${activePiece.textContent} atacó a ${targetPiece.textContent}.`);
-          nextTurn();
+        const attackerSquare = getPieceSquare(activePiece);
+        const manhattan =
+          Math.abs(Number(attackerSquare.dataset.row) - Number(square.dataset.row)) +
+          Math.abs(Number(attackerSquare.dataset.col) - Number(square.dataset.col));
+        const maxRange = rangeForPiece(activePiece);
+        if (manhattan > maxRange) {
+          alert('Objetivo fuera de rango.');
+          clearTargetSelection();
+          return;
         }
-      } else {
-        if (!square.classList.contains('square--move')) return;
-        if (square.querySelector('.piece')) return;
-        square.appendChild(activePiece);
-        clearHighlights();
-        highlightMovement(activePiece);
+        clearTargetSelection();
+        square.classList.add('square--range');
+        selectedTarget = targetPiece;
+        showTooltip(targetPiece);
+        positionTooltip(targetPiece);
+        return;
       }
+
+      if (!square.classList.contains('square--move')) return;
+      if (square.querySelector('.piece')) return;
+      square.appendChild(activePiece);
+      clearHighlights();
+      highlightMovement(activePiece);
     });
 
     setActivePiece(turnOrder[turnIndex]);
