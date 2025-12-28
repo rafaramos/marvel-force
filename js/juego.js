@@ -9,10 +9,14 @@ const allyCards = document.getElementById('allyCards');
 const enemyCards = document.getElementById('enemyCards');
 const heroHistoryList = document.getElementById('heroHistory');
 const villainHistoryList = document.getElementById('villainHistory');
+const powerButtons = document.getElementById('powerButtons');
 
 const pieceStats = personajes;
 const HERO_TEAM = 'aliado';
 const VILLAIN_TEAM = 'enemigo';
+const POWER_LABELS = {
+  incapacitar: 'Incapacitar',
+};
 
 const squareByCoord = new Map();
 
@@ -42,12 +46,24 @@ function livingPieces(team) {
   return turnOrder.filter((piece) => piece.dataset.team === team && isAlive(piece));
 }
 
+function hasPassive(stats, power) {
+  return stats?.poderes?.pasivos?.includes(power);
+}
+
+function hasActive(stats, power) {
+  return stats?.poderes?.activos?.includes(power);
+}
+
+function powerLabel(key) {
+  return POWER_LABELS[key] ?? key;
+}
+
 function pieceColor(element) {
   return element.dataset.team === 'aliado' ? '#2ecc71' : '#e74c3c';
 }
 
 function attachPieceData(piece, key, team) {
-  const stats = { ...pieceStats[key], currentVida: pieceStats[key].vida };
+  const stats = { ...pieceStats[key], currentVida: pieceStats[key].vida, skipTurns: 0 };
   piece.dataset.key = key;
   piece.dataset.team = team;
   piece.dataset.rango = stats.rango;
@@ -208,6 +224,22 @@ function setActivePiece(piece) {
   updateCombatInfo();
 }
 
+function renderPowerButtons(piece) {
+  if (!powerButtons) return;
+  powerButtons.innerHTML = '';
+  if (!piece || !isHero(piece)) return;
+  const stats = pieceMap.get(piece);
+  const activePowers = stats?.poderes?.activos ?? [];
+  activePowers.forEach((powerKey) => {
+    const btn = document.createElement('button');
+    btn.className = 'button';
+    btn.type = 'button';
+    btn.textContent = powerLabel(powerKey);
+    btn.addEventListener('click', () => handleActivePower(powerKey));
+    powerButtons.appendChild(btn);
+  });
+}
+
 function updateStatusBar(piece) {
   const stats = pieceMap.get(piece);
   if (!stats) return;
@@ -261,9 +293,15 @@ function bestSquareTowardHeroes(piece) {
 
 function calculateDamage(attackerStats, defenderStats, distance, isCritical) {
   const isMelee = distance <= 1;
-  const baseDamage = isMelee ? attackerStats.danoCC : attackerStats.danoAD;
+  const baseDamage = (() => {
+    if (isMelee && hasPassive(attackerStats, 'cuchillas')) {
+      return Math.max(Math.floor(Math.random() * 6) + 1, attackerStats.danoCC);
+    }
+    return isMelee ? attackerStats.danoCC : attackerStats.danoAD;
+  })();
   const resistance = isMelee ? defenderStats.resistenciaCC : defenderStats.resistenciaAD;
-  const totalDamage = Math.max((isCritical ? baseDamage * 2 : baseDamage) - resistance, 0);
+  const damageBeforeResist = isCritical ? baseDamage * 2 : baseDamage;
+  const totalDamage = Math.max(damageBeforeResist - resistance, 0);
   return { totalDamage, isMelee };
 }
 
@@ -320,7 +358,7 @@ function updateCombatInfo() {
     combatBox.textContent = '';
     return;
   }
-  const { attacker, defender, difference, roll, success, critical, damage, defenderVida, attackerName, defenderName } =
+  const { attacker, defender, difference, roll, success, critical, damage, defenderVida, attackerName, defenderName, action } =
     pendingAttackInfo;
   let rollText = roll ? ` | Tirada 2d6: ${roll}` : '';
   let successText = '';
@@ -328,19 +366,19 @@ function updateCombatInfo() {
     successText = success ? critical ? ' (Crítico)' : ' (Éxito)' : ' (Fallo)';
   }
   const damageText = roll ? ` | Daño: ${damage} | Vida defensor: ${defenderVida}` : '';
-  combatBox.textContent = `Ataque ${attackerName} (${attacker}) vs ${defenderName} (${defender}) | Diferencia: ${difference}${rollText}${successText}${damageText}`;
+  combatBox.textContent = `${action ?? 'Ataque'} ${attackerName} (${attacker}) vs ${defenderName} (${defender}) | Diferencia: ${difference}${rollText}${successText}${damageText}`;
 }
 
 function appendHistory(attacker, defender) {
   if (!pendingAttackInfo) return;
   const list = isHero(attacker) ? heroHistoryList : villainHistoryList;
   if (!list) return;
-  const { attackerName, defenderName, difference, roll, success, critical, damage, defenderVida } = pendingAttackInfo;
+  const { attackerName, defenderName, difference, roll, success, critical, damage, defenderVida, action } = pendingAttackInfo;
   const outcome = roll ? (critical ? 'Crítico' : success ? 'Éxito' : 'Fallo') : 'Sin tirada';
   const li = document.createElement('li');
   li.className = 'history__item';
   li.innerHTML = `
-    <strong>${attackerName}</strong> → ${defenderName}<br/>
+    <strong>${attackerName}</strong> (${action ?? 'Ataque'}) → ${defenderName}<br/>
     Dif: ${difference} | Tirada: ${roll ?? '-'} (${outcome})<br/>
     Daño: ${damage} | Vida defensor: ${defenderVida}
   `;
@@ -350,7 +388,7 @@ function appendHistory(attacker, defender) {
   }
 }
 
-function prepareAttackInfo(attacker, defender) {
+function prepareAttackInfo(attacker, defender, ability = null) {
   const attackerStats = pieceMap.get(attacker);
   const defenderStats = pieceMap.get(defender);
   pendingAttackInfo = {
@@ -364,12 +402,13 @@ function prepareAttackInfo(attacker, defender) {
     defenderVida: defenderStats.currentVida,
     attackerName: attackerStats.name,
     defenderName: defenderStats.name,
+    action: ability ? powerLabel(ability) : 'Ataque',
   };
   attackButton.classList.add('button--pulse');
   updateCombatInfo();
 }
 
-function resolveAttack(attacker, defender) {
+function resolveAttack(attacker, defender, { ability = null } = {}) {
   const attackerStats = pieceMap.get(attacker);
   const defenderStats = pieceMap.get(defender);
   const attackerSquare = getPieceSquare(attacker);
@@ -379,7 +418,8 @@ function resolveAttack(attacker, defender) {
   const die1 = Math.floor(Math.random() * 6) + 1;
   const die2 = Math.floor(Math.random() * 6) + 1;
   const roll = die1 + die2;
-  const critical = roll === 12;
+  const astuto = hasPassive(attackerStats, 'astucia');
+  const critical = roll === 12 || (astuto && roll === 11);
   let success = false;
   if (critical) {
     success = true;
@@ -392,6 +432,9 @@ function resolveAttack(attacker, defender) {
   const { totalDamage } = calculateDamage(attackerStats, defenderStats, distance, critical);
   if (success) {
     defenderStats.currentVida = Math.max(defenderStats.currentVida - totalDamage, 0);
+    if (ability === 'incapacitar') {
+      defenderStats.skipTurns = (defenderStats.skipTurns ?? 0) + 1;
+    }
   }
 
   pendingAttackInfo = {
@@ -405,6 +448,7 @@ function resolveAttack(attacker, defender) {
     defenderVida: defenderStats.currentVida,
     attackerName: attackerStats.name,
     defenderName: defenderStats.name,
+    action: ability ? powerLabel(ability) : 'Ataque',
   };
 
   appendHistory(attacker, defender);
@@ -419,7 +463,7 @@ function resolveAttack(attacker, defender) {
   selectedTarget = null;
   attackButton.classList.remove('button--pulse');
   updateCombatInfo();
-  nextTurn();
+  finishTurn(attacker);
 }
 
 function clearTargetSelection(preserveAttack = false) {
@@ -436,7 +480,7 @@ function clearTargetSelection(preserveAttack = false) {
   }
 }
 
-attackButton.addEventListener('click', () => {
+function performAttackAction(ability = null) {
   const attacker = turnOrder[turnIndex];
   if (!attacker || !isHero(attacker)) return;
   if (!selectedTarget) {
@@ -450,7 +494,16 @@ attackButton.addEventListener('click', () => {
     alert('El objetivo está fuera de rango.');
     return;
   }
-  resolveAttack(attacker, selectedTarget);
+  prepareAttackInfo(attacker, selectedTarget, ability);
+  resolveAttack(attacker, selectedTarget, { ability });
+}
+
+function handleActivePower(powerKey) {
+  performAttackAction(powerKey);
+}
+
+attackButton.addEventListener('click', () => {
+  performAttackAction();
 });
 
 const movementPool = new Map();
@@ -466,6 +519,22 @@ function resetMovement(piece) {
 function spendMovement(piece, amount) {
   const left = Math.max(remainingMovement(piece) - amount, 0);
   movementPool.set(piece, left);
+}
+
+function applyEndOfTurnEffects(piece) {
+  const stats = pieceMap.get(piece);
+  if (!stats) return;
+  if (hasPassive(stats, 'regeneracion') && stats.currentVida < stats.vida) {
+    stats.currentVida = Math.min(stats.currentVida + 1, stats.vida);
+  }
+}
+
+function finishTurn(piece) {
+  applyEndOfTurnEffects(piece);
+  renderLifeCards();
+  clearHighlights();
+  clearTargetSelection();
+  nextTurn();
 }
 
 board.addEventListener('click', (event) => {
@@ -534,6 +603,7 @@ function wait(ms) {
 
 async function runVillainTurn(piece) {
   const attackIfPossible = async () => {
+    const stats = pieceMap.get(piece);
     const heroes = livingPieces(HERO_TEAM);
     const attackerSquare = getPieceSquare(piece);
     const inRange = heroes.find((hero) => {
@@ -549,10 +619,11 @@ async function runVillainTurn(piece) {
         targetSquare.classList.add('square--target');
       }
       highlightRange(piece);
-      prepareAttackInfo(piece, inRange);
+      const abilityToUse = hasActive(stats, 'incapacitar') ? 'incapacitar' : null;
+      prepareAttackInfo(piece, inRange, abilityToUse);
       updateStatusBar(piece);
-      await wait(1200);
-      resolveAttack(piece, inRange);
+      await wait(1500);
+      resolveAttack(piece, inRange, { ability: abilityToUse });
       return true;
     }
     return false;
@@ -567,7 +638,7 @@ async function runVillainTurn(piece) {
   highlightMovement(piece);
   highlightRange(piece);
   updateStatusBar(piece);
-  await wait(900);
+  await wait(1200);
 
   if (await attackIfPossible()) return;
 
@@ -578,13 +649,13 @@ async function runVillainTurn(piece) {
       const reachable = reachableSquares(piece);
       const distance = reachable.get(moveTo) ?? attackDistance(getPieceSquare(piece), moveTo);
       moveTo.classList.add('square--target');
-      await wait(700);
+      await wait(1000);
       moveTo.appendChild(piece);
       spendMovement(piece, distance);
       clearRangeHighlights();
       highlightMovement(piece);
       highlightRange(piece);
-      await wait(700);
+      await wait(1000);
     }
   }
 
@@ -594,18 +665,30 @@ async function runVillainTurn(piece) {
   if (await attackIfPossible()) return;
 
   clearHighlights();
-  nextTurn();
+  finishTurn(piece);
 }
 
 function startTurn(piece) {
   if (!piece) return;
+  if (!isAlive(piece)) {
+    nextTurn();
+    return;
+  }
+  const stats = pieceMap.get(piece);
+  if (stats?.skipTurns && stats.skipTurns > 0) {
+    stats.skipTurns -= 1;
+    finishTurn(piece);
+    return;
+  }
   resetMovement(piece);
   setActivePiece(piece);
   clearTargetSelection(true);
   clearHighlights();
+  renderPowerButtons(piece);
   if (isVillain(piece)) {
     attackButton.disabled = true;
     passButton.disabled = true;
+    renderPowerButtons(null);
     setTimeout(() => runVillainTurn(piece), 700);
     return;
   }
@@ -622,7 +705,8 @@ function nextTurn() {
 }
 
 passButton.addEventListener('click', () => {
-  nextTurn();
+  const piece = turnOrder[turnIndex];
+  finishTurn(piece);
 });
 
 startTurn(turnOrder[turnIndex]);

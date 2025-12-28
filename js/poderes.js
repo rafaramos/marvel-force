@@ -1,23 +1,23 @@
 const poderes = {
   avispa: {
-    activos: [],
+    activos: ['incapacitar'],
     pasivos: [],
   },
   hulk: {
     activos: [],
-    pasivos: [],
+    pasivos: ['regeneracion'],
   },
   capitan: {
     activos: [],
-    pasivos: [],
+    pasivos: ['astucia'],
   },
   spiderman: {
-    activos: [],
-    pasivos: [],
+    activos: ['incapacitar'],
+    pasivos: ['astucia'],
   },
   lobezno: {
     activos: [],
-    pasivos: [],
+    pasivos: ['regeneracion', 'cuchillas'],
   },
   ciclope: {
     activos: [],
