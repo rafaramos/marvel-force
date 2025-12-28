@@ -1,1 +1,77 @@
-Hola Mundo
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tablero 8x8</title>
+  <style>
+    :root {
+      --board-size: 480px;
+      --square-size: calc(var(--board-size) / 8);
+      --board-color: #1f8a3b;
+      --square-border: #0f4d20;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(180deg, #0f4d20 0%, #0d3618 100%);
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      color: #f4f4f4;
+    }
+
+    .wrapper {
+      text-align: center;
+    }
+
+    h1 {
+      margin-bottom: 16px;
+      letter-spacing: 0.04em;
+    }
+
+    .board {
+      width: var(--board-size);
+      height: var(--board-size);
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      grid-template-rows: repeat(8, 1fr);
+      background-color: var(--board-color);
+      border: 8px solid #0b2a13;
+      border-radius: 12px;
+      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.35);
+      overflow: hidden;
+    }
+
+    .square {
+      width: var(--square-size);
+      height: var(--square-size);
+      border: 1px solid var(--square-border);
+      background-color: var(--board-color);
+    }
+  </style>
+</head>
+<body>
+  <main class="wrapper">
+    <h1>Tablero 8x8 con 64 cuadros verdes</h1>
+    <section class="board" aria-label="Tablero de 64 cuadros verdes">
+      <!-- Generamos 64 cuadros -->
+      <!-- Cada cuadro mantiene el fondo verde para que el tablero completo sea verde -->
+      <div class="square"></div><div class="square"></div><div class="square"></div><div class="square"></div><div class="square"></div><div class="square"></div><div class="square"></div><div class="square"></div>
+      <div class="square"></div><div class="square"></div><div class="square"></div><div class="square"></div><div class="square"></div><div class="square"></div><div class="square"></div><div class="square"></div>
+      <div class="square"></div><div class="square"></div><div class="square"></div><div class="square"></div><div class="square"></div><div class="square"></div><div class="square"></div><div class="square"></div>
+      <div class="square"></div><div class="square"></div><div class="square"></div><div class="square"></div><div class="square"></div><div class="square"></div><div class="square"></div><div class="square"></div>
+      <div class="square"></div><div class="square"></div><div class="square"></div><div class="square"></div><div class="square"></div><div class="square"></div><div class="square"></div><div class="square"></div>
+      <div class="square"></div><div class="square"></div><div class="square"></div><div class="square"></div><div class="square"></div><div class="square"></div><div class="square"></div><div class="square"></div>
+      <div class="square"></div><div class="square"></div><div class="square"></div><div class="square"></div><div class="square"></div><div class="square"></div><div class="square"></div><div class="square"></div>
+      <div class="square"></div><div class="square"></div><div class="square"></div><div class="square"></div><div class="square"></div><div class="square"></div><div class="square"></div><div class="square"></div>
+    </section>
+  </main>
+</body>
+</html>
