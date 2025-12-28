@@ -38,6 +38,45 @@
       letter-spacing: 0.04em;
     }
 
+    .controls {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .button {
+      background: #f4f4f4;
+      color: #0d3618;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 16px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 6px 14px rgba(0, 0, 0, 0.25);
+      transition: transform 120ms ease, box-shadow 120ms ease, background 120ms ease;
+    }
+
+    .button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+      background: #ffffff;
+    }
+
+    .button:active {
+      transform: translateY(0);
+      box-shadow: 0 6px 14px rgba(0, 0, 0, 0.28);
+    }
+
+    .button--primary {
+      background: #f17c00;
+      color: #fff8f0;
+    }
+
+    .button--primary:hover {
+      background: #ff9400;
+    }
+
     .layout {
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -109,6 +148,46 @@
       border-color: rgba(255, 255, 255, 0.3);
     }
 
+    .piece--active {
+      outline: 4px solid #fbd34d;
+      outline-offset: 1px;
+      box-shadow: 0 0 0 5px rgba(251, 211, 77, 0.4);
+    }
+
+    .square--range {
+      box-shadow: inset 0 0 0 4px rgba(255, 132, 0, 0.5);
+      background: radial-gradient(circle at 50% 50%, rgba(255, 132, 0, 0.25), transparent 65%);
+    }
+
+    .tooltip {
+      position: absolute;
+      background: #0f4d20;
+      color: #f4f4f4;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 8px;
+      padding: 10px 12px;
+      box-shadow: 0 8px 18px rgba(0, 0, 0, 0.35);
+      pointer-events: none;
+      white-space: nowrap;
+      font-size: 0.9rem;
+      z-index: 10;
+      transform: translate(-50%, -110%);
+    }
+
+    .tooltip h3 {
+      margin: 0 0 6px;
+      font-size: 1rem;
+    }
+
+    .tooltip ul {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 4px 8px;
+    }
+
     .roster {
       display: grid;
       gap: 12px;
@@ -165,6 +244,10 @@
 <body>
   <main class="wrapper">
     <h1>Tablero 8x8 con 64 cuadros verdes</h1>
+    <div class="controls" aria-label="Controles de turno">
+      <button class="button" id="passTurn" type="button">Pasar</button>
+      <button class="button button--primary" id="attack" type="button">Atacar</button>
+    </div>
     <section class="layout" aria-label="Tablero con información de fichas a los lados">
       <section class="roster" aria-label="Características de las fichas de color">
         <article class="card">
@@ -226,7 +309,7 @@
         <div class="square"><span class="piece piece--black" role="img" aria-label="Ficha negra"></span></div>
 
         <!-- Fila 2 -->
-        <div class="square"><span class="piece piece--red" role="img" aria-label="Ficha roja"></span></div>
+        <div class="square"><span class="piece piece--red" role="img" aria-label="Ficha roja">Hulk</span></div>
         <div class="square"></div>
         <div class="square"></div>
         <div class="square"></div>
@@ -236,7 +319,7 @@
         <div class="square"><span class="piece piece--black" role="img" aria-label="Ficha negra"></span></div>
 
         <!-- Fila 3 -->
-        <div class="square"><span class="piece piece--violet" role="img" aria-label="Ficha violeta"></span></div>
+        <div class="square"><span class="piece piece--violet" role="img" aria-label="Ficha violeta">Capitán América</span></div>
         <div class="square"></div>
         <div class="square"></div>
         <div class="square"></div>
@@ -345,5 +428,259 @@
       </section>
     </section>
   </main>
+  <div id="tooltip" class="tooltip" hidden></div>
+
+  <script>
+    const board = document.querySelector('.board');
+    const squares = Array.from(board.querySelectorAll('.square'));
+    const tooltip = document.getElementById('tooltip');
+    const passButton = document.getElementById('passTurn');
+    const attackButton = document.getElementById('attack');
+
+    const pieceStats = {
+      avispa: {
+        name: 'Avispa',
+        movimiento: 8,
+        ataque: 8,
+        defensa: 18,
+        danoCC: 2,
+        danoAD: 2,
+        resistenciaCC: 0,
+        resistenciaAD: 0,
+        rango: 3,
+        vida: 5,
+        agilidad: 20,
+      },
+      hulk: {
+        name: 'Hulk',
+        movimiento: 9,
+        ataque: 11,
+        defensa: 17,
+        danoCC: 5,
+        danoAD: 5,
+        resistenciaCC: 2,
+        resistenciaAD: 2,
+        rango: 0,
+        vida: 10,
+        agilidad: 10,
+      },
+      capitan: {
+        name: 'Capitán América',
+        movimiento: 8,
+        ataque: 10,
+        defensa: 17,
+        danoCC: 2,
+        danoAD: 2,
+        resistenciaCC: 0,
+        resistenciaAD: 2,
+        rango: 3,
+        vida: 8,
+        agilidad: 40,
+      },
+      negra1: {
+        name: 'Negra I',
+        movimiento: 2,
+        ataque: 5,
+        defensa: 6,
+        danoCC: 4,
+        danoAD: 3,
+        resistenciaCC: 6,
+        resistenciaAD: 5,
+        rango: 2,
+        vida: 13,
+        agilidad: 3,
+      },
+      negra2: {
+        name: 'Negra II',
+        movimiento: 3,
+        ataque: 6,
+        defensa: 4,
+        danoCC: 5,
+        danoAD: 2,
+        resistenciaCC: 4,
+        resistenciaAD: 4,
+        rango: 3,
+        vida: 9,
+        agilidad: 5,
+      },
+      negra3: {
+        name: 'Negra III',
+        movimiento: 1,
+        ataque: 8,
+        defensa: 5,
+        danoCC: 6,
+        danoAD: 1,
+        resistenciaCC: 5,
+        resistenciaAD: 2,
+        rango: 1,
+        vida: 15,
+        agilidad: 2,
+      },
+    };
+
+    squares.forEach((square, index) => {
+      const row = Math.floor(index / 8) + 1;
+      const col = (index % 8) + 1;
+      square.dataset.row = row;
+      square.dataset.col = col;
+    });
+
+    const pieceMap = new Map();
+
+    function attachPieceData(piece, key, team) {
+      const stats = pieceStats[key];
+      piece.dataset.key = key;
+      piece.dataset.team = team;
+      piece.dataset.rango = stats.rango;
+      piece.dataset.stats = JSON.stringify(stats);
+      pieceMap.set(piece, stats);
+    }
+
+    const pieces = [
+      { element: document.querySelector('.piece--white'), key: 'avispa', team: 'aliado' },
+      { element: document.querySelector('.piece--red'), key: 'hulk', team: 'aliado' },
+      { element: document.querySelector('.piece--violet'), key: 'capitan', team: 'aliado' },
+      ...Array.from(board.querySelectorAll('.piece--black')).map((element, index) => ({
+        element,
+        key: `negra${index + 1}`,
+        team: 'enemigo',
+      })),
+    ];
+
+    pieces.forEach(({ element, key, team }) => {
+      if (element) {
+        attachPieceData(element, key, team);
+      }
+    });
+
+    const turnOrder = pieces
+      .map(({ element }) => element)
+      .filter(Boolean);
+
+    let turnIndex = 0;
+    let attackMode = false;
+
+    function getPieceSquare(piece) {
+      return piece.closest('.square');
+    }
+
+    function clearHighlights() {
+      squares.forEach((square) => square.classList.remove('square--range'));
+      tooltip.hidden = true;
+    }
+
+    function setActivePiece(piece) {
+      document.querySelectorAll('.piece').forEach((p) => p.classList.remove('piece--active'));
+      piece.classList.add('piece--active');
+    }
+
+    function rangeForPiece(piece) {
+      const r = parseInt(piece.dataset.rango, 10);
+      return r === 0 ? 1 : r;
+    }
+
+    function highlightRange(piece) {
+      const parent = getPieceSquare(piece);
+      if (!parent) return;
+      const row = Number(parent.dataset.row);
+      const col = Number(parent.dataset.col);
+      const maxRange = rangeForPiece(piece);
+      squares.forEach((square) => {
+        const targetRow = Number(square.dataset.row);
+        const targetCol = Number(square.dataset.col);
+        const manhattan = Math.abs(targetRow - row) + Math.abs(targetCol - col);
+        if (manhattan > 0 && manhattan <= maxRange) {
+          square.classList.add('square--range');
+        }
+      });
+    }
+
+    function showTooltip(piece) {
+      const stats = pieceMap.get(piece);
+      if (!stats) return;
+      tooltip.innerHTML = `
+        <h3>${stats.name}</h3>
+        <ul>
+          <li>Mov: ${stats.movimiento}</li>
+          <li>Atk: ${stats.ataque}</li>
+          <li>Def: ${stats.defensa}</li>
+          <li>C/C: ${stats.danoCC}</li>
+          <li>A/D: ${stats.danoAD}</li>
+          <li>Res C/C: ${stats.resistenciaCC}</li>
+          <li>Res A/D: ${stats.resistenciaAD}</li>
+          <li>Rango: ${stats.rango}</li>
+          <li>Vida: ${stats.vida}</li>
+          <li>Agilidad: ${stats.agilidad}</li>
+        </ul>
+      `;
+      tooltip.hidden = false;
+    }
+
+    function positionTooltip(target) {
+      const rect = target.getBoundingClientRect();
+      tooltip.style.left = `${rect.left + rect.width / 2}px`;
+      tooltip.style.top = `${rect.top - 12}px`;
+    }
+
+    function hideTooltip() {
+      tooltip.hidden = true;
+    }
+
+    function nextTurn() {
+      clearHighlights();
+      attackMode = false;
+      turnIndex = (turnIndex + 1) % turnOrder.length;
+      setActivePiece(turnOrder[turnIndex]);
+    }
+
+    passButton.addEventListener('click', () => {
+      nextTurn();
+    });
+
+    attackButton.addEventListener('click', () => {
+      const currentPiece = turnOrder[turnIndex];
+      attackMode = true;
+      clearHighlights();
+      highlightRange(currentPiece);
+    });
+
+    board.addEventListener('mouseenter', (event) => {
+      const targetPiece = event.target.closest('.piece');
+      if (!attackMode || !targetPiece) return;
+      const attacker = turnOrder[turnIndex];
+      if (targetPiece.dataset.team === attacker.dataset.team) return;
+      const square = getPieceSquare(targetPiece);
+      if (!square.classList.contains('square--range')) return;
+      showTooltip(targetPiece);
+      positionTooltip(targetPiece);
+    }, true);
+
+    board.addEventListener('mousemove', (event) => {
+      if (tooltip.hidden) return;
+      positionTooltip(event.target.closest('.piece') || event.target);
+    });
+
+    board.addEventListener('mouseleave', () => {
+      hideTooltip();
+    });
+
+    board.addEventListener('click', (event) => {
+      if (!attackMode) return;
+      const targetPiece = event.target.closest('.piece');
+      if (!targetPiece) return;
+      const attacker = turnOrder[turnIndex];
+      if (targetPiece.dataset.team === attacker.dataset.team) return;
+      const square = getPieceSquare(targetPiece);
+      if (!square.classList.contains('square--range')) return;
+      const confirmAttack = window.confirm(`¿${attacker.textContent} ataca a ${targetPiece.textContent}?`);
+      if (confirmAttack) {
+        hideTooltip();
+        alert(`${attacker.textContent} atacó a ${targetPiece.textContent}.`);
+        nextTurn();
+      }
+    });
+
+    setActivePiece(turnOrder[turnIndex]);
+  </script>
 </body>
 </html>
