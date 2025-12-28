@@ -72,6 +72,23 @@
       background: #ff9400;
     }
 
+    .button--pulse {
+      animation: pulse 0.8s ease-in-out infinite;
+      box-shadow: 0 0 0 0 rgba(241, 124, 0, 0.65);
+    }
+
+    @keyframes pulse {
+      0% {
+        box-shadow: 0 0 0 0 rgba(241, 124, 0, 0.65);
+      }
+      70% {
+        box-shadow: 0 0 0 12px rgba(241, 124, 0, 0);
+      }
+      100% {
+        box-shadow: 0 0 0 0 rgba(241, 124, 0, 0);
+      }
+    }
+
     .board {
       width: calc(var(--board-size) + 16px);
       height: calc(var(--board-size) + 16px);
@@ -212,6 +229,7 @@
       <span id="turnInfo">Turno:</span>
       <span id="movementInfo"></span>
     </div>
+    <div id="combatInfo" aria-live="polite" style="margin-bottom: 12px; font-weight: 700;"></div>
 
     <section class="board" aria-label="Tablero de 64 cuadros verdes">
       <!-- Fila 1 -->
@@ -437,6 +455,7 @@
 
     let turnIndex = 0;
     let selectedTarget = null;
+    let pendingAttackInfo = null;
 
     function getPieceSquare(piece) {
       return piece.closest('.square');
@@ -469,6 +488,7 @@
       document.querySelectorAll('.piece').forEach((p) => p.classList.remove('piece--active'));
       piece.classList.add('piece--active');
       updateStatusBar(piece);
+      updateCombatInfo();
     }
 
     function updateStatusBar(piece) {
@@ -514,10 +534,73 @@
       tooltip.hidden = true;
     }
 
-    function clearTargetSelection() {
+    function updateCombatInfo() {
+      const combatBox = document.getElementById('combatInfo');
+      if (!pendingAttackInfo) {
+        combatBox.textContent = '';
+        return;
+      }
+      const { attacker, defender, difference, roll, success } = pendingAttackInfo;
+      let rollText = roll ? ` | Tirada 2d6: ${roll}` : '';
+      let successText = '';
+      if (roll) {
+        successText = success ? ' (Éxito)' : ' (Fallo)';
+      }
+      combatBox.textContent = `Ataque ${attacker} vs Defensa ${defender} | Diferencia: ${difference}${rollText}${successText}`;
+    }
+
+    function prepareAttackInfo(attacker, defender) {
+      const attackerStats = pieceMap.get(attacker);
+      const defenderStats = pieceMap.get(defender);
+      pendingAttackInfo = {
+        attacker: attackerStats.ataque,
+        defender: defenderStats.defensa,
+        difference: attackerStats.ataque - defenderStats.defensa,
+        roll: null,
+        success: null,
+      };
+      attackButton.classList.add('button--pulse');
+      updateCombatInfo();
+    }
+
+    function resolveAttack(attacker, defender) {
+      const attackerStats = pieceMap.get(attacker);
+      const defenderStats = pieceMap.get(defender);
+      const die1 = Math.floor(Math.random() * 6) + 1;
+      const die2 = Math.floor(Math.random() * 6) + 1;
+      const roll = die1 + die2;
+      let success = false;
+      if (roll === 12) {
+        success = true;
+      } else if (roll === 2) {
+        success = false;
+      } else if (roll + attackerStats.ataque >= defenderStats.defensa) {
+        success = true;
+      }
+      pendingAttackInfo = {
+        attacker: attackerStats.ataque,
+        defender: defenderStats.defensa,
+        difference: attackerStats.ataque - defenderStats.defensa,
+        roll,
+        success,
+      };
+      hideTooltip();
       squares.forEach((square) => square.classList.remove('square--range'));
       selectedTarget = null;
+      attackButton.classList.remove('button--pulse');
+      updateCombatInfo();
+      nextTurn();
+    }
+
+    function clearTargetSelection(preserveAttack = false) {
+      squares.forEach((square) => square.classList.remove('square--range'));
+      selectedTarget = null;
+      if (!preserveAttack) {
+        pendingAttackInfo = null;
+      }
+      attackButton.classList.remove('button--pulse');
       hideTooltip();
+      updateCombatInfo();
     }
 
     attackButton.addEventListener('click', () => {
@@ -536,9 +619,7 @@
         alert('El objetivo está fuera de rango.');
         return;
       }
-      hideTooltip();
-      alert(`${attacker.textContent} atacó a ${selectedTarget.textContent}.`);
-      nextTurn();
+      resolveAttack(attacker, selectedTarget);
     });
 
     const movementPool = new Map();
@@ -578,6 +659,7 @@
         clearTargetSelection();
         square.classList.add('square--range');
         selectedTarget = targetPiece;
+        prepareAttackInfo(activePiece, targetPiece);
         return;
       }
 
@@ -620,7 +702,7 @@
     function startTurn(piece) {
       resetMovement(piece);
       setActivePiece(piece);
-      clearTargetSelection();
+      clearTargetSelection(true);
       clearHighlights();
       highlightMovement(piece);
     }
