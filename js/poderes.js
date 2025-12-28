@@ -2,176 +2,172 @@ const poderes = {
   avispa: {
     activos: [
       {
-        nombre: 'Picadura Atómica',
-        descripcion: 'Un rayo concentrado que inflige daño a distancia y reduce la agilidad del objetivo temporalmente.',
-      },
-      {
-        nombre: 'Micromovilización',
-        descripcion: 'Reduce su tamaño para atravesar casillas ocupadas y reposicionarse sin provocar ataques de oportunidad.',
+        nombre: 'Incapacitar',
+        descripcion: 'Aturde a un objetivo si el ataque impacta, obligándolo a perder su siguiente turno sin causar daño.',
       },
     ],
     pasivos: [
-      {
-        nombre: 'Ala cuántica',
-        descripcion: 'Obtiene un ligero bono de esquiva al moverse y es más difícil de acertar a larga distancia.',
-      },
     ],
   },
   hulk: {
     activos: [
       {
-        nombre: 'Golpe de Trueno',
-        descripcion: 'Un ataque cuerpo a cuerpo que empuja al objetivo y puede derribar a enemigos cercanos.',
-      },
-      {
-        nombre: 'Salto Colosal',
-        descripcion: 'Hulk salta varias casillas ignorando obstáculos para caer causando daño en área.',
+        nombre: 'Paso firme',
+        descripcion: 'Sin acción especial: Hulk confía en su fuerza bruta.',
       },
     ],
     pasivos: [
       {
-        nombre: 'Ira Desatada',
-        descripcion: 'Cada vez que recibe daño aumenta su ataque en el siguiente turno.',
+        nombre: 'Regeneración',
+        descripcion: 'Recupera 1 punto de vida al final de su turno si no está al máximo.',
       },
     ],
   },
   capitan: {
     activos: [
       {
-        nombre: 'Lanzamiento de Escudo',
-        descripcion: 'Ataque a distancia que puede rebotar entre múltiples objetivos.',
+        nombre: 'Guardia',
+        descripcion: 'Sin acción especial: se centra en apoyar al equipo.',
       },
     ],
     pasivos: [
       {
-        nombre: 'Liderazgo Táctico',
-        descripcion: 'Los aliados adyacentes ganan bonificaciones defensivas mientras él esté en pie.',
+        nombre: 'Astucia',
+        descripcion: 'Consigue crítico con 11 o 12 en la tirada de ataque.',
       },
     ],
   },
   spider: {
     activos: [
       {
-        nombre: 'Red Progresiva',
-        descripcion: 'Enreda a un objetivo reduciendo su movimiento y aplicando daño continuo leve.',
+        nombre: 'Incapacitar',
+        descripcion: 'Si impacta, el defensor pierde su siguiente turno en lugar de recibir daño.',
       },
     ],
     pasivos: [
       {
-        nombre: 'Sentido Arácnido',
-        descripcion: 'Alta probabilidad de esquivar el primer ataque recibido en cada ronda.',
+        nombre: 'Astucia',
+        descripcion: 'Consigue crítico con 11 o 12 en la tirada de ataque.',
       },
     ],
   },
   lobezno: {
     activos: [
       {
-        nombre: 'Corte Giratorio',
-        descripcion: 'Ataque en área en las casillas adyacentes que aplica sangrado.',
+        nombre: 'Instinto',
+        descripcion: 'Prefiere atacar normalmente para activar sus garras.',
       },
     ],
     pasivos: [
       {
-        nombre: 'Curación Acelerada',
-        descripcion: 'Recupera una pequeña cantidad de vida al final de su turno.',
+        nombre: 'Regeneración',
+        descripcion: 'Recupera 1 punto de vida al final de su turno si no está al máximo.',
+      },
+      {
+        nombre: 'Garras',
+        descripcion: 'El daño cuerpo a cuerpo se lanza con 1d6; nunca inferior a su daño base.',
       },
     ],
   },
   ciclope: {
     activos: [
       {
-        nombre: 'Ráfaga Óptica',
-        descripcion: 'Ataque de largo alcance que atraviesa a los enemigos en línea recta.',
+        nombre: 'Liderar',
+        descripcion: 'Sin acción especial: mantiene la formación.',
       },
     ],
     pasivos: [
       {
-        nombre: 'Disciplina Estratégica',
-        descripcion: 'Gana precisión adicional cuando no se mueve durante su turno.',
+        nombre: 'Concentración',
+        descripcion: 'Sin bono especial: se apoya en su potencia a distancia.',
       },
     ],
   },
   chaquetaAmarilla: {
     activos: [
       {
-        nombre: 'Descarga Bioeléctrica',
-        descripcion: 'Impacta a un objetivo cercano con electricidad, ralentizándolo durante un turno.',
+        nombre: 'Incapacitar',
+        descripcion: 'Aturde al objetivo si impacta, sin causar daño.',
       },
     ],
     pasivos: [
       {
-        nombre: 'Armadura Ajustable',
-        descripcion: 'Reduce parte del daño recibido después de moverse al menos una casilla.',
+        nombre: 'Ajustes de traje',
+        descripcion: 'Sin efecto adicional.',
       },
     ],
   },
   duende: {
     activos: [
       {
-        nombre: 'Bomba Calabaza',
-        descripcion: 'Lanza un explosivo de área que inflige daño a todo lo que haya en su radio.',
+        nombre: 'Incapacitar',
+        descripcion: 'Embiste y deja fuera de combate durante un turno si acierta.',
       },
     ],
     pasivos: [
       {
-        nombre: 'Planeador Insidioso',
-        descripcion: 'Puede reposicionarse una casilla extra después de atacar a distancia.',
+        nombre: 'Planeador',
+        descripcion: 'Sin efecto adicional.',
       },
     ],
   },
   dientesDeSable: {
     activos: [
       {
-        nombre: 'Emboscada Bestial',
-        descripcion: 'Se desplaza rápidamente hasta un enemigo cercano y causa un tajo profundo.',
+        nombre: 'Arremeter',
+        descripcion: 'Ataca normalmente usando sus garras.',
       },
     ],
     pasivos: [
       {
-        nombre: 'Instinto Predador',
-        descripcion: 'Gana daño adicional cuando persigue a enemigos con poca vida.',
+        nombre: 'Garras',
+        descripcion: 'El daño cuerpo a cuerpo se lanza con 1d6; nunca inferior a su daño base.',
+      },
+      {
+        nombre: 'Regeneración',
+        descripcion: 'Recupera 1 punto de vida al final de su turno si no está al máximo.',
       },
     ],
   },
   boomerang: {
     activos: [
       {
-        nombre: 'Lluvia de Boomerangs',
-        descripcion: 'Ataque a distancia que puede golpear hasta dos objetivos en línea.',
+        nombre: 'Incapacitar',
+        descripcion: 'Busca aturdir a su objetivo si impacta.',
+      },
+      {
+        nombre: 'Explosión',
+        descripcion: 'Ataque de área que afecta al objetivo y a los adyacentes con una sola tirada.',
       },
     ],
     pasivos: [
-      {
-        nombre: 'Rebote Controlado',
-        descripcion: 'Recupera alcance adicional si el ataque previo falló.',
-      },
     ],
   },
   juggernaut: {
     activos: [
       {
-        nombre: 'Arremetida Imparable',
-        descripcion: 'Se mueve varias casillas en línea recta arrasando con cualquier enemigo en su camino.',
+        nombre: 'Embestida',
+        descripcion: 'No tiene poder activo especial.',
       },
     ],
     pasivos: [
       {
-      nombre: 'Masa Irresistible',
-      descripcion: 'Recibe menos daño de los ataques a distancia y no puede ser empujado.',
-    },
+        nombre: 'Blindaje natural',
+        descripcion: 'Se apoya en su resistencia base.',
+      },
     ],
   },
   mole: {
     activos: [
       {
-        nombre: 'Golpe de Túnel',
-        descripcion: 'Se sumerge bajo tierra, emerge junto a un enemigo y ataca ignorando obstáculos intermedios.',
+        nombre: 'Incapacitar',
+        descripcion: 'Aplica un golpe preciso que hace perder el siguiente turno al rival.',
       },
     ],
     pasivos: [
       {
-        nombre: 'Sigilo Subterráneo',
-        descripcion: 'Es más difícil de detectar o alcanzar si terminó su movimiento en casillas vacías.',
+        nombre: 'Instinto minero',
+        descripcion: 'Sin efecto adicional.',
       },
     ],
   },

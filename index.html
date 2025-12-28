@@ -260,6 +260,36 @@
       gap: 8px;
     }
 
+    .history {
+      margin-top: 12px;
+    }
+
+    .history__title {
+      margin: 0 0 6px;
+      font-size: 0.95rem;
+    }
+
+    .history__list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      max-height: 260px;
+      overflow: auto;
+      font-size: 0.92rem;
+    }
+
+    .history__item {
+      background: rgba(0, 0, 0, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 8px;
+      padding: 6px 8px;
+      text-align: left;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    }
+
     .life-card {
       display: flex;
       justify-content: space-between;
@@ -301,6 +331,19 @@
       align-items: center;
       font-weight: 700;
     }
+
+    .piece--incapacitated::after {
+      content: '✖';
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      background: rgba(255, 0, 0, 0.35);
+      color: #fff;
+      font-size: 42px;
+      font-weight: 900;
+      pointer-events: none;
+    }
   </style>
 </head>
 <body>
@@ -309,6 +352,7 @@
       <button class="button" id="passTurn" type="button">Pasar</button>
       <button class="button button--primary" id="attack" type="button">Atacar</button>
     </div>
+    <div class="controls" id="powerControls" aria-label="Poderes activos"></div>
     <div class="status-bar" aria-live="polite">
       <span id="turnInfo">Turno:</span>
       <span id="movementInfo"></span>
@@ -319,6 +363,10 @@
       <aside class="card-panel" aria-label="Vida aliados">
         <h3>Aliados</h3>
         <div class="life-list" id="allyCards"></div>
+        <div class="history">
+          <h4 class="history__title">Histórico héroes</h4>
+          <ol id="heroLog" class="history__list"></ol>
+        </div>
       </aside>
 
       <section class="board" aria-label="Tablero de 64 cuadros verdes">
@@ -465,6 +513,10 @@
       <aside class="card-panel" aria-label="Vida enemigos">
         <h3>Enemigos</h3>
         <div class="life-list" id="enemyCards"></div>
+        <div class="history">
+          <h4 class="history__title">Histórico villanos</h4>
+          <ol id="villainLog" class="history__list"></ol>
+        </div>
       </aside>
     </div>
   </main>
@@ -478,21 +530,39 @@
     const tooltip = document.getElementById('tooltip');
     const passButton = document.getElementById('passTurn');
     const attackButton = document.getElementById('attack');
+    const powerControls = document.getElementById('powerControls');
     const turnInfo = document.getElementById('turnInfo');
     const movementInfo = document.getElementById('movementInfo');
     const allyCards = document.getElementById('allyCards');
     const enemyCards = document.getElementById('enemyCards');
+    const heroLog = document.getElementById('heroLog');
+    const villainLog = document.getElementById('villainLog');
+
+    const AI_DELAY_MS = 900;
+    const TURN_DELAY_MS = 250;
 
     const pieceStats = personajes;
 
+    const squaresByCoord = new Map();
     squares.forEach((square, index) => {
       const row = Math.floor(index / 8) + 1;
       const col = (index % 8) + 1;
       square.dataset.row = row;
       square.dataset.col = col;
+      squaresByCoord.set(`${row},${col}`, square);
     });
 
     const pieceMap = new Map();
+    let movementDistances = new Map();
+    let currentAction = 'attack';
+
+    function hasPassive(stats, key) {
+      return Boolean(stats?.habilidades?.pasivas?.includes(key));
+    }
+
+    function hasActive(stats, key) {
+      return Boolean(stats?.habilidades?.activas?.includes(key));
+    }
 
     function pieceColor(element) {
       if (element.classList.contains('piece--white')) return '#dcdcdc';
@@ -506,7 +576,14 @@
     function attachPieceData(piece, key, team) {
       const stats = pieceStats[key];
       if (!stats) return;
-      const computedStats = { ...stats, currentVida: stats.vida };
+      const abilities = stats.habilidades || { activas: [], pasivas: [] };
+      const computedStats = {
+        ...stats,
+        habilidades: abilities,
+        currentVida: stats.vida,
+        maxVida: stats.vida,
+        incapacitatedTurns: 0,
+      };
       piece.dataset.key = key;
       piece.dataset.team = team;
       piece.dataset.rango = stats.rango;
@@ -532,7 +609,7 @@
       enemyCards.innerHTML = '';
 
       pieces.forEach(({ element }) => {
-        if (!element) return;
+        if (!element || element.dataset.eliminated === 'true') return;
         const stats = pieceMap.get(element);
         const container = element.dataset.team === 'aliado' ? allyCards : enemyCards;
         const card = document.createElement('div');
@@ -548,6 +625,33 @@
     }
 
     renderLifeCards();
+
+    function addHistoryEntry(team, message) {
+      const list = team === 'aliado' ? heroLog : villainLog;
+      if (!list) return;
+      const item = document.createElement('li');
+      item.className = 'history__item';
+      item.textContent = message;
+      list.prepend(item);
+      while (list.children.length > 14) {
+        list.removeChild(list.lastChild);
+      }
+    }
+
+    function renderPowerButtons(piece) {
+      powerControls.innerHTML = '';
+      const stats = pieceMap.get(piece);
+      if (!stats) return;
+      const actives = stats.habilidades?.activas || [];
+      actives.forEach((ability) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'button';
+        btn.textContent = ability === 'incapacitar' ? 'Incapacitar' : 'Explosión';
+        btn.addEventListener('click', () => handleActionClick(ability));
+        powerControls.appendChild(btn);
+      });
+    }
 
     const turnOrder = pieces
       .map(({ element }) => element)
@@ -569,6 +673,55 @@
       return piece.closest('.square');
     }
 
+    function getSquareAt(row, col) {
+      return squaresByCoord.get(`${row},${col}`);
+    }
+
+    function computeReachableSquares(piece) {
+      const origin = getPieceSquare(piece);
+      if (!origin) return;
+      const maxMove = remainingMovement(piece);
+      const visited = new Map();
+      const queue = [{ row: Number(origin.dataset.row), col: Number(origin.dataset.col), cost: 0 }];
+      visited.set(`${origin.dataset.row},${origin.dataset.col}`, 0);
+
+      const deltas = [
+        [1, 0],
+        [-1, 0],
+        [0, 1],
+        [0, -1],
+      ];
+
+      while (queue.length) {
+        const { row, col, cost } = queue.shift();
+        for (const [dr, dc] of deltas) {
+          const nr = row + dr;
+          const nc = col + dc;
+          const key = `${nr},${nc}`;
+          if (nr < 1 || nr > 8 || nc < 1 || nc > 8) continue;
+          const nextCost = cost + 1;
+          if (nextCost > maxMove) continue;
+          if (visited.has(key) && visited.get(key) <= nextCost) continue;
+          const square = getSquareAt(nr, nc);
+          if (!square) continue;
+          const occupant = square.querySelector('.piece');
+          if (occupant && occupant.dataset.team !== piece.dataset.team) continue;
+          visited.set(key, nextCost);
+          queue.push({ row: nr, col: nc, cost: nextCost });
+        }
+      }
+
+      movementDistances = new Map();
+      visited.forEach((dist, key) => {
+        const square = squaresByCoord.get(key);
+        if (!square) return;
+        const occupied = square.querySelector('.piece');
+        if (!occupied && dist > 0) {
+          movementDistances.set(square, dist);
+        }
+      });
+    }
+
     function clearMoveHighlights() {
       squares.forEach((square) => square.classList.remove('square--move'));
     }
@@ -585,19 +738,10 @@
     }
 
     function highlightMovement(piece) {
-      const parent = getPieceSquare(piece);
-      if (!parent) return;
-      const row = Number(parent.dataset.row);
-      const col = Number(parent.dataset.col);
-      const maxMove = remainingMovement(piece);
-      if (maxMove <= 0) return;
-      squares.forEach((square) => {
-        const targetRow = Number(square.dataset.row);
-        const targetCol = Number(square.dataset.col);
-        const manhattan = Math.abs(targetRow - row) + Math.abs(targetCol - col);
-        if (manhattan > 0 && manhattan <= maxMove) {
-          square.classList.add('square--move');
-        }
+      computeReachableSquares(piece);
+      if (movementDistances.size === 0) return;
+      movementDistances.forEach((_, square) => {
+        square.classList.add('square--move');
       });
     }
 
@@ -628,6 +772,8 @@
       piece.classList.add('piece--active');
       updateStatusBar(piece);
       updateCombatInfo();
+      currentAction = 'attack';
+      renderPowerButtons(piece);
     }
 
     function updateStatusBar(piece) {
@@ -646,10 +792,16 @@
 
     function calculateDamage(attackerStats, defenderStats, distance, isCritical) {
       const isMelee = distance <= 1;
-      const baseDamage = isMelee ? attackerStats.danoCC : attackerStats.danoAD;
+      let baseDamage = isMelee ? attackerStats.danoCC : attackerStats.danoAD;
+      let clawsRoll = null;
+      if (isMelee && hasPassive(attackerStats, 'garras')) {
+        clawsRoll = Math.floor(Math.random() * 6) + 1;
+        baseDamage = Math.max(baseDamage, clawsRoll);
+      }
       const resistance = isMelee ? defenderStats.resistenciaCC : defenderStats.resistenciaAD;
-      const totalDamage = Math.max((isCritical ? baseDamage * 2 : baseDamage) - resistance, 0);
-      return { totalDamage, isMelee };
+      const rawDamage = isCritical ? baseDamage * 2 : baseDamage;
+      const totalDamage = Math.max(rawDamage - resistance, 0);
+      return { totalDamage, isMelee, clawsRoll, rawDamage };
     }
 
     function eliminatePiece(piece) {
@@ -699,27 +851,55 @@
       tooltip.hidden = true;
     }
 
+    function setIncapacitated(piece, turns = 1) {
+      const stats = pieceMap.get(piece);
+      if (!stats) return;
+      stats.incapacitatedTurns = turns;
+      piece.classList.add('piece--incapacitated');
+    }
+
+    function actionLabel(actionKey) {
+      if (actionKey === 'incapacitar') return 'Incapacitar';
+      if (actionKey === 'explosion') return 'Explosión';
+      return 'Ataque';
+    }
+
     function updateCombatInfo() {
       const combatBox = document.getElementById('combatInfo');
       if (!pendingAttackInfo) {
         combatBox.textContent = '';
         return;
       }
-      const { attacker, defender, difference, roll, success, critical, damage, defenderVida, attackerName, defenderName } =
-        pendingAttackInfo;
-      let rollText = roll ? ` | Tirada 2d6: ${roll}` : '';
-      let successText = '';
-      if (roll) {
-        successText = success ? critical ? ' (Crítico)' : ' (Éxito)' : ' (Fallo)';
+      const info = pendingAttackInfo;
+      if (info.targets) {
+        const summary = info.targets
+          .map((target) => {
+            const base = `${target.name}: ${target.success ? 'Éxito' : 'Fallo'}`;
+            const damageText = target.success ? ` | Daño ${target.damage} (Vida ${target.vida})` : '';
+            return `${base}${damageText}`;
+          })
+          .join(' | ');
+        combatBox.textContent = `${info.action} de ${info.attackerName} | Tirada 2d6: ${info.roll}${
+          info.critical ? ' (Crítico)' : ''
+        } | ${summary}`;
+        return;
       }
-      const damageText = roll ? ` | Daño: ${damage} | Vida defensor: ${defenderVida}` : '';
-      combatBox.textContent = `Ataque ${attackerName} (${attacker}) vs ${defenderName} (${defender}) | Diferencia: ${difference}${rollText}${successText}${damageText}`;
+      let rollText = info.roll ? ` | Tirada 2d6: ${info.roll}` : '';
+      let successText = '';
+      if (info.roll) {
+        successText = info.success ? (info.critical ? ' (Crítico)' : ' (Éxito)') : ' (Fallo)';
+      }
+      const damageText = info.roll ? ` | Daño: ${info.damage} | Vida defensor: ${info.defenderVida}` : '';
+      const clawsText = info.clawsRoll ? ` | Garras d6: ${info.clawsRoll}` : '';
+      const noteText = info.note ? ` | ${info.note}` : '';
+      combatBox.textContent = `${info.action} ${info.attackerName} (${info.attacker}) vs ${info.defenderName} (${info.defender}) | Diferencia: ${info.difference}${rollText}${successText}${damageText}${clawsText}${noteText}`;
     }
 
-    function prepareAttackInfo(attacker, defender) {
+    function prepareAttackInfo(attacker, defender, actionKey = 'attack') {
       const attackerStats = pieceMap.get(attacker);
       const defenderStats = pieceMap.get(defender);
       pendingAttackInfo = {
+        action: actionLabel(actionKey),
         attacker: attackerStats.ataque,
         defender: defenderStats.defensa,
         difference: attackerStats.ataque - defenderStats.defensa,
@@ -730,12 +910,14 @@
         defenderVida: defenderStats.currentVida,
         attackerName: attackerStats.name,
         defenderName: defenderStats.name,
+        clawsRoll: null,
+        note: null,
       };
       attackButton.classList.add('button--pulse');
       updateCombatInfo();
     }
 
-    function resolveAttack(attacker, defender) {
+    function resolveAttack(attacker, defender, actionKey = 'attack') {
       const attackerStats = pieceMap.get(attacker);
       const defenderStats = pieceMap.get(defender);
       const attackerSquare = getPieceSquare(attacker);
@@ -745,7 +927,8 @@
       const die1 = Math.floor(Math.random() * 6) + 1;
       const die2 = Math.floor(Math.random() * 6) + 1;
       const roll = die1 + die2;
-      const critical = roll === 12;
+      const hasAstucia = hasPassive(attackerStats, 'astucia');
+      const critical = hasAstucia ? roll >= 11 : roll === 12;
       let success = false;
       if (critical) {
         success = true;
@@ -755,25 +938,44 @@
         success = true;
       }
 
-      const { totalDamage } = calculateDamage(attackerStats, defenderStats, distance, critical);
-      if (success) {
-        defenderStats.currentVida = Math.max(defenderStats.currentVida - totalDamage, 0);
+      const { totalDamage, clawsRoll } = calculateDamage(attackerStats, defenderStats, distance, critical);
+      const damageApplied = success && actionKey !== 'incapacitar' ? totalDamage : 0;
+      if (success && actionKey === 'incapacitar') {
+        setIncapacitated(defender, 1);
+      }
+      if (damageApplied > 0) {
+        defenderStats.currentVida = Math.max(defenderStats.currentVida - damageApplied, 0);
       }
 
       pendingAttackInfo = {
+        action: actionLabel(actionKey),
         attacker: attackerStats.ataque,
         defender: defenderStats.defensa,
         difference: attackerStats.ataque - defenderStats.defensa,
         roll,
         success,
         critical,
-        damage: success ? totalDamage : 0,
+        damage: damageApplied,
         defenderVida: defenderStats.currentVida,
         attackerName: attackerStats.name,
         defenderName: defenderStats.name,
+        clawsRoll,
+        note: actionKey === 'incapacitar' ? 'El ataque no causa daño.' : null,
       };
 
-      if (success && defenderStats.currentVida <= 0) {
+      if (success && actionKey === 'incapacitar') {
+        addHistoryEntry(attacker.dataset.team, `${attackerStats.name} incapacita a ${defenderStats.name}.`);
+      } else {
+        const garrasText = clawsRoll ? ` (Garras d6=${clawsRoll})` : '';
+        addHistoryEntry(
+          attacker.dataset.team,
+          `${attackerStats.name} ataca a ${defenderStats.name}: tirada ${roll}${
+            critical ? ' (Crítico)' : ''
+          }${success ? `, daño ${damageApplied}${garrasText}` : ', falla el ataque.'}`
+        );
+      }
+
+      if (success && actionKey !== 'incapacitar' && defenderStats.currentVida <= 0) {
         eliminatePiece(defender);
       }
 
@@ -783,7 +985,80 @@
       selectedTarget = null;
       attackButton.classList.remove('button--pulse');
       updateCombatInfo();
-      nextTurn();
+      finishTurn(attacker);
+    }
+
+    function resolveExplosion(attacker, defender) {
+      const attackerStats = pieceMap.get(attacker);
+      const attackerSquare = getPieceSquare(attacker);
+      const centerSquare = getPieceSquare(defender);
+      const die1 = Math.floor(Math.random() * 6) + 1;
+      const die2 = Math.floor(Math.random() * 6) + 1;
+      const roll = die1 + die2;
+      const hasAstucia = hasPassive(attackerStats, 'astucia');
+      const critical = hasAstucia ? roll >= 11 : roll === 12;
+
+      const deltas = [-1, 0, 1];
+      const affectedPieces = [];
+      const seenPieces = new Set();
+
+      deltas.forEach((dr) => {
+        deltas.forEach((dc) => {
+          const row = Number(centerSquare.dataset.row) + dr;
+          const col = Number(centerSquare.dataset.col) + dc;
+          const square = getSquareAt(row, col);
+          if (!square) return;
+          const piece = square.querySelector('.piece');
+          if (!piece || seenPieces.has(piece)) return;
+          seenPieces.add(piece);
+          affectedPieces.push({ piece, square });
+        });
+      });
+
+      const targetsSummary = [];
+      affectedPieces.forEach(({ piece, square }) => {
+        const targetStats = pieceMap.get(piece);
+        const success = critical || (roll !== 2 && roll + attackerStats.ataque >= targetStats.defensa);
+        let damage = 0;
+        if (success) {
+          const distance = attackDistance(attackerSquare, square);
+          const { totalDamage } = calculateDamage(attackerStats, targetStats, distance, critical);
+          damage = totalDamage;
+          targetStats.currentVida = Math.max(targetStats.currentVida - damage, 0);
+        }
+        targetsSummary.push({
+          name: targetStats.name,
+          success,
+          damage,
+          vida: targetStats.currentVida,
+        });
+        if (success && targetStats.currentVida <= 0) {
+          eliminatePiece(piece);
+        }
+      });
+
+      pendingAttackInfo = {
+        action: actionLabel('explosion'),
+        attackerName: attackerStats.name,
+        roll,
+        critical,
+        targets: targetsSummary,
+      };
+
+      addHistoryEntry(
+        attacker.dataset.team,
+        `${attackerStats.name} ejecuta Explosión: tirada ${roll}${critical ? ' (Crítico)' : ''}. Afectados: ${targetsSummary
+          .map((t) => `${t.name}${t.success ? ` daño ${t.damage}` : ' sin efecto'}`)
+          .join('; ')}`
+      );
+
+      renderLifeCards();
+      hideTooltip();
+      clearRangeHighlights();
+      selectedTarget = null;
+      attackButton.classList.remove('button--pulse');
+      updateCombatInfo();
+      finishTurn(attacker);
     }
 
     function clearTargetSelection(preserveAttack = false) {
@@ -800,7 +1075,8 @@
       }
     }
 
-    attackButton.addEventListener('click', () => {
+    function handleActionClick(actionKey) {
+      currentAction = actionKey;
       const attacker = turnOrder[turnIndex];
       if (!selectedTarget) {
         alert('Selecciona primero un enemigo dentro de tu rango.');
@@ -811,10 +1087,18 @@
       const maxRange = rangeForPiece(attacker);
       if (!isWithinAttackRange(attackerSquare, targetSquare, maxRange)) {
         alert('El objetivo está fuera de rango.');
+        clearTargetSelection();
         return;
       }
-      resolveAttack(attacker, selectedTarget);
-    });
+      prepareAttackInfo(attacker, selectedTarget, actionKey);
+      if (actionKey === 'explosion') {
+        resolveExplosion(attacker, selectedTarget);
+      } else {
+        resolveAttack(attacker, selectedTarget, actionKey);
+      }
+    }
+
+    attackButton.addEventListener('click', () => handleActionClick('attack'));
 
     const movementPool = new Map();
 
@@ -850,15 +1134,14 @@
         clearTargetSelection();
         square.classList.add('square--target');
         selectedTarget = targetPiece;
-        prepareAttackInfo(activePiece, targetPiece);
+        prepareAttackInfo(activePiece, targetPiece, currentAction);
         return;
       }
 
       if (!square.classList.contains('square--move')) return;
       if (square.querySelector('.piece')) return;
-      const currentSquare = getPieceSquare(activePiece);
-      const distance = attackDistance(currentSquare, square);
-      if (distance > remainingMovement(activePiece)) return;
+      const distance = movementDistances.get(square);
+      if (distance === undefined || distance > remainingMovement(activePiece)) return;
       square.appendChild(activePiece);
       spendMovement(activePiece, distance);
       clearHighlights();
@@ -889,8 +1172,44 @@
       }
     });
 
+    function applyRegeneration(piece) {
+      const stats = pieceMap.get(piece);
+      if (!stats || !hasPassive(stats, 'regeneracion')) return;
+      if (stats.currentVida < stats.maxVida) {
+        stats.currentVida = Math.min(stats.currentVida + 1, stats.maxVida);
+        renderLifeCards();
+        addHistoryEntry(piece.dataset.team, `${stats.name} se regenera (vida ${stats.currentVida}).`);
+      }
+    }
+
+    function advanceTurn() {
+      if (turnOrder.length === 0) return;
+      turnIndex = (turnIndex + 1) % turnOrder.length;
+      const nextPiece = turnOrder[turnIndex];
+      const delay = nextPiece?.dataset.team === 'enemigo' ? AI_DELAY_MS : TURN_DELAY_MS;
+      setTimeout(() => startTurn(nextPiece), delay);
+    }
+
+    function finishTurn(piece) {
+      applyRegeneration(piece);
+      advanceTurn();
+    }
+
     function startTurn(piece) {
       if (!piece) return;
+      const stats = pieceMap.get(piece);
+      if (!stats) return;
+      if (stats.incapacitatedTurns && stats.incapacitatedTurns > 0) {
+        addHistoryEntry(piece.dataset.team, `${stats.name} pierde el turno por estar incapacitado.`);
+        stats.incapacitatedTurns -= 1;
+        if (stats.incapacitatedTurns <= 0) {
+          piece.classList.remove('piece--incapacitated');
+        }
+        renderLifeCards();
+        applyRegeneration(piece);
+        advanceTurn();
+        return;
+      }
       resetMovement(piece);
       setActivePiece(piece);
       clearTargetSelection(true);
@@ -899,14 +1218,9 @@
       highlightRange(piece);
     }
 
-    function nextTurn() {
-      if (turnOrder.length === 0) return;
-      turnIndex = (turnIndex + 1) % turnOrder.length;
-      startTurn(turnOrder[turnIndex]);
-    }
-
     passButton.addEventListener('click', () => {
-      nextTurn();
+      const currentPiece = turnOrder[turnIndex];
+      finishTurn(currentPiece);
     });
 
     startTurn(turnOrder[turnIndex]);
