@@ -594,7 +594,7 @@
       if (!parent) return;
       const row = Number(parent.dataset.row);
       const col = Number(parent.dataset.col);
-      const maxMove = Number(piece.dataset.movimiento);
+      const maxMove = remainingMovement(piece);
       squares.forEach((square) => {
         const targetRow = Number(square.dataset.row);
         const targetCol = Number(square.dataset.col);
@@ -608,8 +608,6 @@
     function setActivePiece(piece) {
       document.querySelectorAll('.piece').forEach((p) => p.classList.remove('piece--active'));
       piece.classList.add('piece--active');
-      clearHighlights();
-      highlightMovement(piece);
     }
 
     function rangeForPiece(piece) {
@@ -654,16 +652,6 @@
       hideTooltip();
     }
 
-    function nextTurn() {
-      clearHighlights();
-      turnIndex = (turnIndex + 1) % turnOrder.length;
-      setActivePiece(turnOrder[turnIndex]);
-    }
-
-    passButton.addEventListener('click', () => {
-      nextTurn();
-    });
-
     attackButton.addEventListener('click', () => {
       const attacker = turnOrder[turnIndex];
       if (!selectedTarget) {
@@ -684,6 +672,21 @@
       alert(`${attacker.textContent} atacó a ${selectedTarget.textContent}.`);
       nextTurn();
     });
+
+    const movementPool = new Map();
+
+    function remainingMovement(piece) {
+      return movementPool.get(piece) ?? Number(piece.dataset.movimiento);
+    }
+
+    function resetMovement(piece) {
+      movementPool.set(piece, Number(piece.dataset.movimiento));
+    }
+
+    function spendMovement(piece, amount) {
+      const left = Math.max(remainingMovement(piece) - amount, 0);
+      movementPool.set(piece, left);
+    }
 
     board.addEventListener('click', (event) => {
       const square = event.target.closest('.square');
@@ -712,29 +715,57 @@
 
       if (!square.classList.contains('square--move')) return;
       if (square.querySelector('.piece')) return;
+      const currentSquare = getPieceSquare(activePiece);
+      const distance =
+        Math.abs(Number(currentSquare.dataset.row) - Number(square.dataset.row)) +
+        Math.abs(Number(currentSquare.dataset.col) - Number(square.dataset.col));
+      if (distance > remainingMovement(activePiece)) return;
       square.appendChild(activePiece);
+      spendMovement(activePiece, distance);
       clearHighlights();
       highlightMovement(activePiece);
     });
 
-    board.addEventListener('mouseover', (event) => {
-      const piece = event.target.closest('.piece');
-      const activePiece = turnOrder[turnIndex];
-      if (!piece || piece === activePiece || piece.dataset.team === activePiece.dataset.team) {
+    function attachTooltipEvents(piece) {
+      piece.addEventListener('pointerenter', () => {
+        const activePiece = turnOrder[turnIndex];
+        if (piece === activePiece || piece.dataset.team === activePiece.dataset.team) {
+          hideTooltip();
+          return;
+        }
+        showTooltip(piece);
+        positionTooltip(piece);
+      });
+
+      piece.addEventListener('pointerleave', () => {
         hideTooltip();
-        return;
+      });
+    }
+
+    pieces.forEach(({ element }) => {
+      if (element) {
+        attachTooltipEvents(element);
       }
-      showTooltip(piece);
-      positionTooltip(piece);
     });
 
-    board.addEventListener('mouseout', (event) => {
-      if (!event.relatedTarget || !event.currentTarget.contains(event.relatedTarget)) {
-        hideTooltip();
-      }
+    function startTurn(piece) {
+      resetMovement(piece);
+      setActivePiece(piece);
+      clearTargetSelection();
+      clearHighlights();
+      highlightMovement(piece);
+    }
+
+    function nextTurn() {
+      turnIndex = (turnIndex + 1) % turnOrder.length;
+      startTurn(turnOrder[turnIndex]);
+    }
+
+    passButton.addEventListener('click', () => {
+      nextTurn();
     });
 
-    setActivePiece(turnOrder[turnIndex]);
+    startTurn(turnOrder[turnIndex]);
   </script>
 </body>
 </html>
