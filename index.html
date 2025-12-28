@@ -415,6 +415,8 @@
   </main>
   <div id="tooltip" class="tooltip" hidden></div>
 
+  <script src="js/poderes.js"></script>
+  <script src="js/personajes.js"></script>
   <script>
     const board = document.querySelector('.board');
     const squares = Array.from(board.querySelectorAll('.square'));
@@ -426,86 +428,7 @@
     const allyCards = document.getElementById('allyCards');
     const enemyCards = document.getElementById('enemyCards');
 
-    const pieceStats = {
-      avispa: {
-        name: 'Avispa',
-        movimiento: 8,
-        ataque: 8,
-        defensa: 18,
-        danoCC: 2,
-        danoAD: 2,
-        resistenciaCC: 0,
-        resistenciaAD: 0,
-        rango: 3,
-        vida: 5,
-        agilidad: 20,
-      },
-      hulk: {
-        name: 'Hulk',
-        movimiento: 9,
-        ataque: 11,
-        defensa: 17,
-        danoCC: 5,
-        danoAD: 5,
-        resistenciaCC: 2,
-        resistenciaAD: 2,
-        rango: 1,
-        vida: 10,
-        agilidad: 10,
-      },
-      capitan: {
-        name: 'Capitán América',
-        movimiento: 8,
-        ataque: 10,
-        defensa: 17,
-        danoCC: 2,
-        danoAD: 2,
-        resistenciaCC: 0,
-        resistenciaAD: 2,
-        rango: 3,
-        vida: 8,
-        agilidad: 40,
-      },
-      negra1: {
-        name: 'Spider-man',
-        movimiento: 10,
-        ataque: 12,
-        defensa: 18,
-        danoCC: 2,
-        danoAD: 2,
-        resistenciaCC: 0,
-        resistenciaAD: 0,
-        rango: 2,
-        vida: 9,
-        agilidad: 50,
-      },
-      negra2: {
-        name: 'Lobezno',
-        movimiento: 8,
-        ataque: 10,
-        defensa: 16,
-        danoCC: 2,
-        danoAD: 2,
-        resistenciaCC: 1,
-        resistenciaAD: 1,
-        rango: 1,
-        vida: 8,
-        agilidad: 30,
-      },
-      negra3: {
-        name: 'Cíclope',
-        movimiento: 6,
-        ataque: 11,
-        defensa: 15,
-        danoCC: 2,
-        danoAD: 4,
-        resistenciaCC: 0,
-        resistenciaAD: 0,
-        rango: 10,
-        vida: 5,
-        agilidad: 20,
-      },
-    };
+    const pieceStats = personajes;
 
     squares.forEach((square, index) => {
       const row = Math.floor(index / 8) + 1;
