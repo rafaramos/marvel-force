@@ -37,7 +37,22 @@
       display: flex;
       justify-content: center;
       gap: 12px;
+      flex-wrap: wrap;
       margin-bottom: 16px;
+    }
+
+    .controls__group {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .controls__powers {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
     }
 
     .button {
@@ -329,8 +344,11 @@
 <body>
   <main class="wrapper">
     <div class="controls" aria-label="Controles de turno">
-      <button class="button" id="passTurn" type="button">Pasar</button>
-      <button class="button button--primary" id="attack" type="button">Atacar</button>
+      <div class="controls__group">
+        <button class="button" id="passTurn" type="button">Pasar</button>
+        <button class="button button--primary" id="attack" type="button">Atacar</button>
+      </div>
+      <div class="controls__powers" id="powerButtons" aria-label="Poderes activos"></div>
     </div>
     <div class="status-bar" aria-live="polite">
       <span id="turnInfo">Turno:</span>
