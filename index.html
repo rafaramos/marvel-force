@@ -72,13 +72,6 @@
       background: #ff9400;
     }
 
-    .layout {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 18px;
-      align-items: start;
-    }
-
     .board {
       width: calc(var(--board-size) + 16px);
       height: calc(var(--board-size) + 16px);
@@ -199,56 +192,13 @@
       gap: 4px 8px;
     }
 
-    .roster {
-      display: grid;
-      gap: 12px;
-      grid-template-columns: 1fr;
-      align-self: stretch;
-    }
-
-    .card {
-      background: rgba(255, 255, 255, 0.08);
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      border-radius: 10px;
-      padding: 12px 14px;
-      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
-    }
-
-    .card h2 {
-      margin: 0 0 8px;
-      font-size: 1.05rem;
+    .status-bar {
+      margin-bottom: 12px;
       display: flex;
+      justify-content: center;
+      gap: 16px;
       align-items: center;
-      gap: 8px;
-    }
-
-    .swatch {
-      width: 18px;
-      height: 18px;
-      border-radius: 50%;
-      display: inline-block;
-      border: 2px solid rgba(255, 255, 255, 0.35);
-    }
-
-    .stats {
-      list-style: none;
-      padding: 0;
-      margin: 0;
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 6px 10px;
-      font-size: 0.95rem;
-    }
-
-    @media (max-width: 1024px) {
-      .layout {
-        grid-template-columns: 1fr;
-        justify-items: center;
-      }
-
-      .roster {
-        width: min(100%, 420px);
-      }
+      font-weight: 700;
     }
   </style>
 </head>
@@ -258,184 +208,91 @@
       <button class="button" id="passTurn" type="button">Pasar</button>
       <button class="button button--primary" id="attack" type="button">Atacar</button>
     </div>
-    <section class="layout" aria-label="Tablero con información de fichas a los lados">
-      <section class="roster" aria-label="Características de las fichas de color">
-        <article class="card">
-          <h2><span class="swatch piece--white"></span> Avispa</h2>
-          <ul class="stats">
-            <li>Movimiento: 8</li>
-            <li>Ataque: 8</li>
-            <li>Defensa: 18</li>
-            <li>Daño c/c: 2</li>
-            <li>Daño a/d: 2</li>
-            <li>Resistencia c/c: 0</li>
-            <li>Resistencia a/d: 0</li>
-            <li>Distancia máxima: 3</li>
-            <li>Vida: 5</li>
-            <li>Agilidad: 20</li>
-          </ul>
-        </article>
-        <article class="card">
-          <h2><span class="swatch piece--red"></span> Hulk</h2>
-          <ul class="stats">
-            <li>Movimiento: 9</li>
-            <li>Ataque: 11</li>
-            <li>Defensa: 17</li>
-            <li>Daño c/c: 5</li>
-            <li>Daño a/d: 5</li>
-            <li>Resistencia c/c: 2</li>
-            <li>Resistencia a/d: 2</li>
-            <li>Distancia máxima: 0</li>
-            <li>Vida: 10</li>
-            <li>Agilidad: 10</li>
-          </ul>
-        </article>
-        <article class="card">
-          <h2><span class="swatch piece--violet"></span> Capitán América</h2>
-          <ul class="stats">
-            <li>Movimiento: 8</li>
-            <li>Ataque: 10</li>
-            <li>Defensa: 17</li>
-            <li>Daño c/c: 2</li>
-            <li>Daño a/d: 2</li>
-            <li>Resistencia c/c: 0</li>
-            <li>Resistencia a/d: 2</li>
-            <li>Distancia máxima: 3</li>
-            <li>Vida: 8</li>
-            <li>Agilidad: 40</li>
-          </ul>
-        </article>
-      </section>
+    <div class="status-bar" aria-live="polite">
+      <span id="turnInfo">Turno:</span>
+      <span id="movementInfo"></span>
+    </div>
 
-      <section class="board" aria-label="Tablero de 64 cuadros verdes">
-        <!-- Fila 1 -->
-        <div class="square"><span class="piece piece--white" role="img" aria-label="Ficha blanca">Avispa</span></div>
-        <div class="square"></div>
-        <div class="square"></div>
-        <div class="square"></div>
-        <div class="square"></div>
-        <div class="square"></div>
-        <div class="square"></div>
-        <div class="square"><span class="piece piece--black" role="img" aria-label="Ficha negra">Spider-man</span></div>
+    <section class="board" aria-label="Tablero de 64 cuadros verdes">
+      <!-- Fila 1 -->
+      <div class="square"><span class="piece piece--white" role="img" aria-label="Ficha blanca">Avispa</span></div>
+      <div class="square"></div>
+      <div class="square"></div>
+      <div class="square"></div>
+      <div class="square"></div>
+      <div class="square"></div>
+      <div class="square"></div>
+      <div class="square"><span class="piece piece--black" role="img" aria-label="Ficha negra">Spider-man</span></div>
 
-        <!-- Fila 2 -->
-        <div class="square"><span class="piece piece--red" role="img" aria-label="Ficha roja">Hulk</span></div>
-        <div class="square"></div>
-        <div class="square"></div>
-        <div class="square"></div>
-        <div class="square"></div>
-        <div class="square"></div>
-        <div class="square"></div>
-        <div class="square"><span class="piece piece--black" role="img" aria-label="Ficha negra">Lobezno</span></div>
+      <!-- Fila 2 -->
+      <div class="square"><span class="piece piece--red" role="img" aria-label="Ficha roja">Hulk</span></div>
+      <div class="square"></div>
+      <div class="square"></div>
+      <div class="square"></div>
+      <div class="square"></div>
+      <div class="square"></div>
+      <div class="square"></div>
+      <div class="square"><span class="piece piece--black" role="img" aria-label="Ficha negra">Lobezno</span></div>
 
-        <!-- Fila 3 -->
-        <div class="square"><span class="piece piece--violet" role="img" aria-label="Ficha violeta">Capitán América</span></div>
-        <div class="square"></div>
-        <div class="square"></div>
-        <div class="square"></div>
-        <div class="square"></div>
-        <div class="square"></div>
-        <div class="square"></div>
-        <div class="square"><span class="piece piece--black" role="img" aria-label="Ficha negra">Cíclope</span></div>
+      <!-- Fila 3 -->
+      <div class="square"><span class="piece piece--violet" role="img" aria-label="Ficha violeta">Capitán América</span></div>
+      <div class="square"></div>
+      <div class="square"></div>
+      <div class="square"></div>
+      <div class="square"></div>
+      <div class="square"></div>
+      <div class="square"></div>
+      <div class="square"><span class="piece piece--black" role="img" aria-label="Ficha negra">Cíclope</span></div>
 
-        <!-- Fila 4 -->
-        <div class="square"></div>
-        <div class="square"></div>
-        <div class="square"></div>
-        <div class="square"></div>
-        <div class="square"></div>
-        <div class="square"></div>
-        <div class="square"></div>
-        <div class="square"></div>
+      <!-- Fila 4 -->
+      <div class="square"></div>
+      <div class="square"></div>
+      <div class="square"></div>
+      <div class="square"></div>
+      <div class="square"></div>
+      <div class="square"></div>
+      <div class="square"></div>
+      <div class="square"></div>
 
-        <!-- Fila 5 -->
-        <div class="square"></div>
-        <div class="square"></div>
-        <div class="square"></div>
-        <div class="square"></div>
-        <div class="square"></div>
-        <div class="square"></div>
-        <div class="square"></div>
-        <div class="square"></div>
+      <!-- Fila 5 -->
+      <div class="square"></div>
+      <div class="square"></div>
+      <div class="square"></div>
+      <div class="square"></div>
+      <div class="square"></div>
+      <div class="square"></div>
+      <div class="square"></div>
+      <div class="square"></div>
 
-        <!-- Fila 6 -->
-        <div class="square"></div>
-        <div class="square"></div>
-        <div class="square"></div>
-        <div class="square"></div>
-        <div class="square"></div>
-        <div class="square"></div>
-        <div class="square"></div>
-        <div class="square"></div>
+      <!-- Fila 6 -->
+      <div class="square"></div>
+      <div class="square"></div>
+      <div class="square"></div>
+      <div class="square"></div>
+      <div class="square"></div>
+      <div class="square"></div>
+      <div class="square"></div>
+      <div class="square"></div>
 
-        <!-- Fila 7 -->
-        <div class="square"></div>
-        <div class="square"></div>
-        <div class="square"></div>
-        <div class="square"></div>
-        <div class="square"></div>
-        <div class="square"></div>
-        <div class="square"></div>
-        <div class="square"></div>
+      <!-- Fila 7 -->
+      <div class="square"></div>
+      <div class="square"></div>
+      <div class="square"></div>
+      <div class="square"></div>
+      <div class="square"></div>
+      <div class="square"></div>
+      <div class="square"></div>
+      <div class="square"></div>
 
-        <!-- Fila 8 -->
-        <div class="square"></div>
-        <div class="square"></div>
-        <div class="square"></div>
-        <div class="square"></div>
-        <div class="square"></div>
-        <div class="square"></div>
-        <div class="square"></div>
-        <div class="square"></div>
-      </section>
-
-      <section class="roster" aria-label="Características de las fichas negras">
-        <article class="card">
-          <h2><span class="swatch piece--black"></span> Spider-man</h2>
-          <ul class="stats">
-            <li>Movimiento: 10</li>
-            <li>Ataque: 12</li>
-            <li>Defensa: 18</li>
-            <li>Daño c/c: 2</li>
-            <li>Daño a/d: 2</li>
-            <li>Resistencia c/c: 0</li>
-            <li>Resistencia a/d: 0</li>
-            <li>Distancia máxima: 2</li>
-            <li>Vida: 9</li>
-            <li>Agilidad: 50</li>
-          </ul>
-        </article>
-        <article class="card">
-          <h2><span class="swatch piece--black"></span> Lobezno</h2>
-          <ul class="stats">
-            <li>Movimiento: 8</li>
-            <li>Ataque: 10</li>
-            <li>Defensa: 16</li>
-            <li>Daño c/c: 2</li>
-            <li>Daño a/d: 2</li>
-            <li>Resistencia c/c: 1</li>
-            <li>Resistencia a/d: 1</li>
-            <li>Distancia máxima: 0</li>
-            <li>Vida: 8</li>
-            <li>Agilidad: 30</li>
-          </ul>
-        </article>
-        <article class="card">
-          <h2><span class="swatch piece--black"></span> Cíclope</h2>
-          <ul class="stats">
-            <li>Movimiento: 6</li>
-            <li>Ataque: 11</li>
-            <li>Defensa: 15</li>
-            <li>Daño c/c: 2</li>
-            <li>Daño a/d: 4</li>
-            <li>Resistencia c/c: 0</li>
-            <li>Resistencia a/d: 0</li>
-            <li>Distancia máxima: 10</li>
-            <li>Vida: 5</li>
-            <li>Agilidad: 20</li>
-          </ul>
-        </article>
-      </section>
+      <!-- Fila 8 -->
+      <div class="square"></div>
+      <div class="square"></div>
+      <div class="square"></div>
+      <div class="square"></div>
+      <div class="square"></div>
+      <div class="square"></div>
+      <div class="square"></div>
+      <div class="square"></div>
     </section>
   </main>
   <div id="tooltip" class="tooltip" hidden></div>
@@ -446,6 +303,8 @@
     const tooltip = document.getElementById('tooltip');
     const passButton = document.getElementById('passTurn');
     const attackButton = document.getElementById('attack');
+    const turnInfo = document.getElementById('turnInfo');
+    const movementInfo = document.getElementById('movementInfo');
 
     const pieceStats = {
       avispa: {
@@ -595,6 +454,7 @@
       const row = Number(parent.dataset.row);
       const col = Number(parent.dataset.col);
       const maxMove = remainingMovement(piece);
+      if (maxMove <= 0) return;
       squares.forEach((square) => {
         const targetRow = Number(square.dataset.row);
         const targetCol = Number(square.dataset.col);
@@ -608,6 +468,14 @@
     function setActivePiece(piece) {
       document.querySelectorAll('.piece').forEach((p) => p.classList.remove('piece--active'));
       piece.classList.add('piece--active');
+      updateStatusBar(piece);
+    }
+
+    function updateStatusBar(piece) {
+      const stats = pieceMap.get(piece);
+      if (!stats) return;
+      turnInfo.textContent = `Turno: ${stats.name}`;
+      movementInfo.textContent = `Movimiento restante: ${remainingMovement(piece)}`;
     }
 
     function rangeForPiece(piece) {
@@ -724,6 +592,7 @@
       spendMovement(activePiece, distance);
       clearHighlights();
       highlightMovement(activePiece);
+      updateStatusBar(activePiece);
     });
 
     function attachTooltipEvents(piece) {
