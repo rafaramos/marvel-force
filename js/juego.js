@@ -7,16 +7,21 @@ const turnInfo = document.getElementById('turnInfo');
 const movementInfo = document.getElementById('movementInfo');
 const allyCards = document.getElementById('allyCards');
 const enemyCards = document.getElementById('enemyCards');
+const heroHistoryList = document.getElementById('heroHistory');
+const villainHistoryList = document.getElementById('villainHistory');
 
 const pieceStats = personajes;
 const HERO_TEAM = 'aliado';
 const VILLAIN_TEAM = 'enemigo';
+
+const squareByCoord = new Map();
 
 squares.forEach((square, index) => {
   const row = Math.floor(index / 8) + 1;
   const col = (index % 8) + 1;
   square.dataset.row = row;
   square.dataset.col = col;
+  squareByCoord.set(`${row}-${col}`, square);
 });
 
 const pieceMap = new Map();
@@ -105,6 +110,53 @@ function getPieceSquare(piece) {
   return piece.closest('.square');
 }
 
+function getSquareAt(row, col) {
+  return squareByCoord.get(`${row}-${col}`) ?? null;
+}
+
+function reachableSquares(piece) {
+  const origin = getPieceSquare(piece);
+  const maxMove = remainingMovement(piece);
+  const reachable = new Map();
+  if (!origin || maxMove <= 0) return reachable;
+
+  const queue = [{ square: origin, distance: 0 }];
+  reachable.set(origin, 0);
+
+  while (queue.length > 0) {
+    const { square, distance } = queue.shift();
+    if (distance >= maxMove) continue;
+
+    const row = Number(square.dataset.row);
+    const col = Number(square.dataset.col);
+    const neighbors = [
+      [row + 1, col],
+      [row - 1, col],
+      [row, col + 1],
+      [row, col - 1],
+    ];
+
+    neighbors.forEach(([r, c]) => {
+      const neighbor = getSquareAt(r, c);
+      if (!neighbor) return;
+      if (reachable.has(neighbor)) return;
+
+      const occupant = neighbor.querySelector('.piece');
+      if (occupant && occupant !== piece && occupant.dataset.team !== piece.dataset.team) {
+        return;
+      }
+
+      const nextDistance = distance + 1;
+      if (nextDistance <= maxMove) {
+        reachable.set(neighbor, nextDistance);
+        queue.push({ square: neighbor, distance: nextDistance });
+      }
+    });
+  }
+
+  return reachable;
+}
+
 function clearMoveHighlights() {
   squares.forEach((square) => square.classList.remove('square--move'));
 }
@@ -121,19 +173,9 @@ function clearHighlights() {
 }
 
 function highlightMovement(piece) {
-  const parent = getPieceSquare(piece);
-  if (!parent) return;
-  const row = Number(parent.dataset.row);
-  const col = Number(parent.dataset.col);
-  const maxMove = remainingMovement(piece);
-  if (maxMove <= 0) return;
-  squares.forEach((square) => {
-    const targetRow = Number(square.dataset.row);
-    const targetCol = Number(square.dataset.col);
-    const manhattan = Math.abs(targetRow - row) + Math.abs(targetCol - col);
-    if (manhattan > 0 && manhattan <= maxMove) {
-      square.classList.add('square--move');
-    }
+  const reachable = availableMoveSquares(piece);
+  reachable.forEach(({ square }) => {
+    square.classList.add('square--move');
   });
 }
 
@@ -181,14 +223,15 @@ function attackDistance(attackerSquare, targetSquare) {
 }
 
 function availableMoveSquares(piece) {
-  const origin = getPieceSquare(piece);
-  if (!origin) return [];
-  const moveRange = remainingMovement(piece);
-  return squares.filter((square) => {
-    if (square.querySelector('.piece')) return false;
-    const distance = attackDistance(origin, square);
-    return distance > 0 && distance <= moveRange;
+  const reachable = reachableSquares(piece);
+  const destinations = [];
+  reachable.forEach((distance, square) => {
+    if (distance === 0) return;
+    const occupant = square.querySelector('.piece');
+    if (occupant && occupant !== piece) return;
+    destinations.push({ square, distance });
   });
+  return destinations;
 }
 
 function closestHeroTarget(piece) {
@@ -208,7 +251,7 @@ function bestSquareTowardHeroes(piece) {
   if (!origin || heroes.length === 0) return null;
   const candidates = availableMoveSquares(piece);
   if (candidates.length === 0) return null;
-  const scored = candidates.map((square) => {
+  const scored = candidates.map(({ square }) => {
     const distance = Math.min(...heroes.map((heroSquare) => attackDistance(square, heroSquare)));
     return { square, distance };
   });
@@ -288,6 +331,25 @@ function updateCombatInfo() {
   combatBox.textContent = `Ataque ${attackerName} (${attacker}) vs ${defenderName} (${defender}) | Diferencia: ${difference}${rollText}${successText}${damageText}`;
 }
 
+function appendHistory(attacker, defender) {
+  if (!pendingAttackInfo) return;
+  const list = isHero(attacker) ? heroHistoryList : villainHistoryList;
+  if (!list) return;
+  const { attackerName, defenderName, difference, roll, success, critical, damage, defenderVida } = pendingAttackInfo;
+  const outcome = roll ? (critical ? 'Crítico' : success ? 'Éxito' : 'Fallo') : 'Sin tirada';
+  const li = document.createElement('li');
+  li.className = 'history__item';
+  li.innerHTML = `
+    <strong>${attackerName}</strong> → ${defenderName}<br/>
+    Dif: ${difference} | Tirada: ${roll ?? '-'} (${outcome})<br/>
+    Daño: ${damage} | Vida defensor: ${defenderVida}
+  `;
+  list.prepend(li);
+  while (list.children.length > 30) {
+    list.removeChild(list.lastChild);
+  }
+}
+
 function prepareAttackInfo(attacker, defender) {
   const attackerStats = pieceMap.get(attacker);
   const defenderStats = pieceMap.get(defender);
@@ -344,6 +406,8 @@ function resolveAttack(attacker, defender) {
     attackerName: attackerStats.name,
     defenderName: defenderStats.name,
   };
+
+  appendHistory(attacker, defender);
 
   if (success && defenderStats.currentVida <= 0) {
     eliminatePiece(defender);
@@ -430,8 +494,9 @@ board.addEventListener('click', (event) => {
 
   if (!square.classList.contains('square--move')) return;
   if (square.querySelector('.piece')) return;
-  const currentSquare = getPieceSquare(activePiece);
-  const distance = attackDistance(currentSquare, square);
+  const reachable = reachableSquares(activePiece);
+  const distance = reachable.get(square);
+  if (!distance) return;
   if (distance > remainingMovement(activePiece)) return;
   square.appendChild(activePiece);
   spendMovement(activePiece, distance);
@@ -486,7 +551,7 @@ async function runVillainTurn(piece) {
       highlightRange(piece);
       prepareAttackInfo(piece, inRange);
       updateStatusBar(piece);
-      await wait(600);
+      await wait(1200);
       resolveAttack(piece, inRange);
       return true;
     }
@@ -502,7 +567,7 @@ async function runVillainTurn(piece) {
   highlightMovement(piece);
   highlightRange(piece);
   updateStatusBar(piece);
-  await wait(400);
+  await wait(900);
 
   if (await attackIfPossible()) return;
 
@@ -510,15 +575,16 @@ async function runVillainTurn(piece) {
   if (target) {
     const moveTo = bestSquareTowardHeroes(piece);
     if (moveTo) {
-      const distance = attackDistance(getPieceSquare(piece), moveTo);
+      const reachable = reachableSquares(piece);
+      const distance = reachable.get(moveTo) ?? attackDistance(getPieceSquare(piece), moveTo);
       moveTo.classList.add('square--target');
-      await wait(300);
+      await wait(700);
       moveTo.appendChild(piece);
       spendMovement(piece, distance);
       clearRangeHighlights();
       highlightMovement(piece);
       highlightRange(piece);
-      await wait(300);
+      await wait(700);
     }
   }
 
@@ -540,7 +606,7 @@ function startTurn(piece) {
   if (isVillain(piece)) {
     attackButton.disabled = true;
     passButton.disabled = true;
-    setTimeout(() => runVillainTurn(piece), 400);
+    setTimeout(() => runVillainTurn(piece), 700);
     return;
   }
   attackButton.disabled = false;
