@@ -33,11 +33,6 @@
       padding: 24px 18px 40px;
     }
 
-    h1 {
-      margin-bottom: 16px;
-      letter-spacing: 0.04em;
-    }
-
     .controls {
       display: flex;
       justify-content: center;
@@ -85,8 +80,8 @@
     }
 
     .board {
-      width: var(--board-size);
-      height: var(--board-size);
+      width: calc(var(--board-size) + 16px);
+      height: calc(var(--board-size) + 16px);
       display: grid;
       grid-template-columns: repeat(8, var(--square-size));
       grid-template-rows: repeat(8, var(--square-size));
@@ -95,6 +90,7 @@
       border-radius: 12px;
       box-shadow: 0 12px 24px rgba(0, 0, 0, 0.35);
       overflow: hidden;
+      box-sizing: content-box;
       justify-self: center;
     }
 
@@ -258,7 +254,6 @@
 </head>
 <body>
   <main class="wrapper">
-    <h1>Tablero 8x8 con 64 cuadros verdes</h1>
     <div class="controls" aria-label="Controles de turno">
       <button class="button" id="passTurn" type="button">Pasar</button>
       <button class="button button--primary" id="attack" type="button">Atacar</button>
@@ -712,8 +707,6 @@
         clearTargetSelection();
         square.classList.add('square--range');
         selectedTarget = targetPiece;
-        showTooltip(targetPiece);
-        positionTooltip(targetPiece);
         return;
       }
 
@@ -722,6 +715,23 @@
       square.appendChild(activePiece);
       clearHighlights();
       highlightMovement(activePiece);
+    });
+
+    board.addEventListener('mouseover', (event) => {
+      const piece = event.target.closest('.piece');
+      const activePiece = turnOrder[turnIndex];
+      if (!piece || piece === activePiece || piece.dataset.team === activePiece.dataset.team) {
+        hideTooltip();
+        return;
+      }
+      showTooltip(piece);
+      positionTooltip(piece);
+    });
+
+    board.addEventListener('mouseout', (event) => {
+      if (!event.relatedTarget || !event.currentTarget.contains(event.relatedTarget)) {
+        hideTooltip();
+      }
     });
 
     setActivePiece(turnOrder[turnIndex]);
