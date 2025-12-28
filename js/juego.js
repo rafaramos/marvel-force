@@ -463,8 +463,12 @@ pieces.forEach(({ element }) => {
   }
 });
 
-function runVillainTurn(piece) {
-  const attackIfPossible = () => {
+function wait(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function runVillainTurn(piece) {
+  const attackIfPossible = async () => {
     const heroes = livingPieces(HERO_TEAM);
     const attackerSquare = getPieceSquare(piece);
     const inRange = heroes.find((hero) => {
@@ -473,7 +477,16 @@ function runVillainTurn(piece) {
       return isWithinAttackRange(attackerSquare, targetSquare, rangeForPiece(piece));
     });
     if (inRange) {
+      const targetSquare = getPieceSquare(inRange);
+      clearTargetSelection(true);
+      clearHighlights();
+      if (targetSquare) {
+        targetSquare.classList.add('square--target');
+      }
+      highlightRange(piece);
       prepareAttackInfo(piece, inRange);
+      updateStatusBar(piece);
+      await wait(600);
       resolveAttack(piece, inRange);
       return true;
     }
@@ -485,23 +498,36 @@ function runVillainTurn(piece) {
     return;
   }
 
-  if (attackIfPossible()) return;
+  clearHighlights();
+  highlightMovement(piece);
+  highlightRange(piece);
+  updateStatusBar(piece);
+  await wait(400);
+
+  if (await attackIfPossible()) return;
 
   const target = closestHeroTarget(piece);
   if (target) {
     const moveTo = bestSquareTowardHeroes(piece);
     if (moveTo) {
       const distance = attackDistance(getPieceSquare(piece), moveTo);
+      moveTo.classList.add('square--target');
+      await wait(300);
       moveTo.appendChild(piece);
       spendMovement(piece, distance);
+      clearRangeHighlights();
+      highlightMovement(piece);
+      highlightRange(piece);
+      await wait(300);
     }
   }
 
   renderLifeCards();
   updateStatusBar(piece);
 
-  if (attackIfPossible()) return;
+  if (await attackIfPossible()) return;
 
+  clearHighlights();
   nextTurn();
 }
 
