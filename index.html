@@ -175,6 +175,10 @@
       background: radial-gradient(circle at 50% 50%, rgba(255, 132, 0, 0.25), transparent 65%);
     }
 
+    .square--target {
+      box-shadow: inset 0 0 0 4px rgba(255, 171, 64, 0.9), inset 0 0 0 7px rgba(255, 171, 64, 0.35);
+    }
+
     .square--move {
       box-shadow: inset 0 0 0 4px rgba(0, 0, 0, 0.55);
       background: radial-gradient(circle at 50% 50%, rgba(0, 0, 0, 0.3), transparent 70%);
@@ -567,8 +571,17 @@
       return piece.closest('.square');
     }
 
+    function clearMoveHighlights() {
+      squares.forEach((square) => square.classList.remove('square--move'));
+    }
+
+    function clearRangeHighlights() {
+      squares.forEach((square) => square.classList.remove('square--range', 'square--target'));
+    }
+
     function clearHighlights() {
-      squares.forEach((square) => square.classList.remove('square--range', 'square--move'));
+      clearMoveHighlights();
+      clearRangeHighlights();
       tooltip.hidden = true;
       selectedTarget = null;
     }
@@ -586,6 +599,24 @@
         const manhattan = Math.abs(targetRow - row) + Math.abs(targetCol - col);
         if (manhattan > 0 && manhattan <= maxMove) {
           square.classList.add('square--move');
+        }
+      });
+    }
+
+    function highlightRange(piece) {
+      clearRangeHighlights();
+      const origin = getPieceSquare(piece);
+      if (!origin) return;
+      const row = Number(origin.dataset.row);
+      const col = Number(origin.dataset.col);
+      const maxRange = rangeForPiece(piece);
+      if (maxRange <= 0) return;
+      squares.forEach((square) => {
+        const targetRow = Number(square.dataset.row);
+        const targetCol = Number(square.dataset.col);
+        const manhattan = Math.abs(targetRow - row) + Math.abs(targetCol - col);
+        if (manhattan > 0 && manhattan <= maxRange) {
+          square.classList.add('square--range');
         }
       });
     }
@@ -690,7 +721,7 @@
         success,
       };
       hideTooltip();
-      squares.forEach((square) => square.classList.remove('square--range'));
+      clearRangeHighlights();
       selectedTarget = null;
       attackButton.classList.remove('button--pulse');
       updateCombatInfo();
@@ -698,7 +729,7 @@
     }
 
     function clearTargetSelection(preserveAttack = false) {
-      squares.forEach((square) => square.classList.remove('square--range'));
+      squares.forEach((square) => square.classList.remove('square--target'));
       selectedTarget = null;
       if (!preserveAttack) {
         pendingAttackInfo = null;
@@ -706,6 +737,7 @@
       attackButton.classList.remove('button--pulse');
       hideTooltip();
       updateCombatInfo();
+      highlightRange(turnOrder[turnIndex]);
     }
 
     attackButton.addEventListener('click', () => {
@@ -762,7 +794,7 @@
           return;
         }
         clearTargetSelection();
-        square.classList.add('square--range');
+        square.classList.add('square--target');
         selectedTarget = targetPiece;
         prepareAttackInfo(activePiece, targetPiece);
         return;
@@ -779,6 +811,7 @@
       spendMovement(activePiece, distance);
       clearHighlights();
       highlightMovement(activePiece);
+      highlightRange(activePiece);
       updateStatusBar(activePiece);
     });
 
@@ -810,6 +843,7 @@
       clearTargetSelection(true);
       clearHighlights();
       highlightMovement(piece);
+      highlightRange(piece);
     }
 
     function nextTurn() {
