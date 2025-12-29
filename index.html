@@ -206,9 +206,9 @@
 
     .tooltip {
       position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
+      top: 0;
+      left: 0;
+      transform: none;
       background: #0f4d20;
       color: #f4f4f4;
       border: 1px solid rgba(255, 255, 255, 0.2);
@@ -220,6 +220,7 @@
       font-size: 0.95rem;
       z-index: 20;
       min-width: 240px;
+      max-width: 320px;
     }
 
     .tooltip h3 {
@@ -241,6 +242,41 @@
       grid-template-columns: 260px auto 260px;
       gap: 16px;
       align-items: center;
+    }
+
+    .turn-popup {
+      position: fixed;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      background: rgba(0, 0, 0, 0.45);
+      z-index: 30;
+    }
+
+    .turn-popup[hidden] {
+      display: none;
+    }
+
+    .turn-popup__content {
+      background: #0f4d20;
+      border: 2px solid rgba(255, 255, 255, 0.35);
+      border-radius: 14px;
+      padding: 18px 20px;
+      max-width: 480px;
+      box-shadow: 0 20px 36px rgba(0, 0, 0, 0.45);
+      text-align: center;
+    }
+
+    .turn-popup__message {
+      margin: 0 0 8px;
+      font-size: 1.05rem;
+      line-height: 1.4;
+    }
+
+    .turn-popup__hint {
+      margin: 0;
+      font-size: 0.9rem;
+      opacity: 0.85;
     }
 
     .card-panel {
@@ -383,6 +419,12 @@
     </div>
   </main>
   <div id="tooltip" class="tooltip" hidden></div>
+  <div id="turnPopup" class="turn-popup" hidden>
+    <div class="turn-popup__content">
+      <p id="turnPopupMessage" class="turn-popup__message"></p>
+      <p class="turn-popup__hint">Pulsa cualquier tecla o botón para continuar</p>
+    </div>
+  </div>
 
     <script src="js/poderes.js"></script>
     <script src="js/personajes.js"></script>
@@ -447,6 +489,8 @@
 
     const squares = Array.from(board.querySelectorAll('.square'));
     const tooltip = document.getElementById('tooltip');
+    const turnPopup = document.getElementById('turnPopup');
+    const turnPopupMessage = document.getElementById('turnPopupMessage');
     const passButton = document.getElementById('passTurn');
     const attackButton = document.getElementById('attack');
     const powerControls = document.getElementById('powerControls');
@@ -554,7 +598,34 @@
       while (list.children.length > 14) {
         list.removeChild(list.lastChild);
       }
+      latestActionMessage = message;
     }
+
+    function hideTurnPopup() {
+      turnPopup.hidden = true;
+    }
+
+    function showTurnPopup(message) {
+      return new Promise((resolve) => {
+        resolveTurnPopup = () => {
+          hideTurnPopup();
+          resolve();
+        };
+        turnPopupMessage.textContent = message || 'Turno completado.';
+        turnPopup.hidden = false;
+      });
+    }
+
+    function handleTurnPopupDismiss() {
+      if (turnPopup.hidden || !resolveTurnPopup) return;
+      const resolver = resolveTurnPopup;
+      resolveTurnPopup = null;
+      resolver();
+    }
+
+    ['keydown', 'mousedown', 'mouseup', 'touchstart'].forEach((eventName) => {
+      document.addEventListener(eventName, handleTurnPopupDismiss);
+    });
 
     function renderPowerButtons(piece) {
       powerControls.innerHTML = '';
@@ -592,6 +663,8 @@
     let turnIndex = 0;
     let selectedTarget = null;
     let pendingAttackInfo = null;
+    let latestActionMessage = null;
+    let resolveTurnPopup = null;
 
     function getPieceSquare(piece) {
       return piece.closest('.square');
@@ -767,11 +840,26 @@
         </ul>
       `;
       tooltip.hidden = false;
+      requestAnimationFrame(() => positionTooltip(piece));
     }
 
     function positionTooltip(target) {
-      tooltip.style.left = '50%';
-      tooltip.style.top = '50%';
+      const targetRect = target.getBoundingClientRect();
+      const tooltipRect = tooltip.getBoundingClientRect();
+      const offset = 12;
+      const padding = 8;
+      let left = targetRect.right + offset;
+      let top = targetRect.top + targetRect.height / 2 - tooltipRect.height / 2;
+
+      if (left + tooltipRect.width > window.innerWidth - padding) {
+        left = targetRect.left - tooltipRect.width - offset;
+      }
+
+      left = Math.max(padding, Math.min(left, window.innerWidth - tooltipRect.width - padding));
+      top = Math.max(padding, Math.min(top, window.innerHeight - tooltipRect.height - padding));
+
+      tooltip.style.left = `${left}px`;
+      tooltip.style.top = `${top}px`;
     }
 
     function hideTooltip() {
@@ -1162,7 +1250,6 @@
           return;
         }
         showTooltip(piece);
-        positionTooltip(piece);
       });
 
       piece.addEventListener('pointerleave', () => {
@@ -1305,8 +1392,16 @@
       setTimeout(() => startTurn(nextPiece), delay);
     }
 
-    function finishTurn(piece) {
-      applyRegeneration(piece);
+    async function finishTurn(piece, options = {}) {
+      const { skipRegeneration = false, summaryOverride = null } = options;
+      if (!skipRegeneration) {
+        applyRegeneration(piece);
+      }
+      const stats = pieceMap.get(piece);
+      const summary =
+        summaryOverride || latestActionMessage || (stats ? `${stats.name} finaliza su turno.` : 'Turno completado.');
+      latestActionMessage = null;
+      await showTurnPopup(summary);
       advanceTurn();
     }
 
@@ -1315,14 +1410,14 @@
       const stats = pieceMap.get(piece);
       if (!stats) return;
       if (stats.incapacitatedTurns && stats.incapacitatedTurns > 0) {
-        addHistoryEntry(piece.dataset.team, `${stats.name} pierde el turno por estar incapacitado.`);
+        const incapMessage = `${stats.name} pierde el turno por estar incapacitado.`;
+        addHistoryEntry(piece.dataset.team, incapMessage);
         stats.incapacitatedTurns -= 1;
         if (stats.incapacitatedTurns <= 0) {
           piece.classList.remove('piece--incapacitated');
         }
         renderLifeCards();
-        applyRegeneration(piece);
-        advanceTurn();
+        finishTurn(piece, { summaryOverride: incapMessage });
         return;
       }
       resetMovement(piece);
