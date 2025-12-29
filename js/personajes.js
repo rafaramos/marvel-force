@@ -1,3 +1,7 @@
+const poderesFuente =
+  (typeof window !== 'undefined' && window.poderes) ||
+  (typeof poderes !== 'undefined' ? poderes : {});
+
 const personajes = {
   avispa: {
     name: 'Avispa',
@@ -12,7 +16,7 @@ const personajes = {
     vida: 5,
     agilidad: 20,
     imagen: 'imagenes/avispa.webp',
-    poderes: poderes.avispa,
+    poderes: poderesFuente.avispa,
     habilidades: { activas: ['incapacitar'], pasivas: [] },
   },
   hulk: {
@@ -28,7 +32,7 @@ const personajes = {
     vida: 10,
     agilidad: 10,
     imagen: 'imagenes/hulk.webp',
-    poderes: poderes.hulk,
+    poderes: poderesFuente.hulk,
     habilidades: { activas: [], pasivas: ['regeneracion'] },
   },
   capitan: {
@@ -44,7 +48,7 @@ const personajes = {
     vida: 8,
     agilidad: 40,
     imagen: 'imagenes/capitan.webp',
-    poderes: poderes.capitan,
+    poderes: poderesFuente.capitan,
     habilidades: { activas: [], pasivas: ['astucia'] },
   },
   spider: {
@@ -60,7 +64,7 @@ const personajes = {
     vida: 9,
     agilidad: 50,
     imagen: 'imagenes/spider-man.webp',
-    poderes: poderes.spider,
+    poderes: poderesFuente.spider,
     habilidades: { activas: ['incapacitar'], pasivas: ['astucia'] },
   },
   lobezno: {
@@ -76,7 +80,7 @@ const personajes = {
     vida: 8,
     agilidad: 30,
     imagen: 'imagenes/lobezno.webp',
-    poderes: poderes.lobezno,
+    poderes: poderesFuente.lobezno,
     habilidades: { activas: [], pasivas: ['regeneracion', 'garras'] },
   },
   ciclope: {
@@ -92,7 +96,7 @@ const personajes = {
     vida: 5,
     agilidad: 20,
     imagen: 'imagenes/ciclope.webp',
-    poderes: poderes.ciclope,
+    poderes: poderesFuente.ciclope,
     habilidades: { activas: [], pasivas: [] },
   },
   chaquetaAmarilla: {
@@ -108,7 +112,7 @@ const personajes = {
     vida: 5,
     agilidad: 20,
     imagen: 'imagenes/chaqueta-amarilla.webp',
-    poderes: poderes.chaquetaAmarilla,
+    poderes: poderesFuente.chaquetaAmarilla,
     habilidades: { activas: ['incapacitar'], pasivas: [] },
   },
   duende: {
@@ -124,7 +128,7 @@ const personajes = {
     vida: 7,
     agilidad: 30,
     imagen: 'imagenes/duende.webp',
-    poderes: poderes.duende,
+    poderes: poderesFuente.duende,
     habilidades: { activas: ['incapacitar'], pasivas: [] },
   },
   dientesDeSable: {
@@ -140,7 +144,7 @@ const personajes = {
     vida: 8,
     agilidad: 30,
     imagen: 'imagenes/dientes-de-sable.webp',
-    poderes: poderes.dientesDeSable,
+    poderes: poderesFuente.dientesDeSable,
     habilidades: { activas: [], pasivas: ['garras', 'regeneracion'] },
   },
   boomerang: {
@@ -156,7 +160,7 @@ const personajes = {
     vida: 5,
     agilidad: 20,
     imagen: 'imagenes/boomerang.webp',
-    poderes: poderes.boomerang,
+    poderes: poderesFuente.boomerang,
     habilidades: { activas: ['incapacitar', 'explosion'], pasivas: [] },
   },
   juggernaut: {
@@ -172,7 +176,7 @@ const personajes = {
     vida: 10,
     agilidad: 10,
     imagen: 'imagenes/juggernaut.webp',
-    poderes: poderes.juggernaut,
+    poderes: poderesFuente.juggernaut,
     habilidades: { activas: [], pasivas: [] },
   },
   mole: {
@@ -188,7 +192,7 @@ const personajes = {
     vida: 8,
     agilidad: 10,
     imagen: 'imagenes/mole.webp',
-    poderes: poderes.mole,
+    poderes: poderesFuente.mole,
     habilidades: { activas: ['incapacitar'], pasivas: [] },
   },
   cosa: {
@@ -204,7 +208,7 @@ const personajes = {
     vida: 9,
     agilidad: 10,
     imagen: 'imagenes/la-cosa.webp',
-    poderes: poderes.cosa,
+    poderes: poderesFuente.cosa,
     habilidades: { activas: [], pasivas: [] },
   },
   antorcha: {
@@ -220,8 +224,8 @@ const personajes = {
     vida: 7,
     agilidad: 20,
     imagen: 'imagenes/antorcha-humana.webp',
-    poderes: poderes.antorcha-humana,
-    habilidades: { activas: ['explosión', 'pulso'], pasivas: [] },
+    poderes: poderesFuente.antorcha,
+    habilidades: { activas: ['explosion', 'pulso'], pasivas: [] },
   },
   doom: {
     name: 'Dr Doom',
@@ -236,8 +240,8 @@ const personajes = {
     vida: 9,
     agilidad: 20,
     imagen: 'imagenes/doom.webp',
-    poderes: poderes.doom,
-    habilidades: { activas: ['explosión', 'incapacitar','astucia'], pasivas: [] },
+    poderes: poderesFuente.doom,
+    habilidades: { activas: ['explosion', 'incapacitar'], pasivas: ['astucia'] },
   },
   ultron: {
     name: 'Ultrón',
@@ -252,7 +256,11 @@ const personajes = {
     vida: 10,
     agilidad: 30,
     imagen: 'imagenes/ultron.webp',
-    poderes: poderes.ultron,
-    habilidades: { activas: ['explosión'], pasivas: [] },
+    poderes: poderesFuente.ultron,
+    habilidades: { activas: ['explosion'], pasivas: [] },
   },
 };
+
+if (typeof window !== 'undefined') {
+  window.personajes = personajes;
+}
