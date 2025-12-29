@@ -244,7 +244,8 @@
       align-items: center;
     }
 
-    .turn-popup {
+    .turn-popup,
+    .death-popup {
       position: fixed;
       inset: 0;
       display: grid;
@@ -253,11 +254,13 @@
       z-index: 30;
     }
 
-    .turn-popup[hidden] {
+    .turn-popup[hidden],
+    .death-popup[hidden] {
       display: none;
     }
 
-    .turn-popup__content {
+    .turn-popup__content,
+    .death-popup__content {
       background: #0f4d20;
       border: 2px solid rgba(255, 255, 255, 0.35);
       border-radius: 14px;
@@ -267,7 +270,8 @@
       text-align: center;
     }
 
-    .turn-popup__message {
+    .turn-popup__message,
+    .death-popup__message {
       margin: 0 0 8px;
       font-size: 1.05rem;
       line-height: 1.4;
@@ -425,6 +429,12 @@
       <p class="turn-popup__hint">Pulsa cualquier tecla o botón para continuar</p>
     </div>
   </div>
+  <div id="deathPopup" class="death-popup" hidden>
+    <div class="death-popup__content">
+      <p id="deathPopupMessage" class="death-popup__message"></p>
+      <p class="turn-popup__hint">Pulsa cualquier tecla o botón para continuar</p>
+    </div>
+  </div>
 
     <script src="js/poderes.js"></script>
     <script src="js/personajes.js"></script>
@@ -491,6 +501,8 @@
     const tooltip = document.getElementById('tooltip');
     const turnPopup = document.getElementById('turnPopup');
     const turnPopupMessage = document.getElementById('turnPopupMessage');
+    const deathPopup = document.getElementById('deathPopup');
+    const deathPopupMessage = document.getElementById('deathPopupMessage');
     const passButton = document.getElementById('passTurn');
     const attackButton = document.getElementById('attack');
     const powerControls = document.getElementById('powerControls');
@@ -588,7 +600,8 @@
 
     renderLifeCards();
 
-    function addHistoryEntry(team, message) {
+    function addHistoryEntry(team, message, options = {}) {
+      const { preserveLatest = false } = options;
       const list = team === 'aliado' ? heroLog : villainLog;
       if (!list) return;
       const item = document.createElement('li');
@@ -598,7 +611,9 @@
       while (list.children.length > 14) {
         list.removeChild(list.lastChild);
       }
-      latestActionMessage = message;
+      if (!preserveLatest) {
+        latestActionMessage = message;
+      }
     }
 
     function hideTurnPopup() {
@@ -616,6 +631,21 @@
       });
     }
 
+    function hideDeathPopup() {
+      deathPopup.hidden = true;
+    }
+
+    function showDeathPopup(message) {
+      return new Promise((resolve) => {
+        resolveDeathPopup = () => {
+          hideDeathPopup();
+          resolve();
+        };
+        deathPopupMessage.textContent = message || 'Un personaje ha caído.';
+        deathPopup.hidden = false;
+      });
+    }
+
     function handleTurnPopupDismiss() {
       if (turnPopup.hidden || !resolveTurnPopup) return;
       const resolver = resolveTurnPopup;
@@ -623,8 +653,20 @@
       resolver();
     }
 
+    function handleDeathPopupDismiss() {
+      if (deathPopup.hidden || !resolveDeathPopup) return;
+      const resolver = resolveDeathPopup;
+      resolveDeathPopup = null;
+      resolver();
+    }
+
+    function handleGlobalDismiss() {
+      handleDeathPopupDismiss();
+      handleTurnPopupDismiss();
+    }
+
     ['keydown', 'mousedown', 'mouseup', 'touchstart'].forEach((eventName) => {
-      document.addEventListener(eventName, handleTurnPopupDismiss);
+      document.addEventListener(eventName, handleGlobalDismiss);
     });
 
     function renderPowerButtons(piece) {
@@ -665,6 +707,8 @@
     let pendingAttackInfo = null;
     let latestActionMessage = null;
     let resolveTurnPopup = null;
+    let resolveDeathPopup = null;
+    const pendingDeathMessages = [];
 
     function getPieceSquare(piece) {
       return piece.closest('.square');
@@ -802,6 +846,18 @@
       const rawDamage = isCritical ? baseDamage * 2 : baseDamage;
       const totalDamage = Math.max(rawDamage - resistance, 0);
       return { totalDamage, isMelee, clawsRoll, rawDamage };
+    }
+
+    function queueDeathMessage(message) {
+      pendingDeathMessages.push(message);
+    }
+
+    async function showQueuedDeathPopups() {
+      while (pendingDeathMessages.length > 0) {
+        const message = pendingDeathMessages.shift();
+        // eslint-disable-next-line no-await-in-loop
+        await showDeathPopup(message);
+      }
     }
 
     function eliminatePiece(piece) {
@@ -992,6 +1048,7 @@
       }
 
       if (success && actionKey !== 'incapacitar' && defenderStats.currentVida <= 0) {
+        queueDeathMessage(`${defenderStats.name} ha sido eliminado por ${attackerStats.name}.`);
         eliminatePiece(defender);
       }
 
@@ -1049,6 +1106,7 @@
           vida: targetStats.currentVida,
         });
         if (success && targetStats.currentVida <= 0) {
+          queueDeathMessage(`${targetStats.name} ha sido eliminado por ${attackerStats.name}.`);
           eliminatePiece(piece);
         }
       });
@@ -1117,6 +1175,7 @@
           critical,
         });
         if (success && targetStats.currentVida <= 0) {
+          queueDeathMessage(`${targetStats.name} ha sido eliminado por ${attackerStats.name}.`);
           eliminatePiece(piece);
         }
       });
@@ -1380,7 +1439,9 @@
       if (stats.currentVida < stats.maxVida) {
         stats.currentVida = Math.min(stats.currentVida + 1, stats.maxVida);
         renderLifeCards();
-        addHistoryEntry(piece.dataset.team, `${stats.name} se regenera (vida ${stats.currentVida}).`);
+        addHistoryEntry(piece.dataset.team, `${stats.name} se regenera (vida ${stats.currentVida}).`, {
+          preserveLatest: true,
+        });
       }
     }
 
@@ -1396,6 +1457,9 @@
       const { skipRegeneration = false, summaryOverride = null } = options;
       if (!skipRegeneration) {
         applyRegeneration(piece);
+      }
+      if (pendingDeathMessages.length > 0) {
+        await showQueuedDeathPopups();
       }
       const stats = pieceMap.get(piece);
       const summary =
