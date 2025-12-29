@@ -220,8 +220,8 @@ const personajes = {
     vida: 7,
     agilidad: 20,
     imagen: 'imagenes/antorcha-humana.webp',
-    poderes: poderes.antorcha-humana,
-    habilidades: { activas: ['explosión', 'pulso'], pasivas: [] },
+    poderes: poderes.antorcha,
+    habilidades: { activas: ['explosion', 'pulso'], pasivas: [] },
   },
   doom: {
     name: 'Dr Doom',
@@ -237,7 +237,7 @@ const personajes = {
     agilidad: 20,
     imagen: 'imagenes/doom.webp',
     poderes: poderes.doom,
-    habilidades: { activas: ['explosión', 'incapacitar','astucia'], pasivas: [] },
+    habilidades: { activas: ['explosion', 'incapacitar'], pasivas: ['astucia'] },
   },
   ultron: {
     name: 'Ultrón',
@@ -253,6 +253,6 @@ const personajes = {
     agilidad: 30,
     imagen: 'imagenes/ultron.webp',
     poderes: poderes.ultron,
-    habilidades: { activas: ['explosión'], pasivas: [] },
+    habilidades: { activas: ['explosion'], pasivas: [] },
   },
 };

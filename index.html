@@ -399,12 +399,16 @@
       { key: 'spider', team: 'aliado', row: 4, col: 1, className: 'piece--blue' },
       { key: 'lobezno', team: 'aliado', row: 5, col: 1, className: 'piece--gold' },
       { key: 'ciclope', team: 'aliado', row: 6, col: 1, className: 'piece--white' },
+      { key: 'cosa', team: 'aliado', row: 7, col: 1, className: 'piece--red' },
+      { key: 'antorcha', team: 'aliado', row: 8, col: 1, className: 'piece--gold' },
       { key: 'duende', team: 'enemigo', row: 1, col: 12, className: 'piece--black' },
       { key: 'chaquetaAmarilla', team: 'enemigo', row: 2, col: 12, className: 'piece--black' },
       { key: 'dientesDeSable', team: 'enemigo', row: 3, col: 12, className: 'piece--black' },
       { key: 'boomerang', team: 'enemigo', row: 4, col: 12, className: 'piece--black' },
       { key: 'juggernaut', team: 'enemigo', row: 5, col: 12, className: 'piece--black' },
       { key: 'mole', team: 'enemigo', row: 6, col: 12, className: 'piece--black' },
+      { key: 'doom', team: 'enemigo', row: 7, col: 12, className: 'piece--black' },
+      { key: 'ultron', team: 'enemigo', row: 8, col: 12, className: 'piece--black' },
     ];
 
     function createPieceElement({ key, team, className }) {
@@ -559,7 +563,12 @@
         const btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'button';
-        btn.textContent = ability === 'incapacitar' ? 'Incapacitar' : 'Explosión';
+        const labels = {
+          incapacitar: 'Incapacitar',
+          explosion: 'Explosión',
+          pulso: 'Pulso',
+        };
+        btn.textContent = labels[ability] || ability;
         btn.disabled = piece.dataset.team === 'enemigo';
         btn.addEventListener('click', () => handleActionClick(ability));
         powerControls.appendChild(btn);
@@ -777,6 +786,7 @@
     function actionLabel(actionKey) {
       if (actionKey === 'incapacitar') return 'Incapacitar';
       if (actionKey === 'explosion') return 'Explosión';
+      if (actionKey === 'pulso') return 'Pulso';
       return 'Ataque';
     }
 
@@ -977,6 +987,76 @@
       finishTurn(attacker);
     }
 
+    function resolvePulse(attacker) {
+      const attackerStats = pieceMap.get(attacker);
+      const attackerSquare = getPieceSquare(attacker);
+      const maxRange = rangeForPiece(attacker);
+
+      const affectedPieces = [];
+      squares.forEach((square) => {
+        const occupant = square.querySelector('.piece');
+        if (!occupant) return;
+        const distance = attackDistance(attackerSquare, square);
+        if (distance <= maxRange) {
+          affectedPieces.push({ piece: occupant, square, distance });
+        }
+      });
+
+      const targetsSummary = [];
+
+      affectedPieces.forEach(({ piece, square, distance }) => {
+        const targetStats = pieceMap.get(piece);
+        const die1 = Math.floor(Math.random() * 6) + 1;
+        const die2 = Math.floor(Math.random() * 6) + 1;
+        const roll = die1 + die2;
+        const hasAstucia = hasPassive(attackerStats, 'astucia');
+        const critical = hasAstucia ? roll >= 11 : roll === 12;
+        const success = critical || (roll !== 2 && roll + attackerStats.ataque >= targetStats.defensa);
+        let damage = 0;
+        if (success) {
+          const { totalDamage } = calculateDamage(attackerStats, targetStats, distance, critical);
+          damage = totalDamage;
+          targetStats.currentVida = Math.max(targetStats.currentVida - damage, 0);
+        }
+        targetsSummary.push({
+          name: targetStats.name,
+          success,
+          damage,
+          vida: targetStats.currentVida,
+          roll,
+          critical,
+        });
+        if (success && targetStats.currentVida <= 0) {
+          eliminatePiece(piece);
+        }
+      });
+
+      pendingAttackInfo = {
+        action: actionLabel('pulso'),
+        attackerName: attackerStats.name,
+        roll: '-',
+        critical: false,
+        targets: targetsSummary,
+      };
+
+      addHistoryEntry(
+        attacker.dataset.team,
+        `${attackerStats.name} activa Pulso: ${targetsSummary
+          .map((t) => `${t.name} (tirada ${t.roll}${t.critical ? ' crítico' : ''}${
+            t.success ? `, daño ${t.damage}` : ', sin efecto'
+          })`)
+          .join('; ')}`
+      );
+
+      renderLifeCards();
+      hideTooltip();
+      clearRangeHighlights();
+      selectedTarget = null;
+      attackButton.classList.remove('button--pulse');
+      updateCombatInfo();
+      finishTurn(attacker);
+    }
+
     function clearTargetSelection(preserveAttack = false) {
       squares.forEach((square) => square.classList.remove('square--target'));
       selectedTarget = null;
@@ -994,6 +1074,10 @@
     function handleActionClick(actionKey) {
       currentAction = actionKey;
       const attacker = turnOrder[turnIndex];
+      if (actionKey === 'pulso') {
+        resolvePulse(attacker);
+        return;
+      }
       if (!selectedTarget) {
         alert('Selecciona primero un enemigo dentro de tu rango.');
         return;
