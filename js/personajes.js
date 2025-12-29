@@ -256,3 +256,7 @@ const personajes = {
     habilidades: { activas: ['explosion'], pasivas: [] },
   },
 };
+
+if (typeof window !== 'undefined') {
+  window.personajes = personajes;
+}

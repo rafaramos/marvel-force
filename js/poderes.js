@@ -173,3 +173,7 @@ const poderes = {
     pasivos: [],
   },
 };
+
+if (typeof window !== 'undefined') {
+  window.poderes = poderes;
+}
