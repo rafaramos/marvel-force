@@ -834,6 +834,11 @@
       );
     }
 
+    function effectiveRangeFromStats(stats) {
+      const raw = Number(stats?.rango ?? 0);
+      return raw === 0 ? 1 : raw;
+    }
+
     function calculateDamage(attackerStats, defenderStats, distance, isCritical) {
       const isMelee = distance <= 1;
       let baseDamage = isMelee ? attackerStats.danoCC : attackerStats.danoAD;
@@ -846,6 +851,33 @@
       const rawDamage = isCritical ? baseDamage * 2 : baseDamage;
       const totalDamage = Math.max(rawDamage - resistance, 0);
       return { totalDamage, isMelee, clawsRoll, rawDamage };
+    }
+
+    function evaluateAttackRoll(attackerStats, defenderStats, roll, distance, options = {}) {
+      const { allowCounter = false } = options;
+      const hasAstucia = hasPassive(attackerStats, 'astucia');
+      const critical = hasAstucia ? roll >= 11 : roll === 12;
+      const isPifia = roll === 2;
+      const isMelee = distance <= 1;
+      const defenderCanRanged = effectiveRangeFromStats(defenderStats) > 1;
+
+      let success = false;
+
+      if (critical) {
+        success = true;
+      } else if (isPifia) {
+        if (isMelee || defenderCanRanged) {
+          success = roll + attackerStats.ataque >= defenderStats.defensa;
+        } else {
+          success = false;
+        }
+      } else {
+        success = roll + attackerStats.ataque >= defenderStats.defensa;
+      }
+
+      const shouldCounter = allowCounter && isPifia && (isMelee || defenderCanRanged);
+
+      return { success, critical, isPifia, shouldCounter };
     }
 
     function queueDeathMessage(message) {
@@ -989,7 +1021,8 @@
       updateCombatInfo();
     }
 
-    function resolveAttack(attacker, defender, actionKey = 'attack') {
+    function resolveAttack(attacker, defender, actionKey = 'attack', options = {}) {
+      const { allowCounter = true, skipTurnAdvance = false, actionLabelOverride = null } = options;
       const attackerStats = pieceMap.get(attacker);
       const defenderStats = pieceMap.get(defender);
       const attackerSquare = getPieceSquare(attacker);
@@ -999,16 +1032,13 @@
       const die1 = Math.floor(Math.random() * 6) + 1;
       const die2 = Math.floor(Math.random() * 6) + 1;
       const roll = die1 + die2;
-      const hasAstucia = hasPassive(attackerStats, 'astucia');
-      const critical = hasAstucia ? roll >= 11 : roll === 12;
-      let success = false;
-      if (critical) {
-        success = true;
-      } else if (roll === 2) {
-        success = false;
-      } else if (roll + attackerStats.ataque >= defenderStats.defensa) {
-        success = true;
-      }
+      const { success, critical, isPifia, shouldCounter } = evaluateAttackRoll(
+        attackerStats,
+        defenderStats,
+        roll,
+        distance,
+        { allowCounter }
+      );
 
       const { totalDamage, clawsRoll } = calculateDamage(attackerStats, defenderStats, distance, critical);
       const damageApplied = success && actionKey !== 'incapacitar' ? totalDamage : 0;
@@ -1020,7 +1050,7 @@
       }
 
       pendingAttackInfo = {
-        action: actionLabel(actionKey),
+        action: actionLabelOverride || actionLabel(actionKey),
         attacker: attackerStats.ataque,
         defender: defenderStats.defensa,
         difference: attackerStats.ataque - defenderStats.defensa,
@@ -1032,7 +1062,12 @@
         attackerName: attackerStats.name,
         defenderName: defenderStats.name,
         clawsRoll,
-        note: actionKey === 'incapacitar' ? 'El ataque no causa daño.' : null,
+        note:
+          actionKey === 'incapacitar'
+            ? 'El ataque no causa daño.'
+            : shouldCounter
+            ? 'Pifia: el defensor realizará una réplica.'
+            : null,
       };
 
       if (success && actionKey === 'incapacitar') {
@@ -1042,8 +1077,10 @@
         addHistoryEntry(
           attacker.dataset.team,
           `${attackerStats.name} ataca a ${defenderStats.name}: tirada ${roll}${
-            critical ? ' (Crítico)' : ''
-          }${success ? `, daño ${damageApplied}${garrasText}` : ', falla el ataque.'}`
+            critical ? ' (Crítico)' : isPifia ? ' (Pifia)' : ''
+          }${success ? `, daño ${damageApplied}${garrasText}` : ', falla el ataque.'}${
+            shouldCounter ? ' Réplica del defensor.' : ''
+          }`
         );
       }
 
@@ -1052,13 +1089,30 @@
         eliminatePiece(defender);
       }
 
+      if (
+        shouldCounter &&
+        defenderStats.currentVida > 0 &&
+        defender.dataset.eliminated !== 'true' &&
+        attacker.dataset.eliminated !== 'true'
+      ) {
+        resolveAttack(defender, attacker, 'attack', {
+          allowCounter: false,
+          skipTurnAdvance: true,
+          actionLabelOverride: 'Réplica',
+        });
+      }
+
       renderLifeCards();
-      hideTooltip();
-      clearRangeHighlights();
-      selectedTarget = null;
-      attackButton.classList.remove('button--pulse');
+      if (!skipTurnAdvance) {
+        hideTooltip();
+        clearRangeHighlights();
+        selectedTarget = null;
+        attackButton.classList.remove('button--pulse');
+      }
       updateCombatInfo();
-      finishTurn(attacker);
+      if (!skipTurnAdvance) {
+        finishTurn(attacker);
+      }
     }
 
     function resolveExplosion(attacker, defender) {
@@ -1068,8 +1122,7 @@
       const die1 = Math.floor(Math.random() * 6) + 1;
       const die2 = Math.floor(Math.random() * 6) + 1;
       const roll = die1 + die2;
-      const hasAstucia = hasPassive(attackerStats, 'astucia');
-      const critical = hasAstucia ? roll >= 11 : roll === 12;
+      const critical = hasPassive(attackerStats, 'astucia') ? roll >= 11 : roll === 12;
 
       const deltas = [-1, 0, 1];
       const affectedPieces = [];
@@ -1091,10 +1144,12 @@
       const targetsSummary = [];
       affectedPieces.forEach(({ piece, square }) => {
         const targetStats = pieceMap.get(piece);
-        const success = critical || (roll !== 2 && roll + attackerStats.ataque >= targetStats.defensa);
+        const distance = attackDistance(attackerSquare, square);
+        const { success } = evaluateAttackRoll(attackerStats, targetStats, roll, distance, {
+          allowCounter: false,
+        });
         let damage = 0;
         if (success) {
-          const distance = attackDistance(attackerSquare, square);
           const { totalDamage } = calculateDamage(attackerStats, targetStats, distance, critical);
           damage = totalDamage;
           targetStats.currentVida = Math.max(targetStats.currentVida - damage, 0);
@@ -1121,7 +1176,7 @@
 
       addHistoryEntry(
         attacker.dataset.team,
-        `${attackerStats.name} ejecuta Explosión: tirada ${roll}${critical ? ' (Crítico)' : ''}. Afectados: ${targetsSummary
+        `${attackerStats.name} ejecuta Explosión: tirada ${roll}${critical ? ' (Crítico)' : roll === 2 ? ' (Pifia)' : ''}. Afectados: ${targetsSummary
           .map((t) => `${t.name}${t.success ? ` daño ${t.damage}` : ' sin efecto'}`)
           .join('; ')}`
       );
@@ -1157,9 +1212,9 @@
         const die1 = Math.floor(Math.random() * 6) + 1;
         const die2 = Math.floor(Math.random() * 6) + 1;
         const roll = die1 + die2;
-        const hasAstucia = hasPassive(attackerStats, 'astucia');
-        const critical = hasAstucia ? roll >= 11 : roll === 12;
-        const success = critical || (roll !== 2 && roll + attackerStats.ataque >= targetStats.defensa);
+        const { success, critical, isPifia } = evaluateAttackRoll(attackerStats, targetStats, roll, distance, {
+          allowCounter: false,
+        });
         let damage = 0;
         if (success) {
           const { totalDamage } = calculateDamage(attackerStats, targetStats, distance, critical);
@@ -1173,6 +1228,7 @@
           vida: targetStats.currentVida,
           roll,
           critical,
+          isPifia,
         });
         if (success && targetStats.currentVida <= 0) {
           queueDeathMessage(`${targetStats.name} ha sido eliminado por ${attackerStats.name}.`);
@@ -1191,7 +1247,7 @@
       addHistoryEntry(
         attacker.dataset.team,
         `${attackerStats.name} activa Pulso: ${targetsSummary
-          .map((t) => `${t.name} (tirada ${t.roll}${t.critical ? ' crítico' : ''}${
+          .map((t) => `${t.name} (tirada ${t.roll}${t.critical ? ' crítico' : t.isPifia ? ' pifia' : ''}${
             t.success ? `, daño ${t.damage}` : ', sin efecto'
           })`)
           .join('; ')}`
@@ -1458,14 +1514,14 @@
       if (!skipRegeneration) {
         applyRegeneration(piece);
       }
-      if (pendingDeathMessages.length > 0) {
-        await showQueuedDeathPopups();
-      }
       const stats = pieceMap.get(piece);
       const summary =
         summaryOverride || latestActionMessage || (stats ? `${stats.name} finaliza su turno.` : 'Turno completado.');
       latestActionMessage = null;
       await showTurnPopup(summary);
+      if (pendingDeathMessages.length > 0) {
+        await showQueuedDeathPopups();
+      }
       advanceTurn();
     }
 
