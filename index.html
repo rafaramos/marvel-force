@@ -474,6 +474,9 @@
       const SCORE_PER_KILL = 50;
       const punchSound = new Audio('sonido/Punch.mp3');
       const failureSound = new Audio('sonido/Failure.mp3');
+      const incapacitarSound = new Audio('sonido/incapacitar.wav');
+      const passTurnSound = new Audio('sonido/pasar.wav');
+      const explosionSound = new Audio('sonido/explosion.mp3');
       let pendingPopupSound = null;
       const BOARD_ROWS = 10;
       const BOARD_COLS = 12;
@@ -607,6 +610,12 @@
       const chosen = pendingPopupSound;
       pendingPopupSound = null;
       const sound = chosen === 'punch' ? punchSound : chosen === 'failure' ? failureSound : null;
+      if (!sound) return;
+      sound.currentTime = 0;
+      sound.play().catch(() => {});
+    }
+
+    function playEffectSound(sound) {
       if (!sound) return;
       sound.currentTime = 0;
       sound.play().catch(() => {});
@@ -1160,6 +1169,7 @@
 
       if (success && actionKey === 'incapacitar') {
         addHistoryEntry(attacker.dataset.team, `${attackerStats.name} incapacita a ${defenderStats.name}.`);
+        playEffectSound(incapacitarSound);
       } else {
         const garrasText = clawsRoll ? ` (Garras d6=${clawsRoll})` : '';
         addHistoryEntry(
@@ -1277,6 +1287,8 @@
         targets: targetsSummary,
       };
 
+      playEffectSound(explosionSound);
+
       addHistoryEntry(
         attacker.dataset.team,
         `${attackerStats.name} ejecuta Explosión: tirada ${roll}${critical ? ' (Crítico)' : roll === 2 ? ' (Pifia)' : ''}. Afectados: ${targetsSummary
@@ -1356,6 +1368,8 @@
         critical: false,
         targets: targetsSummary,
       };
+
+      playEffectSound(explosionSound);
 
       addHistoryEntry(
         attacker.dataset.team,
@@ -1669,6 +1683,7 @@
 
     passButton.addEventListener('click', () => {
       const currentPiece = turnOrder[turnIndex];
+      playEffectSound(passTurnSound);
       finishTurn(currentPiece);
     });
 
