@@ -239,7 +239,7 @@
 
     .layout {
       display: grid;
-      grid-template-columns: 260px auto 260px;
+      grid-template-columns: 340px auto 340px;
       gap: 16px;
       align-items: center;
     }
@@ -297,6 +297,13 @@
       letter-spacing: 0.02em;
     }
 
+    .card-panel__content {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      align-items: flex-start;
+    }
+
     .life-list {
       display: flex;
       flex-direction: column;
@@ -304,11 +311,11 @@
     }
 
     .history {
-      margin-top: 12px;
+      margin: 0;
     }
 
     .history__title {
-      margin: 0 0 6px;
+      margin: 0 0 8px;
       font-size: 0.95rem;
     }
 
@@ -319,8 +326,6 @@
       display: flex;
       flex-direction: column;
       gap: 6px;
-      max-height: 260px;
-      overflow: auto;
       font-size: 0.92rem;
     }
 
@@ -334,8 +339,10 @@
     }
 
     .life-card {
-      display: flex;
-      justify-content: space-between;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      grid-template-rows: auto auto;
+      gap: 4px 10px;
       align-items: center;
       background: rgba(15, 77, 32, 0.65);
       border: 1px solid rgba(255, 255, 255, 0.15);
@@ -347,23 +354,39 @@
       box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
     }
 
-    .life-card__name {
+    .life-card__main {
       display: flex;
-      gap: 6px;
       align-items: center;
+      gap: 8px;
+      grid-column: 1 / 2;
     }
 
-    .life-dot {
-      width: 12px;
-      height: 12px;
-      border-radius: 50%;
-      display: inline-block;
-      border: 1px solid rgba(0, 0, 0, 0.4);
-      box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.25);
+    .life-card__avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      object-fit: cover;
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.25);
+      background: #0d0d0d;
+    }
+
+    .life-card__label {
+      display: block;
+      line-height: 1.2;
     }
 
     .life-value {
       font-variant-numeric: tabular-nums;
+      grid-column: 1 / span 2;
+    }
+
+    .life-points {
+      justify-self: end;
+      font-size: 0.92rem;
+      opacity: 0.95;
+      grid-column: 2 / 3;
+      grid-row: 1;
     }
 
     .status-bar {
@@ -405,19 +428,23 @@
     <div class="layout">
       <aside class="card-panel" aria-label="Vida aliados">
         <h3>Aliados</h3>
-        <div class="life-list" id="allyCards"></div>
-        <div class="history">
-          <h4 class="history__title">Histórico héroes</h4>
-          <ol id="heroLog" class="history__list"></ol>
+        <div class="card-panel__content">
+          <div class="life-list" id="allyCards"></div>
+          <div class="history">
+            <h4 class="history__title">Histórico héroes</h4>
+            <ol id="heroLog" class="history__list"></ol>
+          </div>
         </div>
       </aside>
       <section class="board" aria-label="Tablero de 120 cuadros verdes"></section>
       <aside class="card-panel" aria-label="Vida enemigos">
         <h3>Enemigos</h3>
-        <div class="life-list" id="enemyCards"></div>
-        <div class="history">
-          <h4 class="history__title">Histórico villanos</h4>
-          <ol id="villainLog" class="history__list"></ol>
+        <div class="card-panel__content">
+          <div class="life-list" id="enemyCards"></div>
+          <div class="history">
+            <h4 class="history__title">Histórico villanos</h4>
+            <ol id="villainLog" class="history__list"></ol>
+          </div>
         </div>
       </aside>
     </div>
@@ -443,8 +470,20 @@
       const pieceStats =
         (typeof personajes !== 'undefined' && personajes) ||
         (typeof window !== 'undefined' ? window.personajes : {});
-    const BOARD_ROWS = 10;
-    const BOARD_COLS = 12;
+      const SCORE_PER_DAMAGE = 10;
+      const SCORE_PER_KILL = 50;
+      const punchSound = new Audio('sonidos/Punch.mp3');
+      const failureSound = new Audio('sonidos/Failure.mp3');
+      let pendingPopupSound = null;
+      const BOARD_ROWS = 10;
+      const BOARD_COLS = 12;
+<<<<<<< HEAD
+=======
+      const backgroundMusic = new Audio('sonidos/Background.mp3');
+      backgroundMusic.loop = true;
+      backgroundMusic.volume = 0.35;
+      let backgroundStarted = false;
+>>>>>>> codex/add-new-characters-and-abilities-qhhl5a
 
     const initialPositions = [
       { key: 'avispa', team: 'aliado', row: 1, col: 1, className: 'piece--white' },
@@ -547,6 +586,47 @@
       return '#1f1f1f';
     }
 
+    function addPoints(piece, amount) {
+      const stats = pieceMap.get(piece);
+      if (!stats || !Number.isFinite(amount)) return;
+      stats.puntos = (stats.puntos || 0) + amount;
+    }
+
+    function isEnemy(attacker, target) {
+      return attacker?.dataset.team && target?.dataset.team && attacker.dataset.team !== target.dataset.team;
+    }
+
+    function registerTurnSound({ damageDealt = 0, attackFailed = false } = {}) {
+      if (damageDealt > 0) {
+        pendingPopupSound = 'punch';
+        return;
+      }
+      if (attackFailed && !pendingPopupSound) {
+        pendingPopupSound = 'failure';
+      }
+    }
+
+    function playTurnSound() {
+      const chosen = pendingPopupSound;
+      pendingPopupSound = null;
+      const sound = chosen === 'punch' ? punchSound : chosen === 'failure' ? failureSound : null;
+      if (!sound) return;
+      sound.currentTime = 0;
+      sound.play().catch(() => {});
+    }
+
+<<<<<<< HEAD
+=======
+    function startBackgroundMusic() {
+      if (backgroundStarted) return;
+      backgroundStarted = true;
+      backgroundMusic.currentTime = 0;
+      backgroundMusic.play().catch(() => {
+        backgroundStarted = false;
+      });
+    }
+
+>>>>>>> codex/add-new-characters-and-abilities-qhhl5a
     function attachPieceData(piece, key, team) {
       const stats = pieceStats[key];
       if (!stats) return;
@@ -557,6 +637,7 @@
         currentVida: stats.vida,
         maxVida: stats.vida,
         incapacitatedTurns: 0,
+        puntos: 0,
       };
       piece.dataset.key = key;
       piece.dataset.team = team;
@@ -589,10 +670,12 @@
         const card = document.createElement('div');
         card.className = 'life-card';
         card.innerHTML = `
-          <span class="life-card__name"><span class="life-dot" style="background:${pieceColor(
-            element
-          )}"></span>${stats.name}</span>
+          <div class="life-card__main">
+            <img class="life-card__avatar" src="${stats.imagen}" alt="${stats.name}" loading="lazy" />
+            <span class="life-card__label">${stats.name}</span>
+          </div>
           <span class="life-value">Vida: ${Math.max(stats.currentVida, 0)}</span>
+          <span class="life-points">${stats.puntos ?? 0} pts</span>
         `;
         container.appendChild(card);
       });
@@ -628,6 +711,10 @@
         };
         turnPopupMessage.textContent = message || 'Turno completado.';
         turnPopup.hidden = false;
+<<<<<<< HEAD
+        playTurnSound();
+=======
+>>>>>>> codex/add-new-characters-and-abilities-qhhl5a
       });
     }
 
@@ -648,6 +735,10 @@
 
     function handleTurnPopupDismiss() {
       if (turnPopup.hidden || !resolveTurnPopup) return;
+<<<<<<< HEAD
+=======
+      playTurnSound();
+>>>>>>> codex/add-new-characters-and-abilities-qhhl5a
       const resolver = resolveTurnPopup;
       resolveTurnPopup = null;
       resolver();
@@ -666,7 +757,14 @@
     }
 
     ['keydown', 'mousedown', 'mouseup', 'touchstart'].forEach((eventName) => {
+<<<<<<< HEAD
       document.addEventListener(eventName, handleGlobalDismiss);
+=======
+      document.addEventListener(eventName, (event) => {
+        startBackgroundMusic();
+        handleGlobalDismiss(event);
+      });
+>>>>>>> codex/add-new-characters-and-abilities-qhhl5a
     });
 
     function renderPowerButtons(piece) {
@@ -1044,9 +1142,15 @@
       const damageApplied = success && actionKey !== 'incapacitar' ? totalDamage : 0;
       if (success && actionKey === 'incapacitar') {
         setIncapacitated(defender, 1);
+        if (isEnemy(attacker, defender)) {
+          addPoints(attacker, SCORE_PER_DAMAGE);
+        }
       }
       if (damageApplied > 0) {
         defenderStats.currentVida = Math.max(defenderStats.currentVida - damageApplied, 0);
+        if (isEnemy(attacker, defender)) {
+          addPoints(attacker, damageApplied * SCORE_PER_DAMAGE);
+        }
       }
 
       pendingAttackInfo = {
@@ -1086,8 +1190,13 @@
 
       if (success && actionKey !== 'incapacitar' && defenderStats.currentVida <= 0) {
         queueDeathMessage(`${defenderStats.name} ha sido eliminado por ${attackerStats.name}.`);
+        if (isEnemy(attacker, defender)) {
+          addPoints(attacker, SCORE_PER_KILL);
+        }
         eliminatePiece(defender);
       }
+
+      registerTurnSound({ damageDealt: damageApplied, attackFailed: !success });
 
       if (
         shouldCounter &&
@@ -1127,6 +1236,8 @@
       const deltas = [-1, 0, 1];
       const affectedPieces = [];
       const seenPieces = new Set();
+      let totalDamageDealt = 0;
+      let anySuccess = false;
 
       deltas.forEach((dr) => {
         deltas.forEach((dc) => {
@@ -1153,6 +1264,11 @@
           const { totalDamage } = calculateDamage(attackerStats, targetStats, distance, critical);
           damage = totalDamage;
           targetStats.currentVida = Math.max(targetStats.currentVida - damage, 0);
+          totalDamageDealt += damage;
+          if (isEnemy(attacker, piece)) {
+            addPoints(attacker, damage * SCORE_PER_DAMAGE);
+          }
+          anySuccess = true;
         }
         targetsSummary.push({
           name: targetStats.name,
@@ -1162,6 +1278,9 @@
         });
         if (success && targetStats.currentVida <= 0) {
           queueDeathMessage(`${targetStats.name} ha sido eliminado por ${attackerStats.name}.`);
+          if (isEnemy(attacker, piece)) {
+            addPoints(attacker, SCORE_PER_KILL);
+          }
           eliminatePiece(piece);
         }
       });
@@ -1181,6 +1300,8 @@
           .join('; ')}`
       );
 
+      registerTurnSound({ damageDealt: totalDamageDealt, attackFailed: !anySuccess });
+
       renderLifeCards();
       hideTooltip();
       clearRangeHighlights();
@@ -1196,6 +1317,7 @@
       const maxRange = rangeForPiece(attacker);
 
       const affectedPieces = [];
+      let totalDamageDealt = 0;
       squares.forEach((square) => {
         const occupant = square.querySelector('.piece');
         if (!occupant) return;
@@ -1220,6 +1342,10 @@
           const { totalDamage } = calculateDamage(attackerStats, targetStats, distance, critical);
           damage = totalDamage;
           targetStats.currentVida = Math.max(targetStats.currentVida - damage, 0);
+          totalDamageDealt += damage;
+          if (isEnemy(attacker, piece)) {
+            addPoints(attacker, damage * SCORE_PER_DAMAGE);
+          }
         }
         targetsSummary.push({
           name: targetStats.name,
@@ -1232,6 +1358,9 @@
         });
         if (success && targetStats.currentVida <= 0) {
           queueDeathMessage(`${targetStats.name} ha sido eliminado por ${attackerStats.name}.`);
+          if (isEnemy(attacker, piece)) {
+            addPoints(attacker, SCORE_PER_KILL);
+          }
           eliminatePiece(piece);
         }
       });
@@ -1252,6 +1381,9 @@
           })`)
           .join('; ')}`
       );
+
+      const allMissed = targetsSummary.every((t) => !t.success);
+      registerTurnSound({ damageDealt: totalDamageDealt, attackFailed: allMissed });
 
       renderLifeCards();
       hideTooltip();
