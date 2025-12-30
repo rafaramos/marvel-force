@@ -477,6 +477,7 @@
       const incapacitarSound = new Audio('sonido/incapacitar.wav');
       const passTurnSound = new Audio('sonido/pasar.wav');
       const explosionSound = new Audio('sonido/explosion.mp3');
+      const deathSound = new Audio('sonido/muerte.wav');
       let pendingPopupSound = null;
       const BOARD_ROWS = 10;
       const BOARD_COLS = 12;
@@ -984,6 +985,8 @@
     }
 
     function eliminatePiece(piece) {
+      if (!piece || piece.dataset.eliminated === 'true') return;
+      playEffectSound(deathSound);
       const index = turnOrder.indexOf(piece);
       if (index !== -1) {
         turnOrder.splice(index, 1);
