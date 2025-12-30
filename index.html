@@ -477,13 +477,10 @@
       let pendingPopupSound = null;
       const BOARD_ROWS = 10;
       const BOARD_COLS = 12;
-<<<<<<< HEAD
-=======
       const backgroundMusic = new Audio('sonidos/Background.mp3');
       backgroundMusic.loop = true;
       backgroundMusic.volume = 0.35;
       let backgroundStarted = false;
->>>>>>> codex/add-new-characters-and-abilities-qhhl5a
 
     const initialPositions = [
       { key: 'avispa', team: 'aliado', row: 1, col: 1, className: 'piece--white' },
@@ -615,8 +612,6 @@
       sound.play().catch(() => {});
     }
 
-<<<<<<< HEAD
-=======
     function startBackgroundMusic() {
       if (backgroundStarted) return;
       backgroundStarted = true;
@@ -626,7 +621,6 @@
       });
     }
 
->>>>>>> codex/add-new-characters-and-abilities-qhhl5a
     function attachPieceData(piece, key, team) {
       const stats = pieceStats[key];
       if (!stats) return;
@@ -711,10 +705,7 @@
         };
         turnPopupMessage.textContent = message || 'Turno completado.';
         turnPopup.hidden = false;
-<<<<<<< HEAD
         playTurnSound();
-=======
->>>>>>> codex/add-new-characters-and-abilities-qhhl5a
       });
     }
 
@@ -735,10 +726,7 @@
 
     function handleTurnPopupDismiss() {
       if (turnPopup.hidden || !resolveTurnPopup) return;
-<<<<<<< HEAD
-=======
       playTurnSound();
->>>>>>> codex/add-new-characters-and-abilities-qhhl5a
       const resolver = resolveTurnPopup;
       resolveTurnPopup = null;
       resolver();
@@ -757,14 +745,10 @@
     }
 
     ['keydown', 'mousedown', 'mouseup', 'touchstart'].forEach((eventName) => {
-<<<<<<< HEAD
-      document.addEventListener(eventName, handleGlobalDismiss);
-=======
       document.addEventListener(eventName, (event) => {
         startBackgroundMusic();
         handleGlobalDismiss(event);
       });
->>>>>>> codex/add-new-characters-and-abilities-qhhl5a
     });
 
     function renderPowerButtons(piece) {
