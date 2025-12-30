@@ -127,4 +127,53 @@ const poderes = {
     pasivos: [
     ],
   },
+  cosa: {
+    activos: [],
+    pasivos: [],
+  },
+  antorcha: {
+    activos: [
+      {
+        nombre: 'Explosión',
+        descripcion: 'Ataque de área que afecta al objetivo y a los adyacentes con una sola tirada.',
+      },
+      {
+        nombre: 'Pulso',
+        descripcion:
+          'El atacante detona en su posición. Afecta en un radio igual a su rango, sin elegir objetivo.',
+      },
+    ],
+    pasivos: [],
+  },
+  doom: {
+    activos: [
+      {
+        nombre: 'Explosión',
+        descripcion: 'Ataque de área que afecta al objetivo y a los adyacentes con una sola tirada.',
+      },
+      {
+        nombre: 'Incapacitar',
+        descripcion: 'Aturde al objetivo si impacta, sin causar daño.',
+      },
+    ],
+    pasivos: [
+      {
+        nombre: 'Astucia',
+        descripcion: 'Consigue crítico con 11 o 12 en la tirada de ataque.',
+      },
+    ],
+  },
+  ultron: {
+    activos: [
+      {
+        nombre: 'Explosión',
+        descripcion: 'Ataque de área que afecta al objetivo y a los adyacentes con una sola tirada.',
+      },
+    ],
+    pasivos: [],
+  },
 };
+
+if (typeof window !== 'undefined') {
+  window.poderes = poderes;
+}
