@@ -472,12 +472,12 @@
         (typeof window !== 'undefined' ? window.personajes : {});
       const SCORE_PER_DAMAGE = 10;
       const SCORE_PER_KILL = 50;
-      const punchSound = new Audio('sonidos/Punch.mp3');
-      const failureSound = new Audio('sonidos/Failure.mp3');
+      const punchSound = new Audio('sonido/Punch.mp3');
+      const failureSound = new Audio('sonido/Failure.mp3');
       let pendingPopupSound = null;
       const BOARD_ROWS = 10;
       const BOARD_COLS = 12;
-      const backgroundMusic = new Audio('sonidos/Background.mp3');
+      const backgroundMusic = new Audio('sonido/Endgame.mp3');
       backgroundMusic.loop = true;
       backgroundMusic.volume = 0.35;
       let backgroundStarted = false;
