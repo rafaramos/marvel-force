@@ -31,7 +31,7 @@ const personajes = {
     rango: 1,
     vida: 10,
     agilidad: 10,
-    imagen: 'imagenes/hulk.webp',
+    imagen: 'animaciones/hulk/espera.gif',
     poderes: poderesFuente.hulk,
     habilidades: { activas: [], pasivas: ['regeneracion'] },
   },
