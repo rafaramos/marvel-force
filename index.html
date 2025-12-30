@@ -206,9 +206,9 @@
 
     .tooltip {
       position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
+      top: 0;
+      left: 0;
+      transform: none;
       background: #0f4d20;
       color: #f4f4f4;
       border: 1px solid rgba(255, 255, 255, 0.2);
@@ -220,6 +220,7 @@
       font-size: 0.95rem;
       z-index: 20;
       min-width: 240px;
+      max-width: 320px;
     }
 
     .tooltip h3 {
@@ -241,6 +242,45 @@
       grid-template-columns: 260px auto 260px;
       gap: 16px;
       align-items: center;
+    }
+
+    .turn-popup,
+    .death-popup {
+      position: fixed;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      background: rgba(0, 0, 0, 0.45);
+      z-index: 30;
+    }
+
+    .turn-popup[hidden],
+    .death-popup[hidden] {
+      display: none;
+    }
+
+    .turn-popup__content,
+    .death-popup__content {
+      background: #0f4d20;
+      border: 2px solid rgba(255, 255, 255, 0.35);
+      border-radius: 14px;
+      padding: 18px 20px;
+      max-width: 480px;
+      box-shadow: 0 20px 36px rgba(0, 0, 0, 0.45);
+      text-align: center;
+    }
+
+    .turn-popup__message,
+    .death-popup__message {
+      margin: 0 0 8px;
+      font-size: 1.05rem;
+      line-height: 1.4;
+    }
+
+    .turn-popup__hint {
+      margin: 0;
+      font-size: 0.9rem;
+      opacity: 0.85;
     }
 
     .card-panel {
@@ -294,8 +334,10 @@
     }
 
     .life-card {
-      display: flex;
-      justify-content: space-between;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      grid-template-rows: auto auto;
+      gap: 4px 10px;
       align-items: center;
       background: rgba(15, 77, 32, 0.65);
       border: 1px solid rgba(255, 255, 255, 0.15);
@@ -307,23 +349,39 @@
       box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
     }
 
-    .life-card__name {
+    .life-card__main {
       display: flex;
-      gap: 6px;
       align-items: center;
+      gap: 8px;
+      grid-column: 1 / 2;
     }
 
-    .life-dot {
-      width: 12px;
-      height: 12px;
-      border-radius: 50%;
-      display: inline-block;
-      border: 1px solid rgba(0, 0, 0, 0.4);
-      box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.25);
+    .life-card__avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      object-fit: cover;
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.25);
+      background: #0d0d0d;
+    }
+
+    .life-card__label {
+      display: block;
+      line-height: 1.2;
     }
 
     .life-value {
       font-variant-numeric: tabular-nums;
+      grid-column: 1 / span 2;
+    }
+
+    .life-points {
+      justify-self: end;
+      font-size: 0.92rem;
+      opacity: 0.95;
+      grid-column: 2 / 3;
+      grid-row: 1;
     }
 
     .status-bar {
@@ -383,14 +441,33 @@
     </div>
   </main>
   <div id="tooltip" class="tooltip" hidden></div>
+  <div id="turnPopup" class="turn-popup" hidden>
+    <div class="turn-popup__content">
+      <p id="turnPopupMessage" class="turn-popup__message"></p>
+      <p class="turn-popup__hint">Pulsa cualquier tecla o botón para continuar</p>
+    </div>
+  </div>
+  <div id="deathPopup" class="death-popup" hidden>
+    <div class="death-popup__content">
+      <p id="deathPopupMessage" class="death-popup__message"></p>
+      <p class="turn-popup__hint">Pulsa cualquier tecla o botón para continuar</p>
+    </div>
+  </div>
 
-  <script src="js/poderes.js"></script>
-  <script src="js/personajes.js"></script>
-  <script>
-    const board = document.querySelector('.board');
-    const pieceStats = personajes;
-    const BOARD_ROWS = 10;
-    const BOARD_COLS = 12;
+    <script src="js/poderes.js"></script>
+    <script src="js/personajes.js"></script>
+    <script>
+      const board = document.querySelector('.board');
+      const pieceStats =
+        (typeof personajes !== 'undefined' && personajes) ||
+        (typeof window !== 'undefined' ? window.personajes : {});
+      const SCORE_PER_DAMAGE = 10;
+      const SCORE_PER_KILL = 50;
+      const punchSound = new Audio('sonidos/Punch.mp3');
+      const failureSound = new Audio('sonidos/Failure.mp3');
+      let pendingPopupSound = null;
+      const BOARD_ROWS = 10;
+      const BOARD_COLS = 12;
 
     const initialPositions = [
       { key: 'avispa', team: 'aliado', row: 1, col: 1, className: 'piece--white' },
@@ -399,12 +476,16 @@
       { key: 'spider', team: 'aliado', row: 4, col: 1, className: 'piece--blue' },
       { key: 'lobezno', team: 'aliado', row: 5, col: 1, className: 'piece--gold' },
       { key: 'ciclope', team: 'aliado', row: 6, col: 1, className: 'piece--white' },
+      { key: 'cosa', team: 'aliado', row: 7, col: 1, className: 'piece--red' },
+      { key: 'antorcha', team: 'aliado', row: 8, col: 1, className: 'piece--gold' },
       { key: 'duende', team: 'enemigo', row: 1, col: 12, className: 'piece--black' },
       { key: 'chaquetaAmarilla', team: 'enemigo', row: 2, col: 12, className: 'piece--black' },
       { key: 'dientesDeSable', team: 'enemigo', row: 3, col: 12, className: 'piece--black' },
       { key: 'boomerang', team: 'enemigo', row: 4, col: 12, className: 'piece--black' },
       { key: 'juggernaut', team: 'enemigo', row: 5, col: 12, className: 'piece--black' },
       { key: 'mole', team: 'enemigo', row: 6, col: 12, className: 'piece--black' },
+      { key: 'doom', team: 'enemigo', row: 7, col: 12, className: 'piece--black' },
+      { key: 'ultron', team: 'enemigo', row: 8, col: 12, className: 'piece--black' },
     ];
 
     function createPieceElement({ key, team, className }) {
@@ -441,6 +522,10 @@
 
     const squares = Array.from(board.querySelectorAll('.square'));
     const tooltip = document.getElementById('tooltip');
+    const turnPopup = document.getElementById('turnPopup');
+    const turnPopupMessage = document.getElementById('turnPopupMessage');
+    const deathPopup = document.getElementById('deathPopup');
+    const deathPopupMessage = document.getElementById('deathPopupMessage');
     const passButton = document.getElementById('passTurn');
     const attackButton = document.getElementById('attack');
     const powerControls = document.getElementById('powerControls');
@@ -485,6 +570,35 @@
       return '#1f1f1f';
     }
 
+    function addPoints(piece, amount) {
+      const stats = pieceMap.get(piece);
+      if (!stats || !Number.isFinite(amount)) return;
+      stats.puntos = (stats.puntos || 0) + amount;
+    }
+
+    function isEnemy(attacker, target) {
+      return attacker?.dataset.team && target?.dataset.team && attacker.dataset.team !== target.dataset.team;
+    }
+
+    function registerTurnSound({ damageDealt = 0, attackFailed = false } = {}) {
+      if (damageDealt > 0) {
+        pendingPopupSound = 'punch';
+        return;
+      }
+      if (attackFailed && !pendingPopupSound) {
+        pendingPopupSound = 'failure';
+      }
+    }
+
+    function playTurnSound() {
+      const chosen = pendingPopupSound;
+      pendingPopupSound = null;
+      const sound = chosen === 'punch' ? punchSound : chosen === 'failure' ? failureSound : null;
+      if (!sound) return;
+      sound.currentTime = 0;
+      sound.play().catch(() => {});
+    }
+
     function attachPieceData(piece, key, team) {
       const stats = pieceStats[key];
       if (!stats) return;
@@ -495,6 +609,7 @@
         currentVida: stats.vida,
         maxVida: stats.vida,
         incapacitatedTurns: 0,
+        puntos: 0,
       };
       piece.dataset.key = key;
       piece.dataset.team = team;
@@ -527,10 +642,12 @@
         const card = document.createElement('div');
         card.className = 'life-card';
         card.innerHTML = `
-          <span class="life-card__name"><span class="life-dot" style="background:${pieceColor(
-            element
-          )}"></span>${stats.name}</span>
+          <div class="life-card__main">
+            <img class="life-card__avatar" src="${stats.imagen}" alt="${stats.name}" loading="lazy" />
+            <span class="life-card__label">${stats.name}</span>
+          </div>
           <span class="life-value">Vida: ${Math.max(stats.currentVida, 0)}</span>
+          <span class="life-points">${stats.puntos ?? 0} pts</span>
         `;
         container.appendChild(card);
       });
@@ -538,7 +655,8 @@
 
     renderLifeCards();
 
-    function addHistoryEntry(team, message) {
+    function addHistoryEntry(team, message, options = {}) {
+      const { preserveLatest = false } = options;
       const list = team === 'aliado' ? heroLog : villainLog;
       if (!list) return;
       const item = document.createElement('li');
@@ -548,7 +666,64 @@
       while (list.children.length > 14) {
         list.removeChild(list.lastChild);
       }
+      if (!preserveLatest) {
+        latestActionMessage = message;
+      }
     }
+
+    function hideTurnPopup() {
+      turnPopup.hidden = true;
+    }
+
+    function showTurnPopup(message) {
+      return new Promise((resolve) => {
+        resolveTurnPopup = () => {
+          hideTurnPopup();
+          resolve();
+        };
+        turnPopupMessage.textContent = message || 'Turno completado.';
+        turnPopup.hidden = false;
+        playTurnSound();
+      });
+    }
+
+    function hideDeathPopup() {
+      deathPopup.hidden = true;
+    }
+
+    function showDeathPopup(message) {
+      return new Promise((resolve) => {
+        resolveDeathPopup = () => {
+          hideDeathPopup();
+          resolve();
+        };
+        deathPopupMessage.textContent = message || 'Un personaje ha caído.';
+        deathPopup.hidden = false;
+      });
+    }
+
+    function handleTurnPopupDismiss() {
+      if (turnPopup.hidden || !resolveTurnPopup) return;
+      const resolver = resolveTurnPopup;
+      resolveTurnPopup = null;
+      resolver();
+    }
+
+    function handleDeathPopupDismiss() {
+      if (deathPopup.hidden || !resolveDeathPopup) return;
+      const resolver = resolveDeathPopup;
+      resolveDeathPopup = null;
+      resolver();
+    }
+
+    function handleGlobalDismiss() {
+      handleDeathPopupDismiss();
+      handleTurnPopupDismiss();
+    }
+
+    ['keydown', 'mousedown', 'mouseup', 'touchstart'].forEach((eventName) => {
+      document.addEventListener(eventName, handleGlobalDismiss);
+    });
 
     function renderPowerButtons(piece) {
       powerControls.innerHTML = '';
@@ -559,7 +734,12 @@
         const btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'button';
-        btn.textContent = ability === 'incapacitar' ? 'Incapacitar' : 'Explosión';
+        const labels = {
+          incapacitar: 'Incapacitar',
+          explosion: 'Explosión',
+          pulso: 'Pulso',
+        };
+        btn.textContent = labels[ability] || ability;
         btn.disabled = piece.dataset.team === 'enemigo';
         btn.addEventListener('click', () => handleActionClick(ability));
         powerControls.appendChild(btn);
@@ -581,6 +761,10 @@
     let turnIndex = 0;
     let selectedTarget = null;
     let pendingAttackInfo = null;
+    let latestActionMessage = null;
+    let resolveTurnPopup = null;
+    let resolveDeathPopup = null;
+    const pendingDeathMessages = [];
 
     function getPieceSquare(piece) {
       return piece.closest('.square');
@@ -706,6 +890,11 @@
       );
     }
 
+    function effectiveRangeFromStats(stats) {
+      const raw = Number(stats?.rango ?? 0);
+      return raw === 0 ? 1 : raw;
+    }
+
     function calculateDamage(attackerStats, defenderStats, distance, isCritical) {
       const isMelee = distance <= 1;
       let baseDamage = isMelee ? attackerStats.danoCC : attackerStats.danoAD;
@@ -718,6 +907,45 @@
       const rawDamage = isCritical ? baseDamage * 2 : baseDamage;
       const totalDamage = Math.max(rawDamage - resistance, 0);
       return { totalDamage, isMelee, clawsRoll, rawDamage };
+    }
+
+    function evaluateAttackRoll(attackerStats, defenderStats, roll, distance, options = {}) {
+      const { allowCounter = false } = options;
+      const hasAstucia = hasPassive(attackerStats, 'astucia');
+      const critical = hasAstucia ? roll >= 11 : roll === 12;
+      const isPifia = roll === 2;
+      const isMelee = distance <= 1;
+      const defenderCanRanged = effectiveRangeFromStats(defenderStats) > 1;
+
+      let success = false;
+
+      if (critical) {
+        success = true;
+      } else if (isPifia) {
+        if (isMelee || defenderCanRanged) {
+          success = roll + attackerStats.ataque >= defenderStats.defensa;
+        } else {
+          success = false;
+        }
+      } else {
+        success = roll + attackerStats.ataque >= defenderStats.defensa;
+      }
+
+      const shouldCounter = allowCounter && isPifia && (isMelee || defenderCanRanged);
+
+      return { success, critical, isPifia, shouldCounter };
+    }
+
+    function queueDeathMessage(message) {
+      pendingDeathMessages.push(message);
+    }
+
+    async function showQueuedDeathPopups() {
+      while (pendingDeathMessages.length > 0) {
+        const message = pendingDeathMessages.shift();
+        // eslint-disable-next-line no-await-in-loop
+        await showDeathPopup(message);
+      }
     }
 
     function eliminatePiece(piece) {
@@ -756,11 +984,26 @@
         </ul>
       `;
       tooltip.hidden = false;
+      requestAnimationFrame(() => positionTooltip(piece));
     }
 
     function positionTooltip(target) {
-      tooltip.style.left = '50%';
-      tooltip.style.top = '50%';
+      const targetRect = target.getBoundingClientRect();
+      const tooltipRect = tooltip.getBoundingClientRect();
+      const offset = 12;
+      const padding = 8;
+      let left = targetRect.right + offset;
+      let top = targetRect.top + targetRect.height / 2 - tooltipRect.height / 2;
+
+      if (left + tooltipRect.width > window.innerWidth - padding) {
+        left = targetRect.left - tooltipRect.width - offset;
+      }
+
+      left = Math.max(padding, Math.min(left, window.innerWidth - tooltipRect.width - padding));
+      top = Math.max(padding, Math.min(top, window.innerHeight - tooltipRect.height - padding));
+
+      tooltip.style.left = `${left}px`;
+      tooltip.style.top = `${top}px`;
     }
 
     function hideTooltip() {
@@ -777,6 +1020,7 @@
     function actionLabel(actionKey) {
       if (actionKey === 'incapacitar') return 'Incapacitar';
       if (actionKey === 'explosion') return 'Explosión';
+      if (actionKey === 'pulso') return 'Pulso';
       return 'Ataque';
     }
 
@@ -833,7 +1077,8 @@
       updateCombatInfo();
     }
 
-    function resolveAttack(attacker, defender, actionKey = 'attack') {
+    function resolveAttack(attacker, defender, actionKey = 'attack', options = {}) {
+      const { allowCounter = true, skipTurnAdvance = false, actionLabelOverride = null } = options;
       const attackerStats = pieceMap.get(attacker);
       const defenderStats = pieceMap.get(defender);
       const attackerSquare = getPieceSquare(attacker);
@@ -843,16 +1088,13 @@
       const die1 = Math.floor(Math.random() * 6) + 1;
       const die2 = Math.floor(Math.random() * 6) + 1;
       const roll = die1 + die2;
-      const hasAstucia = hasPassive(attackerStats, 'astucia');
-      const critical = hasAstucia ? roll >= 11 : roll === 12;
-      let success = false;
-      if (critical) {
-        success = true;
-      } else if (roll === 2) {
-        success = false;
-      } else if (roll + attackerStats.ataque >= defenderStats.defensa) {
-        success = true;
-      }
+      const { success, critical, isPifia, shouldCounter } = evaluateAttackRoll(
+        attackerStats,
+        defenderStats,
+        roll,
+        distance,
+        { allowCounter }
+      );
 
       const { totalDamage, clawsRoll } = calculateDamage(attackerStats, defenderStats, distance, critical);
       const damageApplied = success && actionKey !== 'incapacitar' ? totalDamage : 0;
@@ -861,10 +1103,13 @@
       }
       if (damageApplied > 0) {
         defenderStats.currentVida = Math.max(defenderStats.currentVida - damageApplied, 0);
+        if (isEnemy(attacker, defender)) {
+          addPoints(attacker, damageApplied * SCORE_PER_DAMAGE);
+        }
       }
 
       pendingAttackInfo = {
-        action: actionLabel(actionKey),
+        action: actionLabelOverride || actionLabel(actionKey),
         attacker: attackerStats.ataque,
         defender: defenderStats.defensa,
         difference: attackerStats.ataque - defenderStats.defensa,
@@ -876,7 +1121,12 @@
         attackerName: attackerStats.name,
         defenderName: defenderStats.name,
         clawsRoll,
-        note: actionKey === 'incapacitar' ? 'El ataque no causa daño.' : null,
+        note:
+          actionKey === 'incapacitar'
+            ? 'El ataque no causa daño.'
+            : shouldCounter
+            ? 'Pifia: el defensor realizará una réplica.'
+            : null,
       };
 
       if (success && actionKey === 'incapacitar') {
@@ -886,22 +1136,47 @@
         addHistoryEntry(
           attacker.dataset.team,
           `${attackerStats.name} ataca a ${defenderStats.name}: tirada ${roll}${
-            critical ? ' (Crítico)' : ''
-          }${success ? `, daño ${damageApplied}${garrasText}` : ', falla el ataque.'}`
+            critical ? ' (Crítico)' : isPifia ? ' (Pifia)' : ''
+          }${success ? `, daño ${damageApplied}${garrasText}` : ', falla el ataque.'}${
+            shouldCounter ? ' Réplica del defensor.' : ''
+          }`
         );
       }
 
       if (success && actionKey !== 'incapacitar' && defenderStats.currentVida <= 0) {
+        queueDeathMessage(`${defenderStats.name} ha sido eliminado por ${attackerStats.name}.`);
+        if (isEnemy(attacker, defender)) {
+          addPoints(attacker, SCORE_PER_KILL);
+        }
         eliminatePiece(defender);
       }
 
+      registerTurnSound({ damageDealt: damageApplied, attackFailed: !success });
+
+      if (
+        shouldCounter &&
+        defenderStats.currentVida > 0 &&
+        defender.dataset.eliminated !== 'true' &&
+        attacker.dataset.eliminated !== 'true'
+      ) {
+        resolveAttack(defender, attacker, 'attack', {
+          allowCounter: false,
+          skipTurnAdvance: true,
+          actionLabelOverride: 'Réplica',
+        });
+      }
+
       renderLifeCards();
-      hideTooltip();
-      clearRangeHighlights();
-      selectedTarget = null;
-      attackButton.classList.remove('button--pulse');
+      if (!skipTurnAdvance) {
+        hideTooltip();
+        clearRangeHighlights();
+        selectedTarget = null;
+        attackButton.classList.remove('button--pulse');
+      }
       updateCombatInfo();
-      finishTurn(attacker);
+      if (!skipTurnAdvance) {
+        finishTurn(attacker);
+      }
     }
 
     function resolveExplosion(attacker, defender) {
@@ -911,12 +1186,13 @@
       const die1 = Math.floor(Math.random() * 6) + 1;
       const die2 = Math.floor(Math.random() * 6) + 1;
       const roll = die1 + die2;
-      const hasAstucia = hasPassive(attackerStats, 'astucia');
-      const critical = hasAstucia ? roll >= 11 : roll === 12;
+      const critical = hasPassive(attackerStats, 'astucia') ? roll >= 11 : roll === 12;
 
       const deltas = [-1, 0, 1];
       const affectedPieces = [];
       const seenPieces = new Set();
+      let totalDamageDealt = 0;
+      let anySuccess = false;
 
       deltas.forEach((dr) => {
         deltas.forEach((dc) => {
@@ -934,13 +1210,20 @@
       const targetsSummary = [];
       affectedPieces.forEach(({ piece, square }) => {
         const targetStats = pieceMap.get(piece);
-        const success = critical || (roll !== 2 && roll + attackerStats.ataque >= targetStats.defensa);
+        const distance = attackDistance(attackerSquare, square);
+        const { success } = evaluateAttackRoll(attackerStats, targetStats, roll, distance, {
+          allowCounter: false,
+        });
         let damage = 0;
         if (success) {
-          const distance = attackDistance(attackerSquare, square);
           const { totalDamage } = calculateDamage(attackerStats, targetStats, distance, critical);
           damage = totalDamage;
           targetStats.currentVida = Math.max(targetStats.currentVida - damage, 0);
+          totalDamageDealt += damage;
+          if (isEnemy(attacker, piece)) {
+            addPoints(attacker, damage * SCORE_PER_DAMAGE);
+          }
+          anySuccess = true;
         }
         targetsSummary.push({
           name: targetStats.name,
@@ -949,6 +1232,10 @@
           vida: targetStats.currentVida,
         });
         if (success && targetStats.currentVida <= 0) {
+          queueDeathMessage(`${targetStats.name} ha sido eliminado por ${attackerStats.name}.`);
+          if (isEnemy(attacker, piece)) {
+            addPoints(attacker, SCORE_PER_KILL);
+          }
           eliminatePiece(piece);
         }
       });
@@ -963,10 +1250,95 @@
 
       addHistoryEntry(
         attacker.dataset.team,
-        `${attackerStats.name} ejecuta Explosión: tirada ${roll}${critical ? ' (Crítico)' : ''}. Afectados: ${targetsSummary
+        `${attackerStats.name} ejecuta Explosión: tirada ${roll}${critical ? ' (Crítico)' : roll === 2 ? ' (Pifia)' : ''}. Afectados: ${targetsSummary
           .map((t) => `${t.name}${t.success ? ` daño ${t.damage}` : ' sin efecto'}`)
           .join('; ')}`
       );
+
+      registerTurnSound({ damageDealt: totalDamageDealt, attackFailed: !anySuccess });
+
+      renderLifeCards();
+      hideTooltip();
+      clearRangeHighlights();
+      selectedTarget = null;
+      attackButton.classList.remove('button--pulse');
+      updateCombatInfo();
+      finishTurn(attacker);
+    }
+
+    function resolvePulse(attacker) {
+      const attackerStats = pieceMap.get(attacker);
+      const attackerSquare = getPieceSquare(attacker);
+      const maxRange = rangeForPiece(attacker);
+
+      const affectedPieces = [];
+      let totalDamageDealt = 0;
+      squares.forEach((square) => {
+        const occupant = square.querySelector('.piece');
+        if (!occupant) return;
+        const distance = attackDistance(attackerSquare, square);
+        if (distance <= maxRange) {
+          affectedPieces.push({ piece: occupant, square, distance });
+        }
+      });
+
+      const targetsSummary = [];
+
+      affectedPieces.forEach(({ piece, square, distance }) => {
+        const targetStats = pieceMap.get(piece);
+        const die1 = Math.floor(Math.random() * 6) + 1;
+        const die2 = Math.floor(Math.random() * 6) + 1;
+        const roll = die1 + die2;
+        const { success, critical, isPifia } = evaluateAttackRoll(attackerStats, targetStats, roll, distance, {
+          allowCounter: false,
+        });
+        let damage = 0;
+        if (success) {
+          const { totalDamage } = calculateDamage(attackerStats, targetStats, distance, critical);
+          damage = totalDamage;
+          targetStats.currentVida = Math.max(targetStats.currentVida - damage, 0);
+          totalDamageDealt += damage;
+          if (isEnemy(attacker, piece)) {
+            addPoints(attacker, damage * SCORE_PER_DAMAGE);
+          }
+        }
+        targetsSummary.push({
+          name: targetStats.name,
+          success,
+          damage,
+          vida: targetStats.currentVida,
+          roll,
+          critical,
+          isPifia,
+        });
+        if (success && targetStats.currentVida <= 0) {
+          queueDeathMessage(`${targetStats.name} ha sido eliminado por ${attackerStats.name}.`);
+          if (isEnemy(attacker, piece)) {
+            addPoints(attacker, SCORE_PER_KILL);
+          }
+          eliminatePiece(piece);
+        }
+      });
+
+      pendingAttackInfo = {
+        action: actionLabel('pulso'),
+        attackerName: attackerStats.name,
+        roll: '-',
+        critical: false,
+        targets: targetsSummary,
+      };
+
+      addHistoryEntry(
+        attacker.dataset.team,
+        `${attackerStats.name} activa Pulso: ${targetsSummary
+          .map((t) => `${t.name} (tirada ${t.roll}${t.critical ? ' crítico' : t.isPifia ? ' pifia' : ''}${
+            t.success ? `, daño ${t.damage}` : ', sin efecto'
+          })`)
+          .join('; ')}`
+      );
+
+      const allMissed = targetsSummary.every((t) => !t.success);
+      registerTurnSound({ damageDealt: totalDamageDealt, attackFailed: allMissed });
 
       renderLifeCards();
       hideTooltip();
@@ -994,6 +1366,10 @@
     function handleActionClick(actionKey) {
       currentAction = actionKey;
       const attacker = turnOrder[turnIndex];
+      if (actionKey === 'pulso') {
+        resolvePulse(attacker);
+        return;
+      }
       if (!selectedTarget) {
         alert('Selecciona primero un enemigo dentro de tu rango.');
         return;
@@ -1076,7 +1452,6 @@
           return;
         }
         showTooltip(piece);
-        positionTooltip(piece);
       });
 
       piece.addEventListener('pointerleave', () => {
@@ -1207,7 +1582,9 @@
       if (stats.currentVida < stats.maxVida) {
         stats.currentVida = Math.min(stats.currentVida + 1, stats.maxVida);
         renderLifeCards();
-        addHistoryEntry(piece.dataset.team, `${stats.name} se regenera (vida ${stats.currentVida}).`);
+        addHistoryEntry(piece.dataset.team, `${stats.name} se regenera (vida ${stats.currentVida}).`, {
+          preserveLatest: true,
+        });
       }
     }
 
@@ -1219,8 +1596,19 @@
       setTimeout(() => startTurn(nextPiece), delay);
     }
 
-    function finishTurn(piece) {
-      applyRegeneration(piece);
+    async function finishTurn(piece, options = {}) {
+      const { skipRegeneration = false, summaryOverride = null } = options;
+      if (!skipRegeneration) {
+        applyRegeneration(piece);
+      }
+      const stats = pieceMap.get(piece);
+      const summary =
+        summaryOverride || latestActionMessage || (stats ? `${stats.name} finaliza su turno.` : 'Turno completado.');
+      latestActionMessage = null;
+      await showTurnPopup(summary);
+      if (pendingDeathMessages.length > 0) {
+        await showQueuedDeathPopups();
+      }
       advanceTurn();
     }
 
@@ -1229,14 +1617,14 @@
       const stats = pieceMap.get(piece);
       if (!stats) return;
       if (stats.incapacitatedTurns && stats.incapacitatedTurns > 0) {
-        addHistoryEntry(piece.dataset.team, `${stats.name} pierde el turno por estar incapacitado.`);
+        const incapMessage = `${stats.name} pierde el turno por estar incapacitado.`;
+        addHistoryEntry(piece.dataset.team, incapMessage);
         stats.incapacitatedTurns -= 1;
         if (stats.incapacitatedTurns <= 0) {
           piece.classList.remove('piece--incapacitated');
         }
         renderLifeCards();
-        applyRegeneration(piece);
-        advanceTurn();
+        finishTurn(piece, { summaryOverride: incapMessage });
         return;
       }
       resetMovement(piece);
