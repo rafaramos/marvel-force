@@ -1321,40 +1321,47 @@
       return Math.max(4, delta);
     }
 
-    function buildAttackPopupMessage({
-      attackerStats,
-      defenderStats,
-      roll,
-      success,
-      damage,
-      isMelee,
-      resistance,
-      rawDamage,
-      actionKey,
-      clawsRoll,
-    }) {
-      const need = neededRollToHit(attackerStats, defenderStats);
-      const attackTypeLabel = isMelee ? 'ataque cuerpo a cuerpo' : 'ataque a distancia';
-      const resistanceLabel = isMelee ? 'resistencia cuerpo a cuerpo' : 'resistencia de ataque a distancia';
-      const baseDamage = rawDamage ?? damage;
-      const inflictedDamage = success && actionKey !== 'incapacitar' ? damage : 0;
+      function buildAttackPopupMessage({
+        attackerStats,
+        defenderStats,
+        roll,
+        success,
+        damage,
+        isMelee,
+        resistance,
+        rawDamage,
+        actionKey,
+        clawsRoll,
+      }) {
+        const need = neededRollToHit(attackerStats, defenderStats);
+        const attackTypeLabel = isMelee ? 'ataque cuerpo a cuerpo' : 'ataque a distancia';
+        const resistanceLabel = isMelee ? 'resistencia cuerpo a cuerpo' : 'resistencia de ataque a distancia';
+        const baseDamage = rawDamage ?? damage;
+        const inflictedDamage = success && actionKey !== 'incapacitar' ? damage : 0;
 
-      const opening = `${attackerStats.name} realiza un ${attackTypeLabel} con ${attackerStats.ataque} a ${defenderStats.name} que defiende con ${defenderStats.defensa}.`;
-      const rollLine = `${attackerStats.name} necesita un ${need} y ${roll ? `consigue un ${roll}.` : 'prepara la tirada.'}`;
+        if (actionKey === 'incapacitar') {
+          const opening = `${attackerStats.name} realiza un ataque de Incapacitación con ${attackerStats.ataque} a ${defenderStats.name} que defiende con ${defenderStats.defensa}.`;
+          const rollLine = `${attackerStats.name} necesita un ${need} y ${roll ? `consigue un ${roll}.` : 'prepara la tirada.'}`;
+          const resultLine = success
+            ? `${attackerStats.name} incapacita a ${defenderStats.name}.`
+            : `${attackerStats.name} falla el ataque contra ${defenderStats.name}.`;
+          return `${opening} ${rollLine} ${resultLine}`;
+        }
 
-      if (!success || actionKey === 'incapacitar') {
-        const failOrIncap = success
-          ? `${attackerStats.name} impacta a ${defenderStats.name} y lo incapacita.`
-          : `${attackerStats.name} falla el ataque contra ${defenderStats.name}.`;
-        return `${opening} ${rollLine} ${failOrIncap}`;
-      }
+        const opening = `${attackerStats.name} realiza un ${attackTypeLabel} con ${attackerStats.ataque} a ${defenderStats.name} que defiende con ${defenderStats.defensa}.`;
+        const rollLine = `${attackerStats.name} necesita un ${need} y ${roll ? `consigue un ${roll}.` : 'prepara la tirada.'}`;
 
-      const clawsLine =
-        clawsRoll !== null && clawsRoll !== undefined
-          ? `${attackerStats.name} hace una tirada de garras y consigue ${clawsRoll}, para mejorar su daño base de ${baseDamage}.`
-          : '';
-      const resistanceLine = `${defenderStats.name} tiene una ${resistanceLabel} de ${resistance ?? 0}.`;
-      const damageLine = `${attackerStats.name} le causa ${inflictedDamage} puntos de daño infligido a ${defenderStats.name}.`;
+        if (!success) {
+          const failOrIncap = `${attackerStats.name} falla el ataque contra ${defenderStats.name}.`;
+          return `${opening} ${rollLine} ${failOrIncap}`;
+        }
+
+        const clawsLine =
+          clawsRoll !== null && clawsRoll !== undefined
+            ? `${attackerStats.name} hace una tirada de garras y consigue ${clawsRoll}, para mejorar su daño base de ${baseDamage}.`
+            : '';
+        const resistanceLine = `${defenderStats.name} tiene una ${resistanceLabel} de ${resistance ?? 0}.`;
+        const damageLine = `${attackerStats.name} le causa ${inflictedDamage} puntos de daño infligido a ${defenderStats.name}.`;
 
       return `${opening} ${rollLine} ${clawsLine} ${resistanceLine} ${damageLine}`.replace(/\s+/g, ' ').trim();
     }
