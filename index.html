@@ -422,10 +422,12 @@
 
     .duel-card__stats {
       margin: 0;
-      font-size: clamp(0.9rem, 0.6vw + 0.7rem, 1.2rem);
+      font-size: clamp(0.9rem, 0.6vw + 0.7rem, 1.1rem);
       display: flex;
-      gap: 10px;
+      flex-direction: column;
+      gap: 6px;
       font-weight: 700;
+      align-items: flex-start;
     }
 
     .duel-card__badge {
@@ -434,6 +436,19 @@
       border-radius: 999px;
       border: 1px solid rgba(255, 255, 255, 0.35);
       box-shadow: 0 8px 14px rgba(0, 0, 0, 0.35);
+      display: inline-block;
+    }
+
+    .duel-card--eliminated .duel-card__overlay {
+      background: linear-gradient(200deg, rgba(255, 77, 77, 0.8), rgba(117, 10, 10, 0.92));
+    }
+
+    .duel-card--eliminated .duel-card__label {
+      background: linear-gradient(180deg, rgba(60, 0, 0, 0.35) 0%, rgba(0, 0, 0, 0.75) 40%, rgba(0, 0, 0, 0.9) 100%);
+    }
+
+    .duel-panel--hidden {
+      display: none;
     }
 
     .card-panel {
@@ -477,6 +492,11 @@
       color: #f4f4f4;
       text-align: left;
       box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    }
+
+    .life-card--eliminated {
+      background: linear-gradient(135deg, rgba(120, 6, 6, 0.8), rgba(40, 0, 0, 0.75));
+      border-color: rgba(255, 99, 99, 0.55);
     }
 
     .life-card__main {
@@ -823,11 +843,12 @@
       enemyCards.innerHTML = '';
 
       pieces.forEach(({ element }) => {
-        if (!element || element.dataset.eliminated === 'true') return;
+        if (!element) return;
         const stats = pieceMap.get(element);
+        const eliminated = element.dataset.eliminated === 'true';
         const container = element.dataset.team === 'aliado' ? allyCards : enemyCards;
         const card = document.createElement('div');
-        card.className = 'life-card';
+        card.className = `life-card${eliminated ? ' life-card--eliminated' : ''}`;
         card.innerHTML = `
           <div class="life-card__main">
             <img class="life-card__avatar" src="${stats.imagen}" alt="${stats.name}" loading="lazy" />
@@ -867,6 +888,7 @@
         vida: Math.max(stats.currentVida ?? stats.vida ?? 0, 0),
         puntos: stats.puntos ?? 0,
         imagen: animationImageForPiece(piece, stats),
+        eliminated: piece.dataset.eliminated === 'true',
       };
     }
 
@@ -887,13 +909,17 @@
     function renderDuelSide(container, characters) {
       container.innerHTML = '';
       if (!characters || characters.length === 0) {
-        container.innerHTML = '<div class="duel-panel__empty">Sin datos</div>';
+        container.classList.add('duel-panel--hidden');
         return;
       }
+      container.classList.remove('duel-panel--hidden');
       const widthPercent = `${100 / characters.length}%`;
       characters.forEach((char) => {
         const card = document.createElement('div');
         card.className = 'duel-card';
+        if (char.eliminated) {
+          card.classList.add('duel-card--eliminated');
+        }
         card.style.flexBasis = widthPercent;
         const overlayClass = char.role === 'attacker' ? 'duel-card__overlay--attacker' : 'duel-card__overlay--defender';
         card.innerHTML = `
@@ -912,8 +938,10 @@
     }
 
     function renderPopupPanels(context) {
-      renderDuelSide(allyPanel, context?.allies || []);
-      renderDuelSide(enemyPanel, context?.enemies || []);
+      const allies = context?.allies || [];
+      const enemies = context?.enemies || [];
+      renderDuelSide(allyPanel, allies);
+      renderDuelSide(enemyPanel, enemies);
     }
 
     function fallbackPopupContext(message) {
@@ -1627,6 +1655,7 @@
           success,
           damage,
           vida: targetStats.currentVida,
+          eliminated: success && targetStats.currentVida <= 0,
         });
         if (success && targetStats.currentVida <= 0) {
           queueDeathMessage(`${targetStats.name} ha sido eliminado por ${attackerStats.name}.`);
@@ -1652,7 +1681,7 @@
         `${attackerStats.name} ejecuta Explosión con un ataque de ${attackerStats.ataque}. En la tirada consigue un ${roll}${
           critical ? ' (Crítico)' : roll === 2 ? ' (Pifia)' : ''
         }. ${attackerStats.name} tiene un daño base de ${baseDamage} a distancia. Afectados: ${targetsSummary
-          .map((t) => `${t.name}${t.success ? ` daño ${t.damage}` : ' sin efecto'}`)
+          .map((t) => `${t.name}${t.success ? ` daño ${t.damage}${t.eliminated ? ' (eliminado)' : ''}` : ' sin efecto'}`)
           .join('; ')}`,
         { attacker, defenders: affectedPieces.map(({ piece }) => piece) }
       );
@@ -1966,14 +1995,17 @@
 
       if (abilities.includes('explosion')) {
         const deltas = [-1, 0, 1];
-        let neighbors = 0;
+        let enemyNeighbors = 0;
         deltas.forEach((dr) => {
           deltas.forEach((dc) => {
             const sq = getSquareAt(Number(targetSquare.dataset.row) + dr, Number(targetSquare.dataset.col) + dc);
-            if (sq?.querySelector('.piece')) neighbors += 1;
+            const occupant = sq?.querySelector('.piece');
+            if (occupant && occupant !== piece && occupant.dataset.team !== piece.dataset.team) {
+              enemyNeighbors += 1;
+            }
           });
         });
-        if (neighbors >= 2) {
+        if (enemyNeighbors >= 2) {
           return 'explosion';
         }
       }
@@ -2025,14 +2057,19 @@
 
     function applyRegeneration(piece) {
       const stats = pieceMap.get(piece);
-      if (!stats || !hasPassive(stats, 'regeneracion')) return;
+      if (!stats || !hasPassive(stats, 'regeneracion')) return { regenerated: false, message: '' };
       if (stats.currentVida < stats.maxVida) {
         stats.currentVida = Math.min(stats.currentVida + 1, stats.maxVida);
         renderLifeCards();
-        addHistoryEntry(piece.dataset.team, `${stats.name} se regenera (vida ${stats.currentVida}).`, {
+        const message = `${stats.name} regenera 1 punto de vida (vida ${stats.currentVida}).`;
+        const shouldAttachContext = !latestPopupContext;
+        addHistoryEntry(piece.dataset.team, message, {
           preserveLatest: true,
+          attacker: shouldAttachContext ? piece : null,
         });
+        return { regenerated: true, message };
       }
+      return { regenerated: false, message: '' };
     }
 
     function advanceTurn() {
@@ -2046,13 +2083,15 @@
     async function finishTurn(piece, options = {}) {
       const { skipRegeneration = false, summaryOverride = null, showPopup = null } = options;
       setHulkAnimation('espera');
-      if (!skipRegeneration) {
-        applyRegeneration(piece);
-      }
+      const regenResult = skipRegeneration ? { regenerated: false, message: '' } : applyRegeneration(piece);
       const stats = pieceMap.get(piece);
-      const summary =
+      const baseSummary =
         summaryOverride || latestActionMessage || (stats ? `${stats.name} finaliza su turno.` : 'Turno completado.');
+      const summary = regenResult?.regenerated ? `${baseSummary} ${regenResult.message}` : baseSummary;
       latestActionMessage = null;
+      if (regenResult?.regenerated && !latestPopupContext) {
+        setLatestPopupContext(summary, [{ piece, role: piece.dataset.team === 'aliado' ? 'attacker' : 'defender' }]);
+      }
       const shouldShowPopup = showPopup ?? Boolean(latestPopupContext);
       if (shouldShowPopup) {
         await showTurnPopup(summary);
