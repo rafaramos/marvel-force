@@ -270,7 +270,7 @@
       width: 100%;
       box-shadow: 0 20px 36px rgba(0, 0, 0, 0.45);
       text-align: center;
-      overflow: hidden;
+      overflow: visible;
     }
 
     .turn-popup__layout {
@@ -281,6 +281,7 @@
       align-items: stretch;
       justify-items: center;
       z-index: 1;
+      min-height: calc(100vh - 120px);
     }
 
     .turn-popup__headline {
@@ -300,7 +301,7 @@
     .turn-popup__message,
     .death-popup__message {
       margin: 0;
-      font-size: clamp(1.6rem, 2.2vw + 0.9rem, 3.8rem);
+      font-size: clamp(1.05rem, 1.8vw + 0.75rem, 2.35rem);
       line-height: 1.3;
       font-family: 'Impact', 'Anton', system-ui, sans-serif;
       letter-spacing: 0.05em;
@@ -1331,7 +1332,6 @@
       const need = neededRollToHit(attackerStats, defenderStats);
       const attackTypeLabel = isMelee ? 'ataque cuerpo a cuerpo' : 'ataque a distancia';
       const resistanceLabel = isMelee ? 'resistencia cuerpo a cuerpo' : 'resistencia de ataque a distancia';
-      const rollLine = `Tira 2d6 y el resultado es: ${roll}.`;
       const baseDamage = rawDamage ?? damage;
       const inflictedDamage = success && actionKey !== 'incapacitar' ? damage : 0;
 
@@ -1345,20 +1345,12 @@
       }
 
       const detailLines = [
-        `Tipo de ataque: ${attackTypeLabel}`,
-        `Ataque del atacante: ${attackerStats.ataque}`,
-        `Defensa del defensor: ${defenderStats.defensa}`,
-        `Tirada necesaria: ${need}`,
-        `Tirada conseguida: ${roll}`,
         `Daño base del atacante para ese ataque: ${baseDamage}`,
         `Resistencia del defensor para ese ataque: ${resistance ?? 0}`,
         `Daño infligido: ${inflictedDamage}`,
-        `Vida restante del defensor: ${Math.max(defenderStats.currentVida ?? defenderStats.vida ?? 0, 0)}`,
-        `Puntos del atacante: ${attackerStats.puntos ?? 0}`,
-        `Puntos del defensor: ${defenderStats.puntos ?? 0}`,
       ];
 
-      return `${attackerStats.name} ataca con ${attackerStats.ataque} y ${defenderStats.name} defiende con ${defenderStats.defensa}. Necesita ${need} para incapacitar. ${rollLine} ${impactLine}\n${detailLines.join(' | ')}`;
+      return `${attackerStats.name} realiza un ${attackTypeLabel} con ${attackerStats.ataque} a ${defenderStats.name} que defiende con ${defenderStats.defensa}. ${attackerStats.name} necesita ${need} y en la tirada de ataque consigue un ${roll}. ${impactLine}\n${detailLines.join(' | ')}`;
     }
 
     function updateCombatInfo() {
