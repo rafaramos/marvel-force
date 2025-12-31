@@ -394,40 +394,57 @@
 
     .history-drawer {
       position: fixed;
-      right: 16px;
-      bottom: 16px;
+      inset: 0;
       display: flex;
-      flex-direction: column;
-      align-items: flex-end;
-      gap: 8px;
+      justify-content: flex-end;
+      align-items: center;
+      padding: 16px;
+      pointer-events: none;
       z-index: 40;
     }
 
     .history-drawer__tab {
-      background: rgba(0, 0, 0, 0.35);
+      background: rgba(0, 0, 0, 0.5);
       color: #f4f4f4;
       border: 1px solid rgba(255, 255, 255, 0.3);
-      border-radius: 10px;
-      padding: 8px 12px;
+      border-radius: 10px 0 0 10px;
+      padding: 10px 10px 10px 12px;
       font-weight: 700;
       cursor: pointer;
       box-shadow: 0 8px 16px rgba(0, 0, 0, 0.35);
-      transition: transform 120ms ease, box-shadow 120ms ease, background 120ms ease;
+      transition: transform 150ms ease, box-shadow 150ms ease, background 150ms ease;
+      writing-mode: vertical-rl;
+      text-orientation: mixed;
+      pointer-events: auto;
     }
 
     .history-drawer__tab:hover {
-      transform: translateY(-1px);
+      transform: translateX(-2px);
       box-shadow: 0 10px 18px rgba(0, 0, 0, 0.4);
-      background: rgba(0, 0, 0, 0.45);
+      background: rgba(0, 0, 0, 0.6);
     }
 
     .history-drawer__panel {
-      background: rgba(0, 0, 0, 0.75);
+      background: rgba(0, 0, 0, 0.85);
       border: 1px solid rgba(255, 255, 255, 0.2);
       border-radius: 12px;
       padding: 12px;
       width: min(460px, 90vw);
+      max-height: min(80vh, 640px);
       box-shadow: 0 16px 28px rgba(0, 0, 0, 0.45);
+      transform: translateX(120%);
+      opacity: 0;
+      transition: transform 220ms ease, opacity 220ms ease;
+      pointer-events: auto;
+    }
+
+    .history-drawer__panel[hidden] {
+      display: none;
+    }
+
+    .history-drawer--open .history-drawer__panel {
+      transform: translateX(0);
+      opacity: 1;
     }
 
     .history-drawer__columns {
@@ -640,6 +657,7 @@
     const villainLog = document.getElementById('villainLog');
     const historyPanel = document.getElementById('historyPanel');
     const historyTab = document.getElementById('historyTab');
+    const historyDrawer = document.querySelector('.history-drawer');
 
     const AI_DELAY_MS = 900;
     const TURN_DELAY_MS = 250;
@@ -661,9 +679,10 @@
     let movementAnimationDuration = DEFAULT_MOVE_DURATION_MS;
 
     function toggleHistoryVisibility() {
-      if (!historyPanel || !historyTab) return;
+      if (!historyPanel || !historyTab || !historyDrawer) return;
       const willShow = historyPanel.hidden;
       historyPanel.hidden = !willShow;
+      historyDrawer.classList.toggle('history-drawer--open', willShow);
       historyTab.setAttribute('aria-expanded', String(willShow));
       if (willShow) {
         historyPanel.focus?.({ preventScroll: true });
