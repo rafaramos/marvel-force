@@ -940,8 +940,16 @@
       }
       if (attacker || defenders.length) {
         const participants = [];
-        if (attacker) participants.push({ piece: attacker, role: 'attacker' });
-        defenders.forEach((target) => participants.push({ piece: target, role: 'defender' }));
+        const seenPieces = new Set();
+        if (attacker && !seenPieces.has(attacker)) {
+          participants.push({ piece: attacker, role: 'attacker' });
+          seenPieces.add(attacker);
+        }
+        defenders.forEach((target) => {
+          if (seenPieces.has(target)) return;
+          participants.push({ piece: target, role: 'defender' });
+          seenPieces.add(target);
+        });
         setLatestPopupContext(message, participants);
       }
     }
@@ -1186,16 +1194,27 @@
 
     function calculateDamage(attackerStats, defenderStats, distance, isCritical) {
       const isMelee = distance <= 1;
-      let baseDamage = isMelee ? attackerStats.danoCC : attackerStats.danoAD;
+      const baseDamageBeforeClaws = isMelee ? attackerStats.danoCC : attackerStats.danoAD;
       let clawsRoll = null;
-      if (isMelee && hasPassive(attackerStats, 'garras')) {
+      const hasClaws = isMelee && hasPassive(attackerStats, 'garras');
+      if (hasClaws) {
         clawsRoll = Math.floor(Math.random() * 6) + 1;
-        baseDamage = Math.max(baseDamage, clawsRoll);
       }
+      const baseDamageAfterClaws = hasClaws
+        ? Math.max(baseDamageBeforeClaws, clawsRoll)
+        : baseDamageBeforeClaws;
+      const baseDamageWithCrit = isCritical ? baseDamageAfterClaws * 2 : baseDamageAfterClaws;
       const resistance = isMelee ? defenderStats.resistenciaCC : defenderStats.resistenciaAD;
-      const rawDamage = isCritical ? baseDamage * 2 : baseDamage;
-      const totalDamage = Math.max(rawDamage - resistance, 0);
-      return { totalDamage, isMelee, clawsRoll, rawDamage, resistance };
+      const totalDamage = Math.max(baseDamageWithCrit - resistance, 0);
+      return {
+        totalDamage,
+        isMelee,
+        clawsRoll,
+        rawDamage: baseDamageWithCrit,
+        resistance,
+        baseDamageBeforeClaws,
+        baseDamageAfterClaws,
+      };
     }
 
     function evaluateAttackRoll(attackerStats, defenderStats, roll, distance, options = {}) {
@@ -1333,6 +1352,8 @@
         actionKey,
         clawsRoll,
         critical,
+        baseDamageBeforeClaws,
+        baseDamageAfterClaws,
       }) {
         const need = neededRollToHit(attackerStats, defenderStats);
         const attackTypeLabel = isMelee ? 'ataque cuerpo a cuerpo' : 'ataque a distancia';
@@ -1359,11 +1380,13 @@
 
         const clawsLine =
           clawsRoll !== null && clawsRoll !== undefined
-            ? `${attackerStats.name} hace una tirada de garras y consigue ${clawsRoll}, para mejorar su daño base de ${baseDamage}.`
+            ? `${attackerStats.name} hace una tirada de garras y consigue ${clawsRoll}, con lo que su daño base ${
+                clawsRoll > baseDamageBeforeClaws ? 'aumenta a' : 'se mantiene en'
+              } ${clawsRoll > baseDamageBeforeClaws ? baseDamageAfterClaws : baseDamageBeforeClaws}.`
             : '';
         const baseDamageLine =
           clawsRoll === null || clawsRoll === undefined
-            ? `${attackerStats.name} tiene un daño base de ${baseDamage}.`
+            ? `El daño base del ataque es ${baseDamage}.`
             : '';
         const resistanceLine = `${defenderStats.name} tiene una ${resistanceLabel} de ${resistance ?? 0}.`;
         const damageLine = `${attackerStats.name} le causa ${inflictedDamage} puntos de daño infligido a ${defenderStats.name}.`;
@@ -1444,12 +1467,15 @@
         { allowCounter }
       );
 
-      const { totalDamage, clawsRoll, isMelee, rawDamage, resistance } = calculateDamage(
-        attackerStats,
-        defenderStats,
-        distance,
-        critical
-      );
+      const {
+        totalDamage,
+        clawsRoll,
+        isMelee,
+        rawDamage,
+        resistance,
+        baseDamageBeforeClaws,
+        baseDamageAfterClaws,
+      } = calculateDamage(attackerStats, defenderStats, distance, critical);
       const damageApplied = success && actionKey !== 'incapacitar' ? totalDamage : 0;
       if (success && actionKey === 'incapacitar') {
         setIncapacitated(defender, 1);
@@ -1480,6 +1506,8 @@
         isMelee,
         resistance,
         rawDamage,
+        baseDamageBeforeClaws,
+        baseDamageAfterClaws,
         neededRoll: neededRollToHit(attackerStats, defenderStats),
         note:
           actionKey === 'incapacitar'
@@ -1501,6 +1529,8 @@
         actionKey,
         clawsRoll,
         critical,
+        baseDamageBeforeClaws,
+        baseDamageAfterClaws,
       });
 
       if (success && actionKey === 'incapacitar') {
