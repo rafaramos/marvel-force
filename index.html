@@ -265,9 +265,18 @@
       border: 2px solid rgba(255, 255, 255, 0.35);
       border-radius: 14px;
       padding: 18px 20px;
-      max-width: 480px;
+      max-width: 95vw;
+      width: 100%;
       box-shadow: 0 20px 36px rgba(0, 0, 0, 0.45);
       text-align: center;
+    }
+
+    .turn-popup__layout {
+      display: grid;
+      grid-template-columns: minmax(200px, 1fr) minmax(280px, 360px) minmax(200px, 1fr);
+      gap: 12px;
+      align-items: stretch;
+      justify-items: center;
     }
 
     .turn-popup__message,
@@ -281,6 +290,113 @@
       margin: 0;
       font-size: 0.9rem;
       opacity: 0.85;
+    }
+
+    .turn-popup__center {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      background: rgba(0, 0, 0, 0.35);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 12px;
+      padding: 14px;
+      height: 100%;
+      max-height: min(1080px, 70vh);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+    }
+
+    .duel-panel {
+      position: relative;
+      width: min(960px, 45vw);
+      height: min(1080px, 70vh);
+      background: #0a0a0a;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 2px solid rgba(255, 255, 255, 0.25);
+      box-shadow: 0 18px 36px rgba(0, 0, 0, 0.55);
+      display: flex;
+      gap: 8px;
+      padding: 8px;
+    }
+
+    .duel-panel__empty {
+      margin: auto;
+      opacity: 0.65;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+
+    .duel-card {
+      position: relative;
+      flex: 1 1 auto;
+      min-width: 0;
+      border-radius: 10px;
+      overflow: hidden;
+      display: flex;
+      align-items: flex-end;
+      justify-content: flex-start;
+      background: #111;
+      isolation: isolate;
+    }
+
+    .duel-card__image {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      filter: saturate(1.1);
+      z-index: 0;
+    }
+
+    .duel-card__overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, rgba(0, 0, 0, 0.25), rgba(0, 0, 0, 0.7));
+      z-index: 1;
+      mix-blend-mode: screen;
+      opacity: 0.9;
+    }
+
+    .duel-card__overlay--attacker {
+      background: linear-gradient(200deg, rgba(24, 114, 255, 0.55), rgba(11, 40, 94, 0.9));
+    }
+
+    .duel-card__overlay--defender {
+      background: linear-gradient(200deg, rgba(255, 71, 102, 0.65), rgba(115, 16, 35, 0.9));
+    }
+
+    .duel-card__label {
+      position: relative;
+      z-index: 2;
+      width: 100%;
+      padding: 14px;
+      color: #fff;
+      text-shadow: 0 2px 8px rgba(0, 0, 0, 0.7);
+      font-family: 'Impact', 'Anton', system-ui, sans-serif;
+      letter-spacing: 0.04em;
+    }
+
+    .duel-card__name {
+      font-size: clamp(1.3rem, 1vw + 1rem, 2.1rem);
+      margin: 0 0 4px;
+      text-transform: uppercase;
+    }
+
+    .duel-card__stats {
+      margin: 0;
+      font-size: clamp(0.9rem, 0.6vw + 0.7rem, 1.2rem);
+      display: flex;
+      gap: 10px;
+      font-weight: 700;
+    }
+
+    .duel-card__badge {
+      background: rgba(0, 0, 0, 0.4);
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      box-shadow: 0 8px 14px rgba(0, 0, 0, 0.35);
     }
 
     .card-panel {
@@ -416,8 +532,18 @@
   <div id="tooltip" class="tooltip" hidden></div>
   <div id="turnPopup" class="turn-popup" hidden>
     <div class="turn-popup__content">
-      <p id="turnPopupMessage" class="turn-popup__message"></p>
-      <p class="turn-popup__hint">Pulsa cualquier tecla o botón para continuar</p>
+      <div class="turn-popup__layout">
+        <div class="duel-panel" id="allyPanel" aria-label="Aliados en el duelo">
+          <div class="duel-panel__empty">Sin aliados destacados</div>
+        </div>
+        <div class="turn-popup__center">
+          <p id="turnPopupMessage" class="turn-popup__message"></p>
+          <p class="turn-popup__hint">Pulsa cualquier tecla o botón para continuar</p>
+        </div>
+        <div class="duel-panel" id="enemyPanel" aria-label="Enemigos en el duelo">
+          <div class="duel-panel__empty">Sin enemigos destacados</div>
+        </div>
+      </div>
     </div>
   </div>
   <div id="deathPopup" class="death-popup" hidden>
@@ -531,6 +657,8 @@
     const turnPopupMessage = document.getElementById('turnPopupMessage');
     const deathPopup = document.getElementById('deathPopup');
     const deathPopupMessage = document.getElementById('deathPopupMessage');
+    const allyPanel = document.getElementById('allyPanel');
+    const enemyPanel = document.getElementById('enemyPanel');
     const passButton = document.getElementById('passTurn');
     const attackButton = document.getElementById('attack');
     const powerControls = document.getElementById('powerControls');
@@ -675,10 +803,100 @@
 
     renderLifeCards();
 
+    function animationImageForPiece(piece, stats) {
+      const key = piece?.dataset?.key || '';
+      const candidate = key ? `animaciones/${key}.webp` : null;
+      return stats?.animacion || candidate || stats?.imagen || '';
+    }
+
+    function snapshotCharacter(piece, role) {
+      if (!piece) return null;
+      const stats = pieceMap.get(piece);
+      if (!stats) return null;
+      return {
+        key: piece.dataset.key,
+        team: piece.dataset.team,
+        role,
+        name: stats.name,
+        vida: Math.max(stats.currentVida ?? stats.vida ?? 0, 0),
+        puntos: stats.puntos ?? 0,
+        imagen: animationImageForPiece(piece, stats),
+      };
+    }
+
+    function setLatestPopupContext(message, participants = []) {
+      const context = { message: message || '', allies: [], enemies: [] };
+      participants.forEach(({ piece, role }) => {
+        const snapshot = snapshotCharacter(piece, role);
+        if (!snapshot) return;
+        if (snapshot.team === 'aliado') {
+          context.allies.push(snapshot);
+        } else {
+          context.enemies.push(snapshot);
+        }
+      });
+      latestPopupContext = context;
+    }
+
+    function renderDuelSide(container, characters) {
+      container.innerHTML = '';
+      if (!characters || characters.length === 0) {
+        container.innerHTML = '<div class="duel-panel__empty">Sin datos</div>';
+        return;
+      }
+      const widthPercent = `${100 / characters.length}%`;
+      characters.forEach((char) => {
+        const card = document.createElement('div');
+        card.className = 'duel-card';
+        card.style.flexBasis = widthPercent;
+        const overlayClass = char.role === 'attacker' ? 'duel-card__overlay--attacker' : 'duel-card__overlay--defender';
+        card.innerHTML = `
+          <img class="duel-card__image" src="${char.imagen}" alt="${char.name}" />
+          <div class="duel-card__overlay ${overlayClass}"></div>
+          <div class="duel-card__label">
+            <p class="duel-card__name">${char.name}</p>
+            <p class="duel-card__stats">
+              <span class="duel-card__badge">Vida ${char.vida}</span>
+              <span class="duel-card__badge">${char.puntos} pts</span>
+            </p>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function renderPopupPanels(context) {
+      renderDuelSide(allyPanel, context?.allies || []);
+      renderDuelSide(enemyPanel, context?.enemies || []);
+    }
+
+    function fallbackPopupContext(message) {
+      const active = turnOrder[turnIndex];
+      if (!active) {
+        return { message: message || '', allies: [], enemies: [] };
+      }
+      const snapshot = snapshotCharacter(active, 'attacker');
+      if (!snapshot) {
+        return { message: message || '', allies: [], enemies: [] };
+      }
+      const isAlly = snapshot.team === 'aliado';
+      return {
+        message: message || '',
+        allies: isAlly ? [snapshot] : [],
+        enemies: isAlly ? [] : [snapshot],
+      };
+    }
+
     function addHistoryEntry(team, message, options = {}) {
-      const { preserveLatest = false } = options;
+      const { preserveLatest = false, attacker = null, defenders = [] } = options;
       if (!preserveLatest) {
         latestActionMessage = message;
+      }
+      if (attacker || defenders.length) {
+        const participants = [];
+        if (attacker) participants.push({ piece: attacker, role: 'attacker' });
+        defenders.forEach((target) => participants.push({ piece: target, role: 'defender' }));
+        setLatestPopupContext(message, participants);
       }
     }
 
@@ -692,7 +910,11 @@
           hideTurnPopup();
           resolve();
         };
-        turnPopupMessage.textContent = message || 'Turno completado.';
+        const context = latestPopupContext || fallbackPopupContext(message);
+        const finalMessage = context?.message || message || 'Turno completado.';
+        turnPopupMessage.textContent = finalMessage;
+        renderPopupPanels(context);
+        latestPopupContext = null;
         turnPopup.hidden = false;
         playTurnSound();
       });
@@ -777,6 +999,7 @@
     let selectedTarget = null;
     let pendingAttackInfo = null;
     let latestActionMessage = null;
+    let latestPopupContext = null;
     let resolveTurnPopup = null;
     let resolveDeathPopup = null;
     const pendingDeathMessages = [];
@@ -1155,7 +1378,10 @@
       };
 
       if (success && actionKey === 'incapacitar') {
-        addHistoryEntry(attacker.dataset.team, `${attackerStats.name} incapacita a ${defenderStats.name}.`);
+        addHistoryEntry(attacker.dataset.team, `${attackerStats.name} incapacita a ${defenderStats.name}.`, {
+          attacker,
+          defenders: [defender],
+        });
         playEffectSound(incapacitarSound);
       } else {
         const garrasText = clawsRoll ? ` (Garras d6=${clawsRoll})` : '';
@@ -1165,7 +1391,8 @@
             critical ? ' (Crítico)' : isPifia ? ' (Pifia)' : ''
           }${success ? `, daño ${damageApplied}${garrasText}` : ', falla el ataque.'}${
             shouldCounter ? ' Réplica del defensor.' : ''
-          }`
+          }`,
+          { attacker, defenders: [defender] }
         );
       }
 
@@ -1280,7 +1507,8 @@
         attacker.dataset.team,
         `${attackerStats.name} ejecuta Explosión: tirada ${roll}${critical ? ' (Crítico)' : roll === 2 ? ' (Pifia)' : ''}. Afectados: ${targetsSummary
           .map((t) => `${t.name}${t.success ? ` daño ${t.damage}` : ' sin efecto'}`)
-          .join('; ')}`
+          .join('; ')}`,
+        { attacker, defenders: affectedPieces.map(({ piece }) => piece) }
       );
 
       registerTurnSound({ damageDealt: totalDamageDealt, attackFailed: !anySuccess });
@@ -1364,7 +1592,8 @@
           .map((t) => `${t.name} (tirada ${t.roll}${t.critical ? ' crítico' : t.isPifia ? ' pifia' : ''}${
             t.success ? `, daño ${t.damage}` : ', sin efecto'
           })`)
-          .join('; ')}`
+          .join('; ')}`,
+        { attacker, defenders: affectedPieces.map(({ piece }) => piece) }
       );
 
       const allMissed = targetsSummary.every((t) => !t.success);
@@ -1656,6 +1885,7 @@
         renderLifeCards();
         addHistoryEntry(piece.dataset.team, `${stats.name} se regenera (vida ${stats.currentVida}).`, {
           preserveLatest: true,
+          attacker: piece,
         });
       }
     }
@@ -1696,7 +1926,7 @@
       }
       if (stats.incapacitatedTurns && stats.incapacitatedTurns > 0) {
         const incapMessage = `${stats.name} pierde el turno por estar incapacitado.`;
-        addHistoryEntry(piece.dataset.team, incapMessage);
+        addHistoryEntry(piece.dataset.team, incapMessage, { attacker: piece });
         stats.incapacitatedTurns -= 1;
         if (stats.incapacitatedTurns <= 0) {
           piece.classList.remove('piece--incapacitated');
