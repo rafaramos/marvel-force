@@ -325,8 +325,8 @@
       border: 1px solid rgba(255, 255, 255, 0.2);
       border-radius: 12px;
       padding: 14px;
-      height: 100%;
-      max-height: min(1080px, 70vh);
+      height: 100vh;
+      max-height: 100vh;
       box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
       justify-content: flex-end;
       position: relative;
@@ -336,7 +336,7 @@
     .duel-panel {
       position: relative;
       width: min(960px, 45vw);
-      height: min(1080px, 70vh);
+      height: min(1080px, 100vh);
       background: #0a0a0a;
       border-radius: 12px;
       overflow: hidden;
@@ -365,6 +365,7 @@
       justify-content: flex-start;
       background: #111;
       isolation: isolate;
+      min-height: 100%;
     }
 
     .duel-card__image {
@@ -1331,18 +1332,33 @@
       const attackTypeLabel = isMelee ? 'ataque cuerpo a cuerpo' : 'ataque a distancia';
       const resistanceLabel = isMelee ? 'resistencia cuerpo a cuerpo' : 'resistencia de ataque a distancia';
       const rollLine = `Tira 2d6 y el resultado es: ${roll}.`;
+      const baseDamage = rawDamage ?? damage;
+      const inflictedDamage = success && actionKey !== 'incapacitar' ? damage : 0;
 
       let impactLine = `${attackerStats.name} falla el ataque contra ${defenderStats.name}.`;
       if (success) {
         if (actionKey === 'incapacitar') {
           impactLine = `${attackerStats.name} impacta a ${defenderStats.name} y lo incapacita.`;
         } else {
-          const baseDamage = rawDamage ?? damage;
           impactLine = `${attackerStats.name} impacta a ${defenderStats.name} y le causa ${baseDamage} daños de ${attackTypeLabel} - ${resistance} ${resistanceLabel} = ${damage} daños de vida.`;
         }
       }
 
-      return `${attackerStats.name} ataca con ${attackerStats.ataque} y ${defenderStats.name} defiende con ${defenderStats.defensa}. Necesita ${need} para incapacitar. ${rollLine} ${impactLine}`;
+      const detailLines = [
+        `Tipo de ataque: ${attackTypeLabel}`,
+        `Ataque del atacante: ${attackerStats.ataque}`,
+        `Defensa del defensor: ${defenderStats.defensa}`,
+        `Tirada necesaria: ${need}`,
+        `Tirada conseguida: ${roll}`,
+        `Daño base del atacante para ese ataque: ${baseDamage}`,
+        `Resistencia del defensor para ese ataque: ${resistance ?? 0}`,
+        `Daño infligido: ${inflictedDamage}`,
+        `Vida restante del defensor: ${Math.max(defenderStats.currentVida ?? defenderStats.vida ?? 0, 0)}`,
+        `Puntos del atacante: ${attackerStats.puntos ?? 0}`,
+        `Puntos del defensor: ${defenderStats.puntos ?? 0}`,
+      ];
+
+      return `${attackerStats.name} ataca con ${attackerStats.ataque} y ${defenderStats.name} defiende con ${defenderStats.defensa}. Necesita ${need} para incapacitar. ${rollLine} ${impactLine}\n${detailLines.join(' | ')}`;
     }
 
     function updateCombatInfo() {
