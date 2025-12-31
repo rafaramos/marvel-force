@@ -488,9 +488,9 @@
 
       const HULK_KEY = 'hulk';
       const HULK_ANIMATIONS = {
-        activo: 'animaciones/hulk/activo.gif',
-        espera: 'animaciones/hulk/espera.gif',
-        andar: 'animaciones/hulk/andar.gif',
+        activo: 'imagenes/hulk.webp',
+        espera: 'imagenes/hulk.webp',
+        andar: 'imagenes/hulk.webp',
       };
 
       function findHulkPiece() {
@@ -580,6 +580,7 @@
     const AI_DELAY_MS = 900;
     const TURN_DELAY_MS = 250;
     const ENEMY_ACTION_DELAY_MS = 500;
+    const DEFAULT_MOVE_DURATION_MS = 1200;
 
     const squaresByCoord = new Map();
     squares.forEach((square, index) => {
@@ -593,6 +594,7 @@
     const pieceMap = new Map();
     let movementDistances = new Map();
     let currentAction = 'attack';
+    let movementAnimationDuration = DEFAULT_MOVE_DURATION_MS;
 
     function hasPassive(stats, key) {
       return Boolean(stats?.habilidades?.pasivas?.includes(key));
@@ -1482,7 +1484,7 @@
       movementPool.set(piece, left);
     }
 
-    board.addEventListener('click', (event) => {
+    board.addEventListener('click', async (event) => {
       const activePiece = turnOrder[turnIndex];
       if (activePiece?.dataset.team === 'enemigo') return;
 
@@ -1514,7 +1516,7 @@
       if (activePiece.dataset.key === HULK_KEY) {
         setHulkAnimation('andar');
       }
-      square.appendChild(activePiece);
+      await animatePieceToSquare(activePiece, square);
       spendMovement(activePiece, distance);
       clearHighlights();
       highlightMovement(activePiece);
@@ -1548,6 +1550,42 @@
 
     function sleep(ms) {
       return new Promise((resolve) => setTimeout(resolve, ms));
+    }
+
+    function animatePieceToSquare(piece, square, options = {}) {
+      return new Promise((resolve) => {
+        const duration = Number(options.duration ?? movementAnimationDuration);
+        if (!piece || !square) {
+          resolve();
+          return;
+        }
+
+        if (!Number.isFinite(duration) || duration <= 0) {
+          square.appendChild(piece);
+          resolve();
+          return;
+        }
+
+        const startRect = piece.getBoundingClientRect();
+        square.appendChild(piece);
+        const endRect = piece.getBoundingClientRect();
+        const deltaX = startRect.left - endRect.left;
+        const deltaY = startRect.top - endRect.top;
+
+        const animation = piece.animate(
+          [
+            { transform: `translate(-50%, -50%) translate(${deltaX}px, ${deltaY}px)` },
+            { transform: 'translate(-50%, -50%)' },
+          ],
+          {
+            duration,
+            easing: 'ease-in-out',
+          },
+        );
+
+        animation.addEventListener('finish', resolve);
+        animation.addEventListener('cancel', resolve);
+      });
     }
 
     function findClosestEnemy(piece) {
@@ -1637,7 +1675,7 @@
           highlightMovement(piece);
           moveSquare.classList.add('square--target');
           await sleep(ENEMY_ACTION_DELAY_MS);
-          moveSquare.appendChild(piece);
+          await animatePieceToSquare(piece, moveSquare);
           spendMovement(piece, distance);
           clearHighlights();
           highlightMovement(piece);
