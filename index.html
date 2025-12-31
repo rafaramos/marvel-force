@@ -310,34 +310,6 @@
       gap: 8px;
     }
 
-    .history {
-      margin: 0;
-    }
-
-    .history__title {
-      margin: 0 0 8px;
-      font-size: 0.95rem;
-    }
-
-    .history__list {
-      list-style: none;
-      padding: 0;
-      margin: 0;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      font-size: 0.92rem;
-    }
-
-    .history__item {
-      background: rgba(0, 0, 0, 0.2);
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      border-radius: 8px;
-      padding: 6px 8px;
-      text-align: left;
-      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
-    }
-
     .life-card {
       display: grid;
       grid-template-columns: 1fr auto;
@@ -430,10 +402,6 @@
         <h3>Aliados</h3>
         <div class="card-panel__content">
           <div class="life-list" id="allyCards"></div>
-          <div class="history">
-            <h4 class="history__title">Histórico héroes</h4>
-            <ol id="heroLog" class="history__list"></ol>
-          </div>
         </div>
       </aside>
       <section class="board" aria-label="Tablero de 120 cuadros verdes"></section>
@@ -441,10 +409,6 @@
         <h3>Enemigos</h3>
         <div class="card-panel__content">
           <div class="life-list" id="enemyCards"></div>
-          <div class="history">
-            <h4 class="history__title">Histórico villanos</h4>
-            <ol id="villainLog" class="history__list"></ol>
-          </div>
         </div>
       </aside>
     </div>
@@ -574,8 +538,6 @@
     const movementInfo = document.getElementById('movementInfo');
     const allyCards = document.getElementById('allyCards');
     const enemyCards = document.getElementById('enemyCards');
-    const heroLog = document.getElementById('heroLog');
-    const villainLog = document.getElementById('villainLog');
 
     const AI_DELAY_MS = 900;
     const TURN_DELAY_MS = 250;
@@ -715,15 +677,6 @@
 
     function addHistoryEntry(team, message, options = {}) {
       const { preserveLatest = false } = options;
-      const list = team === 'aliado' ? heroLog : villainLog;
-      if (!list) return;
-      const item = document.createElement('li');
-      item.className = 'history__item';
-      item.textContent = message;
-      list.prepend(item);
-      while (list.children.length > 14) {
-        list.removeChild(list.lastChild);
-      }
       if (!preserveLatest) {
         latestActionMessage = message;
       }
