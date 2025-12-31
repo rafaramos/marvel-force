@@ -241,7 +241,7 @@
       display: grid;
       grid-template-columns: 340px auto 340px;
       gap: 16px;
-      align-items: center;
+      align-items: stretch;
     }
 
     .turn-popup,
@@ -457,6 +457,8 @@
       border-radius: 12px;
       padding: 12px;
       box-shadow: 0 10px 22px rgba(0, 0, 0, 0.35);
+      display: flex;
+      flex-direction: column;
     }
 
     .card-panel h3 {
@@ -466,16 +468,18 @@
     }
 
     .card-panel__content {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
+      display: flex;
+      flex-direction: column;
       gap: 12px;
-      align-items: flex-start;
+      align-items: stretch;
+      flex: 1;
     }
 
     .life-list {
       display: flex;
       flex-direction: column;
       gap: 8px;
+      flex: 1;
     }
 
     .life-card {
@@ -2089,7 +2093,9 @@
         summaryOverride || latestActionMessage || (stats ? `${stats.name} finaliza su turno.` : 'Turno completado.');
       const summary = regenResult?.regenerated ? `${baseSummary} ${regenResult.message}` : baseSummary;
       latestActionMessage = null;
-      if (regenResult?.regenerated && !latestPopupContext) {
+      if (latestPopupContext) {
+        latestPopupContext.message = summary;
+      } else if (regenResult?.regenerated) {
         setLatestPopupContext(summary, [{ piece, role: piece.dataset.team === 'aliado' ? 'attacker' : 'defender' }]);
       }
       const shouldShowPopup = showPopup ?? Boolean(latestPopupContext);
