@@ -43,10 +43,6 @@
       margin-bottom: 16px;
     }
 
-    .controls--stretch {
-      justify-content: center;
-    }
-
     .button {
       background: #f4f4f4;
       color: #0d3618;
@@ -57,34 +53,6 @@
       cursor: pointer;
       box-shadow: 0 6px 14px rgba(0, 0, 0, 0.25);
       transition: transform 120ms ease, box-shadow 120ms ease, background 120ms ease;
-    }
-
-    .speed-control {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      background: rgba(0, 0, 0, 0.18);
-      border: 1px solid rgba(255, 255, 255, 0.16);
-      padding: 10px 12px;
-      border-radius: 12px;
-      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
-    }
-
-    .speed-control__label {
-      font-weight: 700;
-      letter-spacing: 0.01em;
-    }
-
-    .speed-control input[type='range'] {
-      accent-color: #f17c00;
-      min-width: 160px;
-    }
-
-    .speed-control__value {
-      min-width: 82px;
-      text-align: right;
-      font-variant-numeric: tabular-nums;
-      font-weight: 700;
     }
 
     .button:hover {
@@ -451,13 +419,6 @@
       <button class="button button--primary" id="attack" type="button">Atacar</button>
     </div>
     <div class="controls" id="powerControls" aria-label="Poderes activos"></div>
-    <div class="controls controls--stretch" aria-label="Controles de velocidad de movimiento">
-      <label class="speed-control" for="movementSpeed">
-        <span class="speed-control__label">Velocidad de movimiento</span>
-        <input id="movementSpeed" type="range" min="150" max="1200" step="30" value="450" />
-        <span id="movementSpeedValue" class="speed-control__value">450 ms</span>
-      </label>
-    </div>
     <div class="status-bar" aria-live="polite">
       <span id="turnInfo">Turno:</span>
       <span id="movementInfo"></span>
@@ -615,13 +576,11 @@
     const enemyCards = document.getElementById('enemyCards');
     const heroLog = document.getElementById('heroLog');
     const villainLog = document.getElementById('villainLog');
-    const movementSpeedInput = document.getElementById('movementSpeed');
-    const movementSpeedValue = document.getElementById('movementSpeedValue');
 
     const AI_DELAY_MS = 900;
     const TURN_DELAY_MS = 250;
     const ENEMY_ACTION_DELAY_MS = 500;
-    const DEFAULT_MOVE_DURATION_MS = 450;
+    const DEFAULT_MOVE_DURATION_MS = 1200;
 
     const squaresByCoord = new Map();
     squares.forEach((square, index) => {
@@ -643,22 +602,6 @@
 
     function hasActive(stats, key) {
       return Boolean(stats?.habilidades?.activas?.includes(key));
-    }
-
-    function updateMovementSpeed(duration) {
-      movementAnimationDuration = duration;
-      if (movementSpeedValue) {
-        movementSpeedValue.textContent = `${duration} ms`;
-      }
-    }
-
-    if (movementSpeedInput && movementSpeedValue) {
-      movementSpeedInput.value = DEFAULT_MOVE_DURATION_MS;
-      updateMovementSpeed(DEFAULT_MOVE_DURATION_MS);
-      movementSpeedInput.addEventListener('input', (event) => {
-        const value = Number(event.target.value);
-        updateMovementSpeed(Number.isFinite(value) ? value : DEFAULT_MOVE_DURATION_MS);
-      });
     }
 
     function pieceColor(element) {
