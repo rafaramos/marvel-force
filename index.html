@@ -268,9 +268,12 @@
       padding: 18px 20px;
       max-width: 95vw;
       width: 100%;
+      max-height: 94vh;
       box-shadow: 0 20px 36px rgba(0, 0, 0, 0.45);
       text-align: center;
-      overflow: visible;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
     }
 
     .turn-popup__layout {
@@ -281,7 +284,9 @@
       align-items: stretch;
       justify-items: center;
       z-index: 1;
-      min-height: calc(100vh - 120px);
+      min-height: 0;
+      height: 100%;
+      flex: 1 1 auto;
     }
 
     .turn-popup__headline {
@@ -301,8 +306,8 @@
     .turn-popup__message,
     .death-popup__message {
       margin: 0;
-      font-size: clamp(1.05rem, 1.8vw + 0.75rem, 2.35rem);
-      line-height: 1.3;
+      font-size: clamp(0.9rem, 1.1vw + 0.6rem, 1.6rem);
+      line-height: 1.35;
       font-family: 'Impact', 'Anton', system-ui, sans-serif;
       letter-spacing: 0.05em;
       text-shadow: 0 3px 10px rgba(0, 0, 0, 0.55), 0 0 30px rgba(251, 211, 77, 0.35);
@@ -326,18 +331,20 @@
       border: 1px solid rgba(255, 255, 255, 0.2);
       border-radius: 12px;
       padding: 14px;
-      height: 100vh;
-      max-height: 100vh;
+      height: 100%;
+      max-height: none;
       box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
       justify-content: flex-end;
       position: relative;
       z-index: 2;
+      align-self: stretch;
     }
 
     .duel-panel {
       position: relative;
       width: min(960px, 45vw);
-      height: min(1080px, 100vh);
+      height: 100%;
+      min-height: 0;
       background: #0a0a0a;
       border-radius: 12px;
       overflow: hidden;
@@ -1328,6 +1335,7 @@
       resistance,
       rawDamage,
       actionKey,
+      clawsRoll,
     }) {
       const need = neededRollToHit(attackerStats, defenderStats);
       const attackTypeLabel = isMelee ? 'ataque cuerpo a cuerpo' : 'ataque a distancia';
@@ -1335,22 +1343,24 @@
       const baseDamage = rawDamage ?? damage;
       const inflictedDamage = success && actionKey !== 'incapacitar' ? damage : 0;
 
-      let impactLine = `${attackerStats.name} falla el ataque contra ${defenderStats.name}.`;
-      if (success) {
-        if (actionKey === 'incapacitar') {
-          impactLine = `${attackerStats.name} impacta a ${defenderStats.name} y lo incapacita.`;
-        } else {
-          impactLine = `${attackerStats.name} impacta a ${defenderStats.name} y le causa ${baseDamage} daños de ${attackTypeLabel} - ${resistance} ${resistanceLabel} = ${damage} daños de vida.`;
-        }
+      const opening = `${attackerStats.name} realiza un ${attackTypeLabel} con ${attackerStats.ataque} a ${defenderStats.name} que defiende con ${defenderStats.defensa}.`;
+      const rollLine = `${attackerStats.name} necesita un ${need} y ${roll ? `consigue un ${roll}.` : 'prepara la tirada.'}`;
+
+      if (!success || actionKey === 'incapacitar') {
+        const failOrIncap = success
+          ? `${attackerStats.name} impacta a ${defenderStats.name} y lo incapacita.`
+          : `${attackerStats.name} falla el ataque contra ${defenderStats.name}.`;
+        return `${opening} ${rollLine} ${failOrIncap}`;
       }
 
-      const detailLines = [
-        `Daño base del atacante para ese ataque: ${baseDamage}`,
-        `Resistencia del defensor para ese ataque: ${resistance ?? 0}`,
-        `Daño infligido: ${inflictedDamage}`,
-      ];
+      const clawsLine =
+        clawsRoll !== null && clawsRoll !== undefined
+          ? `${attackerStats.name} hace una tirada de garras y consigue ${clawsRoll}, para mejorar su daño base de ${baseDamage}.`
+          : '';
+      const resistanceLine = `${defenderStats.name} tiene una ${resistanceLabel} de ${resistance ?? 0}.`;
+      const damageLine = `${attackerStats.name} le causa ${inflictedDamage} puntos de daño infligido a ${defenderStats.name}.`;
 
-      return `${attackerStats.name} realiza un ${attackTypeLabel} con ${attackerStats.ataque} a ${defenderStats.name} que defiende con ${defenderStats.defensa}. ${attackerStats.name} necesita ${need} y en la tirada de ataque consigue un ${roll}. ${impactLine}\n${detailLines.join(' | ')}`;
+      return `${opening} ${rollLine} ${clawsLine} ${resistanceLine} ${damageLine}`.replace(/\s+/g, ' ').trim();
     }
 
     function updateCombatInfo() {
@@ -1480,6 +1490,7 @@
         resistance,
         rawDamage,
         actionKey,
+        clawsRoll,
       });
 
       if (success && actionKey === 'incapacitar') {
