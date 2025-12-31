@@ -285,33 +285,36 @@
 
     .turn-popup__headline {
       position: absolute;
-      top: 10px;
+      top: 12px;
       left: 50%;
       transform: translateX(-50%);
       width: calc(100% - 32px);
-      padding: 12px 16px;
-      background: linear-gradient(120deg, rgba(0, 0, 0, 0.72), rgba(15, 77, 32, 0.8));
-      border-radius: 12px;
+      padding: clamp(14px, 1.8vw, 28px) clamp(18px, 2vw, 32px);
+      background: linear-gradient(120deg, rgba(0, 0, 0, 0.78), rgba(15, 77, 32, 0.9));
+      border-radius: 14px;
       box-shadow: 0 16px 30px rgba(0, 0, 0, 0.45);
-      z-index: 3;
+      z-index: 5;
       pointer-events: none;
     }
 
     .turn-popup__message,
     .death-popup__message {
       margin: 0;
-      font-size: clamp(1.35rem, 2vw + 0.6rem, 3rem);
-      line-height: 1.35;
+      font-size: clamp(1.6rem, 2.2vw + 0.9rem, 3.8rem);
+      line-height: 1.3;
       font-family: 'Impact', 'Anton', system-ui, sans-serif;
       letter-spacing: 0.05em;
       text-shadow: 0 3px 10px rgba(0, 0, 0, 0.55), 0 0 30px rgba(251, 211, 77, 0.35);
-      text-transform: uppercase;
+      text-transform: none;
     }
 
     .turn-popup__hint {
       margin: 0;
-      font-size: 0.9rem;
-      opacity: 0.85;
+      font-size: clamp(1.05rem, 0.6vw + 0.9rem, 1.35rem);
+      opacity: 0.95;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
     }
 
     .turn-popup__center {
@@ -326,6 +329,8 @@
       max-height: min(1080px, 70vh);
       box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
       justify-content: flex-end;
+      position: relative;
+      z-index: 2;
     }
 
     .duel-panel {
@@ -390,14 +395,18 @@
     }
 
     .duel-card__label {
-      position: relative;
+      position: absolute;
+      inset: auto 0 0;
       z-index: 2;
       width: 100%;
-      padding: 14px;
+      padding: clamp(14px, 1.6vw, 22px) clamp(16px, 1.8vw, 26px);
+      background: linear-gradient(180deg, rgba(0, 0, 0, 0.05) 0%, rgba(0, 0, 0, 0.55) 35%, rgba(0, 0, 0, 0.8) 100%);
       color: #fff;
       text-shadow: 0 2px 8px rgba(0, 0, 0, 0.7);
       font-family: 'Impact', 'Anton', system-ui, sans-serif;
       letter-spacing: 0.04em;
+      word-break: break-word;
+      backdrop-filter: blur(2px);
     }
 
     .duel-card__name {
@@ -1181,7 +1190,7 @@
       const resistance = isMelee ? defenderStats.resistenciaCC : defenderStats.resistenciaAD;
       const rawDamage = isCritical ? baseDamage * 2 : baseDamage;
       const totalDamage = Math.max(rawDamage - resistance, 0);
-      return { totalDamage, isMelee, clawsRoll, rawDamage };
+      return { totalDamage, isMelee, clawsRoll, rawDamage, resistance };
     }
 
     function evaluateAttackRoll(attackerStats, defenderStats, roll, distance, options = {}) {
@@ -1301,6 +1310,41 @@
       return 'Ataque';
     }
 
+    function neededRollToHit(attackerStats, defenderStats) {
+      if (!attackerStats || !defenderStats) return 0;
+      const delta = defenderStats.defensa - attackerStats.ataque;
+      return Math.max(4, delta);
+    }
+
+    function buildAttackPopupMessage({
+      attackerStats,
+      defenderStats,
+      roll,
+      success,
+      damage,
+      isMelee,
+      resistance,
+      rawDamage,
+      actionKey,
+    }) {
+      const need = neededRollToHit(attackerStats, defenderStats);
+      const attackTypeLabel = isMelee ? 'ataque cuerpo a cuerpo' : 'ataque a distancia';
+      const resistanceLabel = isMelee ? 'resistencia cuerpo a cuerpo' : 'resistencia de ataque a distancia';
+      const rollLine = `Tira 2d6 y el resultado es: ${roll}.`;
+
+      let impactLine = `${attackerStats.name} falla el ataque contra ${defenderStats.name}.`;
+      if (success) {
+        if (actionKey === 'incapacitar') {
+          impactLine = `${attackerStats.name} impacta a ${defenderStats.name} y lo incapacita.`;
+        } else {
+          const baseDamage = rawDamage ?? damage;
+          impactLine = `${attackerStats.name} impacta a ${defenderStats.name} y le causa ${baseDamage} daños de ${attackTypeLabel} - ${resistance} ${resistanceLabel} = ${damage} daños de vida.`;
+        }
+      }
+
+      return `${attackerStats.name} ataca con ${attackerStats.ataque} y ${defenderStats.name} defiende con ${defenderStats.defensa}. Necesita ${need} para incapacitar. ${rollLine} ${impactLine}`;
+    }
+
     function updateCombatInfo() {
       const combatBox = document.getElementById('combatInfo');
       if (!pendingAttackInfo) {
@@ -1373,7 +1417,12 @@
         { allowCounter }
       );
 
-      const { totalDamage, clawsRoll } = calculateDamage(attackerStats, defenderStats, distance, critical);
+      const { totalDamage, clawsRoll, isMelee, rawDamage, resistance } = calculateDamage(
+        attackerStats,
+        defenderStats,
+        distance,
+        critical
+      );
       const damageApplied = success && actionKey !== 'incapacitar' ? totalDamage : 0;
       if (success && actionKey === 'incapacitar') {
         setIncapacitated(defender, 1);
@@ -1401,6 +1450,10 @@
         attackerName: attackerStats.name,
         defenderName: defenderStats.name,
         clawsRoll,
+        isMelee,
+        resistance,
+        rawDamage,
+        neededRoll: neededRollToHit(attackerStats, defenderStats),
         note:
           actionKey === 'incapacitar'
             ? 'El ataque no causa daño.'
@@ -1409,24 +1462,23 @@
             : null,
       };
 
+      const popupMessage = buildAttackPopupMessage({
+        attackerStats,
+        defenderStats,
+        roll,
+        success,
+        damage: damageApplied,
+        isMelee,
+        resistance,
+        rawDamage,
+        actionKey,
+      });
+
       if (success && actionKey === 'incapacitar') {
-        addHistoryEntry(attacker.dataset.team, `${attackerStats.name} incapacita a ${defenderStats.name}.`, {
-          attacker,
-          defenders: [defender],
-        });
         playEffectSound(incapacitarSound);
-      } else {
-        const garrasText = clawsRoll ? ` (Garras d6=${clawsRoll})` : '';
-        addHistoryEntry(
-          attacker.dataset.team,
-          `${attackerStats.name} ataca a ${defenderStats.name}: tirada ${roll}${
-            critical ? ' (Crítico)' : isPifia ? ' (Pifia)' : ''
-          }${success ? `, daño ${damageApplied}${garrasText}` : ', falla el ataque.'}${
-            shouldCounter ? ' Réplica del defensor.' : ''
-          }`,
-          { attacker, defenders: [defender] }
-        );
       }
+
+      addHistoryEntry(attacker.dataset.team, popupMessage, { attacker, defenders: [defender] });
 
       if (success && actionKey !== 'incapacitar' && defenderStats.currentVida <= 0) {
         queueDeathMessage(`${defenderStats.name} ha sido eliminado por ${attackerStats.name}.`);
