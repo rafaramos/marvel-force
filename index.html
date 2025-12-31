@@ -1367,8 +1367,9 @@
             : '';
         const resistanceLine = `${defenderStats.name} tiene una ${resistanceLabel} de ${resistance ?? 0}.`;
         const damageLine = `${attackerStats.name} le causa ${inflictedDamage} puntos de daño infligido a ${defenderStats.name}.`;
+        const deathLine = defenderStats.currentVida <= 0 ? `${defenderStats.name} es eliminado.` : '';
 
-      return `${opening} ${rollLine} ${clawsLine} ${baseDamageLine} ${resistanceLine} ${damageLine}`.replace(/\s+/g, ' ').trim();
+      return `${opening} ${rollLine} ${clawsLine} ${baseDamageLine} ${resistanceLine} ${damageLine} ${deathLine}`.replace(/\s+/g, ' ').trim();
     }
 
     function updateCombatInfo() {
@@ -1552,6 +1553,7 @@
       const die2 = Math.floor(Math.random() * 6) + 1;
       const roll = die1 + die2;
       const critical = hasPassive(attackerStats, 'astucia') ? roll >= 11 : roll === 12;
+      const baseDamage = attackerStats.danoAD;
 
       const deltas = [-1, 0, 1];
       const affectedPieces = [];
@@ -1617,7 +1619,9 @@
 
       addHistoryEntry(
         attacker.dataset.team,
-        `${attackerStats.name} ejecuta Explosión: tirada ${roll}${critical ? ' (Crítico)' : roll === 2 ? ' (Pifia)' : ''}. Afectados: ${targetsSummary
+        `${attackerStats.name} ejecuta Explosión con un ataque de ${attackerStats.ataque}. En la tirada consigue un ${roll}${
+          critical ? ' (Crítico)' : roll === 2 ? ' (Pifia)' : ''
+        }. ${attackerStats.name} tiene un daño base de ${baseDamage} a distancia. Afectados: ${targetsSummary
           .map((t) => `${t.name}${t.success ? ` daño ${t.damage}` : ' sin efecto'}`)
           .join('; ')}`,
         { attacker, defenders: affectedPieces.map(({ piece }) => piece) }
@@ -1997,7 +2001,6 @@
         renderLifeCards();
         addHistoryEntry(piece.dataset.team, `${stats.name} se regenera (vida ${stats.currentVida}).`, {
           preserveLatest: true,
-          attacker: piece,
         });
       }
     }
