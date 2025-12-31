@@ -327,6 +327,9 @@
       flex-direction: column;
       gap: 6px;
       font-size: 0.92rem;
+      max-height: 280px;
+      overflow-y: auto;
+      padding-right: 4px;
     }
 
     .history__item {
@@ -389,6 +392,50 @@
       grid-row: 1;
     }
 
+    .history-drawer {
+      position: fixed;
+      right: 16px;
+      bottom: 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 8px;
+      z-index: 40;
+    }
+
+    .history-drawer__tab {
+      background: rgba(0, 0, 0, 0.35);
+      color: #f4f4f4;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      border-radius: 10px;
+      padding: 8px 12px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.35);
+      transition: transform 120ms ease, box-shadow 120ms ease, background 120ms ease;
+    }
+
+    .history-drawer__tab:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 10px 18px rgba(0, 0, 0, 0.4);
+      background: rgba(0, 0, 0, 0.45);
+    }
+
+    .history-drawer__panel {
+      background: rgba(0, 0, 0, 0.75);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 12px;
+      padding: 12px;
+      width: min(460px, 90vw);
+      box-shadow: 0 16px 28px rgba(0, 0, 0, 0.45);
+    }
+
+    .history-drawer__columns {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
     .status-bar {
       margin-bottom: 12px;
       display: flex;
@@ -430,10 +477,6 @@
         <h3>Aliados</h3>
         <div class="card-panel__content">
           <div class="life-list" id="allyCards"></div>
-          <div class="history">
-            <h4 class="history__title">Histórico héroes</h4>
-            <ol id="heroLog" class="history__list"></ol>
-          </div>
         </div>
       </aside>
       <section class="board" aria-label="Tablero de 120 cuadros verdes"></section>
@@ -441,12 +484,31 @@
         <h3>Enemigos</h3>
         <div class="card-panel__content">
           <div class="life-list" id="enemyCards"></div>
+        </div>
+      </aside>
+    </div>
+    <div class="history-drawer" aria-label="Histórico de acciones">
+      <button
+        id="historyTab"
+        class="history-drawer__tab"
+        type="button"
+        aria-expanded="false"
+        aria-controls="historyPanel"
+      >
+        Históricos
+      </button>
+      <div id="historyPanel" class="history-drawer__panel" hidden tabindex="-1">
+        <div class="history-drawer__columns">
+          <div class="history">
+            <h4 class="history__title">Histórico héroes</h4>
+            <ol id="heroLog" class="history__list"></ol>
+          </div>
           <div class="history">
             <h4 class="history__title">Histórico villanos</h4>
             <ol id="villainLog" class="history__list"></ol>
           </div>
         </div>
-      </aside>
+      </div>
     </div>
   </main>
   <div id="tooltip" class="tooltip" hidden></div>
@@ -488,9 +550,9 @@
 
       const HULK_KEY = 'hulk';
       const HULK_ANIMATIONS = {
-        activo: 'animaciones/hulk/activo.gif',
-        espera: 'animaciones/hulk/espera.gif',
-        andar: 'animaciones/hulk/andar.gif',
+        activo: 'imagenes/hulk.webp',
+        espera: 'imagenes/hulk.webp',
+        andar: 'imagenes/hulk.webp',
       };
 
       function findHulkPiece() {
@@ -576,10 +638,13 @@
     const enemyCards = document.getElementById('enemyCards');
     const heroLog = document.getElementById('heroLog');
     const villainLog = document.getElementById('villainLog');
+    const historyPanel = document.getElementById('historyPanel');
+    const historyTab = document.getElementById('historyTab');
 
     const AI_DELAY_MS = 900;
     const TURN_DELAY_MS = 250;
     const ENEMY_ACTION_DELAY_MS = 500;
+    const DEFAULT_MOVE_DURATION_MS = 1200;
 
     const squaresByCoord = new Map();
     squares.forEach((square, index) => {
@@ -593,6 +658,19 @@
     const pieceMap = new Map();
     let movementDistances = new Map();
     let currentAction = 'attack';
+    let movementAnimationDuration = DEFAULT_MOVE_DURATION_MS;
+
+    function toggleHistoryVisibility() {
+      if (!historyPanel || !historyTab) return;
+      const willShow = historyPanel.hidden;
+      historyPanel.hidden = !willShow;
+      historyTab.setAttribute('aria-expanded', String(willShow));
+      if (willShow) {
+        historyPanel.focus?.({ preventScroll: true });
+      }
+    }
+
+    historyTab?.addEventListener('click', toggleHistoryVisibility);
 
     function hasPassive(stats, key) {
       return Boolean(stats?.habilidades?.pasivas?.includes(key));
@@ -1482,7 +1560,7 @@
       movementPool.set(piece, left);
     }
 
-    board.addEventListener('click', (event) => {
+    board.addEventListener('click', async (event) => {
       const activePiece = turnOrder[turnIndex];
       if (activePiece?.dataset.team === 'enemigo') return;
 
@@ -1514,7 +1592,7 @@
       if (activePiece.dataset.key === HULK_KEY) {
         setHulkAnimation('andar');
       }
-      square.appendChild(activePiece);
+      await animatePieceToSquare(activePiece, square);
       spendMovement(activePiece, distance);
       clearHighlights();
       highlightMovement(activePiece);
@@ -1548,6 +1626,42 @@
 
     function sleep(ms) {
       return new Promise((resolve) => setTimeout(resolve, ms));
+    }
+
+    function animatePieceToSquare(piece, square, options = {}) {
+      return new Promise((resolve) => {
+        const duration = Number(options.duration ?? movementAnimationDuration);
+        if (!piece || !square) {
+          resolve();
+          return;
+        }
+
+        if (!Number.isFinite(duration) || duration <= 0) {
+          square.appendChild(piece);
+          resolve();
+          return;
+        }
+
+        const startRect = piece.getBoundingClientRect();
+        square.appendChild(piece);
+        const endRect = piece.getBoundingClientRect();
+        const deltaX = startRect.left - endRect.left;
+        const deltaY = startRect.top - endRect.top;
+
+        const animation = piece.animate(
+          [
+            { transform: `translate(-50%, -50%) translate(${deltaX}px, ${deltaY}px)` },
+            { transform: 'translate(-50%, -50%)' },
+          ],
+          {
+            duration,
+            easing: 'ease-in-out',
+          },
+        );
+
+        animation.addEventListener('finish', resolve);
+        animation.addEventListener('cancel', resolve);
+      });
     }
 
     function findClosestEnemy(piece) {
@@ -1637,7 +1751,7 @@
           highlightMovement(piece);
           moveSquare.classList.add('square--target');
           await sleep(ENEMY_ACTION_DELAY_MS);
-          moveSquare.appendChild(piece);
+          await animatePieceToSquare(piece, moveSquare);
           spendMovement(piece, distance);
           clearHighlights();
           highlightMovement(piece);
