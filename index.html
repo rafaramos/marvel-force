@@ -310,37 +310,6 @@
       gap: 8px;
     }
 
-    .history {
-      margin: 0;
-    }
-
-    .history__title {
-      margin: 0 0 8px;
-      font-size: 0.95rem;
-    }
-
-    .history__list {
-      list-style: none;
-      padding: 0;
-      margin: 0;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      font-size: 0.92rem;
-      max-height: 280px;
-      overflow-y: auto;
-      padding-right: 4px;
-    }
-
-    .history__item {
-      background: rgba(0, 0, 0, 0.2);
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      border-radius: 8px;
-      padding: 6px 8px;
-      text-align: left;
-      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
-    }
-
     .life-card {
       display: grid;
       grid-template-columns: 1fr auto;
@@ -390,67 +359,6 @@
       opacity: 0.95;
       grid-column: 2 / 3;
       grid-row: 1;
-    }
-
-    .history-drawer {
-      position: fixed;
-      inset: 0;
-      display: flex;
-      justify-content: flex-end;
-      align-items: center;
-      padding: 16px;
-      pointer-events: none;
-      z-index: 40;
-    }
-
-    .history-drawer__tab {
-      background: rgba(0, 0, 0, 0.5);
-      color: #f4f4f4;
-      border: 1px solid rgba(255, 255, 255, 0.3);
-      border-radius: 10px 0 0 10px;
-      padding: 10px 10px 10px 12px;
-      font-weight: 700;
-      cursor: pointer;
-      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.35);
-      transition: transform 150ms ease, box-shadow 150ms ease, background 150ms ease;
-      writing-mode: vertical-rl;
-      text-orientation: mixed;
-      pointer-events: auto;
-    }
-
-    .history-drawer__tab:hover {
-      transform: translateX(-2px);
-      box-shadow: 0 10px 18px rgba(0, 0, 0, 0.4);
-      background: rgba(0, 0, 0, 0.6);
-    }
-
-    .history-drawer__panel {
-      background: rgba(0, 0, 0, 0.85);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      border-radius: 12px;
-      padding: 12px;
-      width: min(460px, 90vw);
-      max-height: min(80vh, 640px);
-      box-shadow: 0 16px 28px rgba(0, 0, 0, 0.45);
-      transform: translateX(120%);
-      opacity: 0;
-      transition: transform 220ms ease, opacity 220ms ease;
-      pointer-events: auto;
-    }
-
-    .history-drawer__panel[hidden] {
-      display: none;
-    }
-
-    .history-drawer--open .history-drawer__panel {
-      transform: translateX(0);
-      opacity: 1;
-    }
-
-    .history-drawer__columns {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 12px;
     }
 
     .status-bar {
@@ -503,29 +411,6 @@
           <div class="life-list" id="enemyCards"></div>
         </div>
       </aside>
-    </div>
-    <div class="history-drawer" aria-label="Histórico de acciones">
-      <button
-        id="historyTab"
-        class="history-drawer__tab"
-        type="button"
-        aria-expanded="false"
-        aria-controls="historyPanel"
-      >
-        Históricos
-      </button>
-      <div id="historyPanel" class="history-drawer__panel" hidden tabindex="-1">
-        <div class="history-drawer__columns">
-          <div class="history">
-            <h4 class="history__title">Histórico héroes</h4>
-            <ol id="heroLog" class="history__list"></ol>
-          </div>
-          <div class="history">
-            <h4 class="history__title">Histórico villanos</h4>
-            <ol id="villainLog" class="history__list"></ol>
-          </div>
-        </div>
-      </div>
     </div>
   </main>
   <div id="tooltip" class="tooltip" hidden></div>
@@ -653,11 +538,6 @@
     const movementInfo = document.getElementById('movementInfo');
     const allyCards = document.getElementById('allyCards');
     const enemyCards = document.getElementById('enemyCards');
-    const heroLog = document.getElementById('heroLog');
-    const villainLog = document.getElementById('villainLog');
-    const historyPanel = document.getElementById('historyPanel');
-    const historyTab = document.getElementById('historyTab');
-    const historyDrawer = document.querySelector('.history-drawer');
 
     const AI_DELAY_MS = 900;
     const TURN_DELAY_MS = 250;
@@ -677,19 +557,6 @@
     let movementDistances = new Map();
     let currentAction = 'attack';
     let movementAnimationDuration = DEFAULT_MOVE_DURATION_MS;
-
-    function toggleHistoryVisibility() {
-      if (!historyPanel || !historyTab || !historyDrawer) return;
-      const willShow = historyPanel.hidden;
-      historyPanel.hidden = !willShow;
-      historyDrawer.classList.toggle('history-drawer--open', willShow);
-      historyTab.setAttribute('aria-expanded', String(willShow));
-      if (willShow) {
-        historyPanel.focus?.({ preventScroll: true });
-      }
-    }
-
-    historyTab?.addEventListener('click', toggleHistoryVisibility);
 
     function hasPassive(stats, key) {
       return Boolean(stats?.habilidades?.pasivas?.includes(key));
@@ -810,15 +677,6 @@
 
     function addHistoryEntry(team, message, options = {}) {
       const { preserveLatest = false } = options;
-      const list = team === 'aliado' ? heroLog : villainLog;
-      if (!list) return;
-      const item = document.createElement('li');
-      item.className = 'history__item';
-      item.textContent = message;
-      list.prepend(item);
-      while (list.children.length > 14) {
-        list.removeChild(list.lastChild);
-      }
       if (!preserveLatest) {
         latestActionMessage = message;
       }
