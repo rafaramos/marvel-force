@@ -1332,6 +1332,7 @@
         rawDamage,
         actionKey,
         clawsRoll,
+        critical,
       }) {
         const need = neededRollToHit(attackerStats, defenderStats);
         const attackTypeLabel = isMelee ? 'ataque cuerpo a cuerpo' : 'ataque a distancia';
@@ -1349,7 +1350,7 @@
         }
 
         const opening = `${attackerStats.name} realiza un ${attackTypeLabel} con ${attackerStats.ataque} a ${defenderStats.name} que defiende con ${defenderStats.defensa}.`;
-        const rollLine = `${attackerStats.name} necesita un ${need} y ${roll ? `consigue un ${roll}.` : 'prepara la tirada.'}`;
+        const rollLine = `${attackerStats.name} necesita un ${need} y ${roll ? `consigue un ${roll}${critical ? ' (Crítico)' : ''}.` : 'prepara la tirada.'}`;
 
         if (!success) {
           const failOrIncap = `${attackerStats.name} falla el ataque contra ${defenderStats.name}.`;
@@ -1360,10 +1361,14 @@
           clawsRoll !== null && clawsRoll !== undefined
             ? `${attackerStats.name} hace una tirada de garras y consigue ${clawsRoll}, para mejorar su daño base de ${baseDamage}.`
             : '';
+        const baseDamageLine =
+          clawsRoll === null || clawsRoll === undefined
+            ? `${attackerStats.name} tiene un daño base de ${baseDamage}.`
+            : '';
         const resistanceLine = `${defenderStats.name} tiene una ${resistanceLabel} de ${resistance ?? 0}.`;
         const damageLine = `${attackerStats.name} le causa ${inflictedDamage} puntos de daño infligido a ${defenderStats.name}.`;
 
-      return `${opening} ${rollLine} ${clawsLine} ${resistanceLine} ${damageLine}`.replace(/\s+/g, ' ').trim();
+      return `${opening} ${rollLine} ${clawsLine} ${baseDamageLine} ${resistanceLine} ${damageLine}`.replace(/\s+/g, ' ').trim();
     }
 
     function updateCombatInfo() {
@@ -1494,6 +1499,7 @@
         rawDamage,
         actionKey,
         clawsRoll,
+        critical,
       });
 
       if (success && actionKey === 'incapacitar') {
