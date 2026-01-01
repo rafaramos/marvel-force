@@ -640,29 +640,6 @@
       let backgroundStarted = false;
       const PROBABILIDAD_DURATION = 2;
 
-      const HULK_KEY = 'hulk';
-      const HULK_ANIMATIONS = {
-        activo: 'imagenes/hulk.webp',
-        espera: 'imagenes/hulk.webp',
-        andar: 'imagenes/hulk.webp',
-      };
-
-      function findHulkPiece() {
-        return Array.from(board.querySelectorAll('.piece')).find((piece) => piece.dataset.key === HULK_KEY);
-      }
-
-      function setHulkAnimation(state) {
-        const animation = HULK_ANIMATIONS[state];
-        if (!animation) return;
-        const hulkPiece = findHulkPiece();
-        if (!hulkPiece) return;
-        const img = hulkPiece.querySelector('.piece__image');
-        if (!img) return;
-        if (hulkPiece.dataset.animationState === state && img.getAttribute('src') === animation) return;
-        img.src = animation;
-        hulkPiece.dataset.animationState = state;
-      }
-
     const initialPositions = [
       { key: 'avispa', team: 'aliado', row: 1, col: 1, className: 'piece--white' },
       { key: 'hulk', team: 'aliado', row: 2, col: 1, className: 'piece--red' },
@@ -721,7 +698,6 @@
     }
 
     buildBoard();
-    setHulkAnimation('espera');
 
     const squares = Array.from(board.querySelectorAll('.square'));
     const tooltip = document.getElementById('tooltip');
@@ -1217,11 +1193,6 @@
     function setActivePiece(piece) {
       document.querySelectorAll('.piece').forEach((p) => p.classList.remove('piece--active'));
       piece.classList.add('piece--active');
-      if (piece.dataset.key === HULK_KEY) {
-        setHulkAnimation('activo');
-      } else {
-        setHulkAnimation('espera');
-      }
       const isEnemyTurn = piece.dataset.team === 'enemigo';
       passButton.disabled = isEnemyTurn;
       attackButton.disabled = isEnemyTurn;
@@ -1982,18 +1953,12 @@
       if (square.querySelector('.piece')) return;
       const distance = movementDistances.get(square);
       if (distance === undefined || distance > remainingMovement(activePiece)) return;
-      if (activePiece.dataset.key === HULK_KEY) {
-        setHulkAnimation('andar');
-      }
       await animatePieceToSquare(activePiece, square);
       spendMovement(activePiece, distance);
       clearHighlights();
       highlightMovement(activePiece);
       highlightRange(activePiece);
       updateStatusBar(activePiece);
-      if (activePiece.dataset.key === HULK_KEY) {
-        setHulkAnimation('activo');
-      }
     });
 
     function attachTooltipEvents(piece) {
@@ -2204,7 +2169,6 @@
 
     async function finishTurn(piece, options = {}) {
       const { skipRegeneration = false, summaryOverride = null, showPopup = null } = options;
-      setHulkAnimation('espera');
       const regenResult = skipRegeneration ? { regenerated: false, message: '' } : applyRegeneration(piece);
       const stats = pieceMap.get(piece);
       const probabilityResult = consumeProbabilidadTurn(piece);
@@ -2236,11 +2200,6 @@
       if (!piece) return;
       const stats = pieceMap.get(piece);
       if (!stats) return;
-      if (piece.dataset.key === HULK_KEY) {
-        setHulkAnimation('activo');
-      } else {
-        setHulkAnimation('espera');
-      }
       if (stats.incapacitatedTurns && stats.incapacitatedTurns > 0) {
         const incapMessage = `${stats.name} pierde el turno por estar incapacitado.`;
         addHistoryEntry(piece.dataset.team, incapMessage, { attacker: piece });
