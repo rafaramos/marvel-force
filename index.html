@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Tablero 12x10</title>
+  <title>Tablero 16x10</title>
   <style>
     :root {
       --square-size: 70px;
-      --board-columns: 12;
+      --board-columns: 16;
       --board-rows: 10;
       --board-width: calc(var(--square-size) * var(--board-columns));
       --board-height: calc(var(--square-size) * var(--board-rows));
@@ -32,8 +32,11 @@
 
     .wrapper {
       text-align: center;
-      max-width: 1400px;
       padding: 24px 18px 40px;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
     }
 
     .controls {
@@ -133,6 +136,17 @@
       background: #0d0d0d;
       overflow: hidden;
       z-index: 3;
+      transition: box-shadow 160ms ease, outline-color 160ms ease;
+    }
+
+    .piece[data-team='aliado'] {
+      border-color: #2b9afc;
+      box-shadow: 0 4px 10px rgba(0, 98, 204, 0.45);
+    }
+
+    .piece[data-team='enemigo'] {
+      border-color: #ef3f3f;
+      box-shadow: 0 4px 10px rgba(215, 44, 44, 0.45);
     }
 
     .piece__image {
@@ -157,16 +171,25 @@
     .piece--active {
       outline: 4px solid #fbd34d;
       outline-offset: 1px;
-      box-shadow: 0 0 0 5px rgba(251, 211, 77, 0.4);
-      animation: blink 1s ease-in-out infinite alternate;
+      box-shadow: 0 0 0 6px rgba(251, 211, 77, 0.35), 0 6px 14px rgba(0, 0, 0, 0.35);
+      animation: active-glow 0.9s ease-in-out infinite;
     }
 
-    @keyframes blink {
-      from {
+    @keyframes active-glow {
+      0% {
+        outline-color: rgba(251, 211, 77, 0.25);
+        box-shadow: 0 0 0 2px rgba(251, 211, 77, 0.35), 0 6px 14px rgba(0, 0, 0, 0.35);
         filter: brightness(1);
       }
-      to {
-        filter: brightness(1.25);
+      50% {
+        outline-color: rgba(251, 211, 77, 0.9);
+        box-shadow: 0 0 0 8px rgba(251, 211, 77, 0.6), 0 10px 18px rgba(0, 0, 0, 0.45);
+        filter: brightness(1.18);
+      }
+      100% {
+        outline-color: rgba(251, 211, 77, 0.25);
+        box-shadow: 0 0 0 2px rgba(251, 211, 77, 0.35), 0 6px 14px rgba(0, 0, 0, 0.35);
+        filter: brightness(1);
       }
     }
 
@@ -241,7 +264,10 @@
       display: grid;
       grid-template-columns: 340px auto 340px;
       gap: 16px;
-      align-items: stretch;
+      align-items: start;
+      width: fit-content;
+      margin: 0 auto;
+      justify-content: center;
     }
 
     .turn-popup,
@@ -575,7 +601,7 @@
           <div class="life-list" id="allyCards"></div>
         </div>
       </aside>
-      <section class="board" aria-label="Tablero de 120 cuadros verdes"></section>
+      <section class="board" aria-label="Tablero de 160 cuadros verdes"></section>
       <aside class="card-panel" aria-label="Vida enemigos">
         <h3>Enemigos</h3>
         <div class="card-panel__content">
@@ -627,7 +653,7 @@
       const deathSound = new Audio('sonido/muerte.wav');
       let pendingPopupSound = null;
       const BOARD_ROWS = 10;
-      const BOARD_COLS = 12;
+      const BOARD_COLS = 16;
       const backgroundMusic = new Audio('sonido/Endgame.mp3');
       backgroundMusic.loop = true;
       backgroundMusic.volume = 0.35;
@@ -647,18 +673,18 @@
       { key: 'iron-man', team: 'aliado', row: 10, col: 1, className: 'piece--gold' },
       { key: 'hulka', team: 'aliado', row: 1, col: 2, className: 'piece--red' },
       { key: 'bruja-escarlata', team: 'aliado', row: 2, col: 2, className: 'piece--violet' },
-      { key: 'duende', team: 'enemigo', row: 1, col: 12, className: 'piece--black' },
-      { key: 'chaquetaAmarilla', team: 'enemigo', row: 2, col: 12, className: 'piece--black' },
-      { key: 'dientesDeSable', team: 'enemigo', row: 3, col: 12, className: 'piece--black' },
-      { key: 'boomerang', team: 'enemigo', row: 4, col: 12, className: 'piece--black' },
-      { key: 'juggernaut', team: 'enemigo', row: 5, col: 12, className: 'piece--black' },
-      { key: 'mole', team: 'enemigo', row: 6, col: 12, className: 'piece--black' },
-      { key: 'doom', team: 'enemigo', row: 7, col: 12, className: 'piece--black' },
-      { key: 'ultron', team: 'enemigo', row: 8, col: 12, className: 'piece--black' },
-      { key: 'thanos', team: 'enemigo', row: 9, col: 12, className: 'piece--black' },
-      { key: 'magneto', team: 'enemigo', row: 10, col: 12, className: 'piece--black' },
-      { key: 'kang', team: 'enemigo', row: 1, col: 11, className: 'piece--black' },
-      { key: 'super-skrull', team: 'enemigo', row: 2, col: 11, className: 'piece--black' },
+      { key: 'duende', team: 'enemigo', row: 1, col: 16, className: 'piece--black' },
+      { key: 'chaquetaAmarilla', team: 'enemigo', row: 2, col: 16, className: 'piece--black' },
+      { key: 'dientesDeSable', team: 'enemigo', row: 3, col: 16, className: 'piece--black' },
+      { key: 'boomerang', team: 'enemigo', row: 4, col: 16, className: 'piece--black' },
+      { key: 'juggernaut', team: 'enemigo', row: 5, col: 16, className: 'piece--black' },
+      { key: 'mole', team: 'enemigo', row: 6, col: 16, className: 'piece--black' },
+      { key: 'doom', team: 'enemigo', row: 7, col: 16, className: 'piece--black' },
+      { key: 'ultron', team: 'enemigo', row: 8, col: 16, className: 'piece--black' },
+      { key: 'thanos', team: 'enemigo', row: 9, col: 16, className: 'piece--black' },
+      { key: 'magneto', team: 'enemigo', row: 10, col: 16, className: 'piece--black' },
+      { key: 'kang', team: 'enemigo', row: 1, col: 15, className: 'piece--black' },
+      { key: 'super-skrull', team: 'enemigo', row: 2, col: 15, className: 'piece--black' },
     ];
 
     function createPieceElement({ key, team, className }) {
@@ -2054,6 +2080,17 @@
       return bestSquare;
     }
 
+    function shouldUseIncapacitar(attackerStats, targetStats) {
+      if (!attackerStats || !targetStats) return false;
+      const targetResilience = (targetStats.resistenciaCC ?? 0) + (targetStats.resistenciaAD ?? 0);
+      const targetThreat = targetStats.ataque ?? 0;
+      const targetVida = targetStats.currentVida ?? targetStats.vida ?? 0;
+      const potentialDamage = Math.max(attackerStats.danoCC ?? 0, attackerStats.danoAD ?? 0);
+      const canHurtEasily = targetResilience <= 0 || targetVida <= potentialDamage + 2;
+      const lowThreat = targetThreat <= 9;
+      return !(canHurtEasily && lowThreat);
+    }
+
     function selectBestEnemyAction(piece, targetPiece) {
       const stats = pieceMap.get(piece);
       const abilities = stats?.habilidades?.activas || [];
@@ -2080,7 +2117,11 @@
         }
       }
 
-      if (abilities.includes('incapacitar') && targetStats?.incapacitatedTurns === 0) {
+      if (
+        abilities.includes('incapacitar') &&
+        targetStats?.incapacitatedTurns === 0 &&
+        shouldUseIncapacitar(stats, targetStats)
+      ) {
         return 'incapacitar';
       }
 

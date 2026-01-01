@@ -636,6 +636,17 @@ function wait(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+function shouldUseIncapacitar(attackerStats, targetStats) {
+  if (!attackerStats || !targetStats) return false;
+  const targetResilience = (targetStats.resistenciaCC ?? 0) + (targetStats.resistenciaAD ?? 0);
+  const targetThreat = targetStats.ataque ?? 0;
+  const targetVida = targetStats.currentVida ?? targetStats.vida ?? 0;
+  const potentialDamage = Math.max(attackerStats.danoCC ?? 0, attackerStats.danoAD ?? 0);
+  const canHurtEasily = targetResilience <= 0 || targetVida <= potentialDamage + 2;
+  const lowThreat = targetThreat <= 9;
+  return !(canHurtEasily && lowThreat);
+}
+
 async function runVillainTurn(piece) {
   const attackIfPossible = async () => {
     const stats = pieceMap.get(piece);
@@ -654,7 +665,10 @@ async function runVillainTurn(piece) {
         targetSquare.classList.add('square--target');
       }
       highlightRange(piece);
-      const abilityToUse = hasActive(stats, 'incapacitar') ? 'incapacitar' : null;
+      const abilityToUse =
+        hasActive(stats, 'incapacitar') && shouldUseIncapacitar(stats, pieceMap.get(inRange))
+          ? 'incapacitar'
+          : null;
       prepareAttackInfo(piece, inRange, abilityToUse);
       updateStatusBar(piece);
       await wait(1500);
