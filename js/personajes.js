@@ -275,7 +275,7 @@ const personajes = {
     poderes: poderesFuente.thor,
     habilidades: { activas: [], pasivas: [] },
   },
-  iron-man: {
+    'iron-man': {
     name: 'Iron Man',
     movimiento: 12,
     ataque: 10,
@@ -288,7 +288,7 @@ const personajes = {
     vida: 9,
     agilidad: 30,
     imagen: 'imagenes/iron-man.webp',
-    poderes: poderesFuente.iron-man,
+      poderes: poderesFuente['iron-man'],
     habilidades: { activas: ['explosion'], pasivas: ['astucia', 'regeneración'] },
   },
   hulka: {
@@ -307,7 +307,7 @@ const personajes = {
     poderes: poderesFuente.hulka,
     habilidades: { activas: [], pasivas: [] },
   },
-  bruja-escarlata: {
+    'bruja-escarlata': {
     name: 'Bruja Escarlata',
     movimiento: 6,
     ataque: 8,
@@ -320,7 +320,7 @@ const personajes = {
     vida: 5,
     agilidad: 30,
     imagen: 'imagenes/bruja-escarlata.webp',
-    poderes: poderesFuente.bruja-escarlata,
+      poderes: poderesFuente['bruja-escarlata'],
     habilidades: { activas: ['incapacitar', 'probabilidad'], pasivas: ['astucia'] },
   },
   thanos: {
@@ -371,7 +371,7 @@ const personajes = {
     poderes: poderesFuente.kang,
     habilidades: { activas: ['pulso', 'incapacitar'], pasivas: ['fase'] },
   },
-  super-skrull: {
+    'super-skrull': {
     name: 'Súper Skrull',
     movimiento: 8,
     ataque: 11,
@@ -384,7 +384,7 @@ const personajes = {
     vida: 9,
     agilidad: 30,
     imagen: 'imagenes/super-skrull.webp',
-    poderes: poderesFuente.super-skrull,
+      poderes: poderesFuente['super-skrull'],
     habilidades: { activas: ['incapacitar'], pasivas: [] },
   },
 };
