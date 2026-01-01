@@ -638,6 +638,7 @@
       backgroundMusic.loop = true;
       backgroundMusic.volume = 0.35;
       let backgroundStarted = false;
+      const PROBABILIDAD_DURATION = 2;
 
       const HULK_KEY = 'hulk';
       const HULK_ANIMATIONS = {
@@ -671,6 +672,10 @@
       { key: 'ciclope', team: 'aliado', row: 6, col: 1, className: 'piece--white' },
       { key: 'cosa', team: 'aliado', row: 7, col: 1, className: 'piece--red' },
       { key: 'antorcha', team: 'aliado', row: 8, col: 1, className: 'piece--gold' },
+      { key: 'thor', team: 'aliado', row: 9, col: 1, className: 'piece--violet' },
+      { key: 'iron-man', team: 'aliado', row: 10, col: 1, className: 'piece--gold' },
+      { key: 'hulka', team: 'aliado', row: 1, col: 2, className: 'piece--red' },
+      { key: 'bruja-escarlata', team: 'aliado', row: 2, col: 2, className: 'piece--violet' },
       { key: 'duende', team: 'enemigo', row: 1, col: 12, className: 'piece--black' },
       { key: 'chaquetaAmarilla', team: 'enemigo', row: 2, col: 12, className: 'piece--black' },
       { key: 'dientesDeSable', team: 'enemigo', row: 3, col: 12, className: 'piece--black' },
@@ -679,6 +684,10 @@
       { key: 'mole', team: 'enemigo', row: 6, col: 12, className: 'piece--black' },
       { key: 'doom', team: 'enemigo', row: 7, col: 12, className: 'piece--black' },
       { key: 'ultron', team: 'enemigo', row: 8, col: 12, className: 'piece--black' },
+      { key: 'thanos', team: 'enemigo', row: 9, col: 12, className: 'piece--black' },
+      { key: 'magneto', team: 'enemigo', row: 10, col: 12, className: 'piece--black' },
+      { key: 'kang', team: 'enemigo', row: 1, col: 11, className: 'piece--black' },
+      { key: 'super-skrull', team: 'enemigo', row: 2, col: 11, className: 'piece--black' },
     ];
 
     function createPieceElement({ key, team, className }) {
@@ -820,6 +829,7 @@
         currentVida: stats.vida,
         maxVida: stats.vida,
         incapacitatedTurns: 0,
+        probabilidadTurns: 0,
         puntos: 0,
       };
       piece.dataset.key = key;
@@ -868,7 +878,20 @@
     renderLifeCards();
 
     const ANIMATION_OVERRIDES = {
+      antorcha: 'animaciones/antorcha-humana.webp',
+      avispa: 'animaciones/avispa.webp',
+      bruja: 'animaciones/bruja-escarlata.webp',
+      'bruja-escarlata': 'animaciones/bruja-escarlata.webp',
+      capitan: 'animaciones/capitan-america.webp',
+      cosa: 'animaciones/la-cosa.webp',
+      duende: 'animaciones/duende.webp',
+      hulk: 'animaciones/hulk.webp',
+      hulka: 'animaciones/hulka.webp',
+      'iron-man': 'animaciones/iron-man.webp',
+      lobezno: 'animaciones/lobezno.webp',
       spider: 'animaciones/spider-man.webp',
+      thor: 'animaciones/thor.webp',
+      ciclope: 'animaciones/ciclope.webp',
     };
 
     function animationImageForPiece(piece, stats) {
@@ -1061,6 +1084,7 @@
           incapacitar: 'Incapacitar',
           explosion: 'Explosión',
           pulso: 'Pulso',
+          probabilidad: 'Probabilidad',
         };
         btn.textContent = labels[ability] || ability;
         btn.disabled = piece.dataset.team === 'enemigo';
@@ -1101,6 +1125,8 @@
     function computeReachableSquares(piece) {
       const origin = getPieceSquare(piece);
       if (!origin) return;
+      const stats = pieceMap.get(piece);
+      const canPhase = hasPassive(stats, 'fase');
       const maxMove = remainingMovement(piece);
       const visited = new Map();
       const queue = [{ row: Number(origin.dataset.row), col: Number(origin.dataset.col), cost: 0 }];
@@ -1126,7 +1152,7 @@
           const square = getSquareAt(nr, nc);
           if (!square) continue;
           const occupant = square.querySelector('.piece');
-          if (occupant && occupant.dataset.team !== piece.dataset.team) continue;
+          if (occupant && occupant.dataset.team !== piece.dataset.team && !canPhase) continue;
           visited.set(key, nextCost);
           queue.push({ row: nr, col: nc, cost: nextCost });
         }
@@ -1251,8 +1277,7 @@
 
     function evaluateAttackRoll(attackerStats, defenderStats, roll, distance, options = {}) {
       const { allowCounter = false } = options;
-      const hasAstucia = hasPassive(attackerStats, 'astucia');
-      const critical = hasAstucia ? roll >= 11 : roll === 12;
+      const critical = isCriticalRoll(attackerStats, roll);
       const isPifia = roll === 2;
       const isMelee = distance <= 1;
       const defenderCanRanged = effectiveRangeFromStats(defenderStats) > 1;
@@ -1274,6 +1299,19 @@
       const shouldCounter = allowCounter && isPifia && (isMelee || defenderCanRanged);
 
       return { success, critical, isPifia, shouldCounter };
+    }
+
+    function hasProbabilidad(stats) {
+      return Number(stats?.probabilidadTurns ?? 0) > 0;
+    }
+
+    function isCriticalRoll(attackerStats, roll) {
+      if (!roll) return false;
+      const hasAstucia = hasPassive(attackerStats, 'astucia');
+      const empowered = hasProbabilidad(attackerStats);
+      if (empowered && hasAstucia) return roll >= 10;
+      if (empowered || hasAstucia) return roll >= 11;
+      return roll === 12;
     }
 
     function queueDeathMessage(message) {
@@ -1363,6 +1401,7 @@
       if (actionKey === 'incapacitar') return 'Incapacitar';
       if (actionKey === 'explosion') return 'Explosión';
       if (actionKey === 'pulso') return 'Pulso';
+      if (actionKey === 'probabilidad') return 'Probabilidad';
       return 'Ataque';
     }
 
@@ -1614,7 +1653,7 @@
       const die1 = Math.floor(Math.random() * 6) + 1;
       const die2 = Math.floor(Math.random() * 6) + 1;
       const roll = die1 + die2;
-      const critical = hasPassive(attackerStats, 'astucia') ? roll >= 11 : roll === 12;
+      const critical = isCriticalRoll(attackerStats, roll);
       const baseDamage = attackerStats.danoAD;
 
       const deltas = [-1, 0, 1];
@@ -1787,6 +1826,59 @@
       finishTurn(attacker);
     }
 
+    function applyProbabilidad(attacker, target) {
+      const attackerStats = pieceMap.get(attacker);
+      const centerSquare = getPieceSquare(target);
+      if (!attackerStats || !centerSquare) return;
+
+      const deltas = [-1, 0, 1];
+      const affected = [];
+      const seenPieces = new Set();
+
+      deltas.forEach((dr) => {
+        deltas.forEach((dc) => {
+          const square = getSquareAt(Number(centerSquare.dataset.row) + dr, Number(centerSquare.dataset.col) + dc);
+          const occupant = square?.querySelector('.piece');
+          if (!occupant || seenPieces.has(occupant)) return;
+          if (occupant.dataset.team !== attacker.dataset.team) return;
+          seenPieces.add(occupant);
+          const stats = pieceMap.get(occupant);
+          if (!stats) return;
+          stats.probabilidadTurns = PROBABILIDAD_DURATION;
+          affected.push({ piece: occupant, stats });
+        });
+      });
+
+      const recipientNames = affected.map(({ stats }) => stats.name).join(', ');
+      const message = affected.length
+        ? `${attackerStats.name} aplica Probabilidad sobre ${recipientNames}.`
+        : `${attackerStats.name} intenta aplicar Probabilidad, pero nadie se beneficia.`;
+
+      addHistoryEntry(attacker.dataset.team, message, {
+        attacker,
+        defenders: affected.map(({ piece }) => piece),
+      });
+
+      pendingAttackInfo = {
+        action: actionLabel('probabilidad'),
+        attackerName: attackerStats.name,
+        roll: '-',
+        targets: affected.map(({ stats }) => ({
+          name: stats.name,
+          success: true,
+          damage: 0,
+          vida: stats.currentVida,
+        })),
+      };
+
+      hideTooltip();
+      clearRangeHighlights();
+      clearTargetSelection(true);
+      attackButton.classList.remove('button--pulse');
+      updateCombatInfo();
+      finishTurn(attacker);
+    }
+
     function clearTargetSelection(preserveAttack = false) {
       squares.forEach((square) => square.classList.remove('square--target'));
       selectedTarget = null;
@@ -1809,7 +1901,7 @@
         return;
       }
       if (!selectedTarget) {
-        alert('Selecciona primero un enemigo dentro de tu rango.');
+        alert(actionKey === 'probabilidad' ? 'Selecciona primero un aliado dentro de tu rango.' : 'Selecciona primero un enemigo dentro de tu rango.');
         return;
       }
       const attackerSquare = getPieceSquare(attacker);
@@ -1818,6 +1910,10 @@
       if (!isWithinAttackRange(attackerSquare, targetSquare, maxRange)) {
         alert('El objetivo está fuera de rango.');
         clearTargetSelection();
+        return;
+      }
+      if (actionKey === 'probabilidad') {
+        applyProbabilidad(attacker, selectedTarget);
         return;
       }
       prepareAttackInfo(attacker, selectedTarget, actionKey);
@@ -1855,7 +1951,8 @@
       const targetPiece = square.querySelector('.piece');
 
       if (targetPiece && targetPiece !== activePiece) {
-        if (targetPiece.dataset.team === activePiece.dataset.team) return;
+        const isAllyTarget = targetPiece.dataset.team === activePiece.dataset.team;
+        if (isAllyTarget && currentAction !== 'probabilidad') return;
         const attackerSquare = getPieceSquare(activePiece);
         const maxRange = rangeForPiece(activePiece);
         if (!isWithinAttackRange(attackerSquare, square, maxRange)) {
@@ -1866,7 +1963,18 @@
         clearTargetSelection();
         square.classList.add('square--target');
         selectedTarget = targetPiece;
-        prepareAttackInfo(activePiece, targetPiece, currentAction);
+        if (currentAction === 'probabilidad') {
+          const attackerStats = pieceMap.get(activePiece);
+          const targetStats = pieceMap.get(targetPiece);
+          pendingAttackInfo = {
+            action: actionLabel('probabilidad'),
+            attackerName: attackerStats?.name,
+            defenderName: targetStats?.name,
+            note: 'Preparado para otorgar Probabilidad.',
+          };
+        } else {
+          prepareAttackInfo(activePiece, targetPiece, currentAction);
+        }
         return;
       }
 
@@ -2076,6 +2184,16 @@
       return { regenerated: false, message: '' };
     }
 
+    function consumeProbabilidadTurn(piece) {
+      const stats = pieceMap.get(piece);
+      if (!stats || !stats.probabilidadTurns) return { expired: false, message: '' };
+      stats.probabilidadTurns = Math.max(stats.probabilidadTurns - 1, 0);
+      if (stats.probabilidadTurns === 0) {
+        return { expired: true, message: `${stats.name} pierde Probabilidad.` };
+      }
+      return { expired: false, message: '' };
+    }
+
     function advanceTurn() {
       if (turnOrder.length === 0) return;
       turnIndex = (turnIndex + 1) % turnOrder.length;
@@ -2089,9 +2207,13 @@
       setHulkAnimation('espera');
       const regenResult = skipRegeneration ? { regenerated: false, message: '' } : applyRegeneration(piece);
       const stats = pieceMap.get(piece);
-      const baseSummary =
-        summaryOverride || latestActionMessage || (stats ? `${stats.name} finaliza su turno.` : 'Turno completado.');
-      const summary = regenResult?.regenerated ? `${baseSummary} ${regenResult.message}` : baseSummary;
+      const probabilityResult = consumeProbabilidadTurn(piece);
+      const summaryParts = [
+        summaryOverride || latestActionMessage || (stats ? `${stats.name} finaliza su turno.` : 'Turno completado.'),
+      ];
+      if (regenResult?.regenerated) summaryParts.push(regenResult.message);
+      if (probabilityResult?.expired) summaryParts.push(probabilityResult.message);
+      const summary = summaryParts.join(' ').trim();
       latestActionMessage = null;
       if (latestPopupContext) {
         latestPopupContext.message = summary;

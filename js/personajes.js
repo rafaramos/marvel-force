@@ -321,7 +321,7 @@ const personajes = {
     agilidad: 30,
     imagen: 'imagenes/bruja-escarlata.webp',
     poderes: poderesFuente.bruja-escarlata,
-    habilidades: { activas: ['incapacitar', 'probabilidad'], pasivas: [] },
+    habilidades: { activas: ['incapacitar', 'probabilidad'], pasivas: ['astucia'] },
   },
   thanos: {
     name: 'Thanos',

@@ -9,6 +9,87 @@ const poderes = {
     pasivos: [
     ],
   },
+  thor: {
+    activos: [],
+    pasivos: [],
+  },
+  'iron-man': {
+    activos: [
+      {
+        nombre: 'Explosión',
+        descripcion: 'Ataque de área que afecta al objetivo y a los adyacentes con una sola tirada.',
+      },
+    ],
+    pasivos: [
+      {
+        nombre: 'Astucia',
+        descripcion: 'Consigue crítico con 11 o 12 en la tirada de ataque.',
+      },
+      {
+        nombre: 'Regeneración',
+        descripcion: 'Recupera 1 punto de vida al final de su turno si no está al máximo.',
+      },
+    ],
+  },
+  hulka: {
+    activos: [],
+    pasivos: [],
+  },
+  'bruja-escarlata': {
+    activos: [
+      {
+        nombre: 'Probabilidad',
+        descripcion:
+          'Bendice a un aliado y a las casillas adyacentes: los afectados mejoran su crítico durante 2 turnos.',
+      },
+    ],
+    pasivos: [
+      {
+        nombre: 'Astucia',
+        descripcion: 'Consigue crítico con 11 o 12 en la tirada de ataque.',
+      },
+    ],
+  },
+  thanos: {
+    activos: [],
+    pasivos: [
+      {
+        nombre: 'Regeneración',
+        descripcion: 'Recupera 1 punto de vida al final de su turno si no está al máximo.',
+      },
+    ],
+  },
+  magneto: {
+    activos: [],
+    pasivos: [],
+  },
+  kang: {
+    activos: [
+      {
+        nombre: 'Pulso',
+        descripcion: 'Impacta en área a todo lo que esté dentro de su rango sin elegir un objetivo concreto.',
+      },
+      {
+        nombre: 'Incapacitar',
+        descripcion: 'Aturde a su objetivo si impacta, obligándolo a perder su siguiente turno.',
+      },
+    ],
+    pasivos: [
+      {
+        nombre: 'Fase',
+        descripcion: 'Puede moverse a través de aliados y enemigos, pero nunca terminar en una casilla ocupada.',
+      },
+    ],
+  },
+  'super-skrull': {
+    activos: [
+      {
+        nombre: 'Incapacitar',
+        descripcion: 'Aturde a su objetivo si impacta, obligándolo a perder su siguiente turno.',
+      },
+    ],
+    pasivos: [],
+  },
   hulk: {
     activos: [
     ],
