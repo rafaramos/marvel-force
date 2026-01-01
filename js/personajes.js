@@ -346,7 +346,7 @@ const personajes = {
   thanos: {
     name: 'Thanos',
     movimiento: 12,
-    ataque: 135,
+    ataque: 15,
     defensa: 18,
     danoCC: 4,
     danoAD: 4,
