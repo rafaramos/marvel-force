@@ -636,48 +636,71 @@ function wait(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function shouldUseIncapacitar(attackerStats, targetStats) {
+function shouldUseIncapacitar(attackerStats, targetStats, expectedDamage = 0) {
   if (!attackerStats || !targetStats) return false;
   const targetResilience = (targetStats.resistenciaCC ?? 0) + (targetStats.resistenciaAD ?? 0);
   const targetThreat = targetStats.ataque ?? 0;
   const targetVida = targetStats.currentVida ?? targetStats.vida ?? 0;
-  const potentialDamage = Math.max(attackerStats.danoCC ?? 0, attackerStats.danoAD ?? 0);
-  const canHurtEasily = targetResilience <= 0 || targetVida <= potentialDamage + 2;
+  const canHurtEasily = targetVida <= expectedDamage + 1;
   const lowThreat = targetThreat <= 9;
-  return !(canHurtEasily && lowThreat);
+  return expectedDamage < 1 && !(canHurtEasily && lowThreat) && targetResilience >= 2;
+}
+
+function expectedDamage(attackerStats, targetStats, distance) {
+  const isMelee = distance <= 1;
+  const baseDamage = isMelee ? attackerStats.danoCC ?? 0 : attackerStats.danoAD ?? 0;
+  const resistance = isMelee ? targetStats.resistenciaCC ?? 0 : targetStats.resistenciaAD ?? 0;
+  return Math.max(baseDamage - resistance, 0);
+}
+
+function bestVillainDecision(piece) {
+  const attackerStats = pieceMap.get(piece);
+  const origin = getPieceSquare(piece);
+  const reachable = reachableSquares(piece);
+  const candidates = [];
+  reachable.forEach((distance, square) => {
+    const occupant = square.querySelector('.piece');
+    if (square !== origin && occupant) return;
+    candidates.push({ square, distance });
+  });
+
+  const heroes = livingPieces(HERO_TEAM);
+  let best = null;
+
+  candidates.forEach(({ square, distance }) => {
+    heroes.forEach((hero) => {
+      const heroSquare = getPieceSquare(hero);
+      if (!heroSquare) return;
+      if (!isWithinAttackRange(square, heroSquare, rangeForPiece(piece))) return;
+
+      const targetStats = pieceMap.get(hero);
+      const attackDistanceValue = attackDistance(square, heroSquare);
+      const damage = expectedDamage(attackerStats, targetStats, attackDistanceValue);
+      const canIncapacitate =
+        hasActive(attackerStats, 'incapacitar') && shouldUseIncapacitar(attackerStats, targetStats, damage);
+      const ability = canIncapacitate ? 'incapacitar' : null;
+      const damageScore = ability ? targetStats.ataque + targetStats.defensa : damage * 10;
+      const finisherBonus = ability ? 0 : targetStats.currentVida <= damage ? 5 : 0;
+      const movePenalty = distance * 0.1;
+      const score = damageScore + finisherBonus - movePenalty;
+
+      if (!best || score > best.score) {
+        best = {
+          target: hero,
+          targetSquare: heroSquare,
+          square,
+          distance,
+          ability,
+          score,
+        };
+      }
+    });
+  });
+
+  return best;
 }
 
 async function runVillainTurn(piece) {
-  const attackIfPossible = async () => {
-    const stats = pieceMap.get(piece);
-    const heroes = livingPieces(HERO_TEAM);
-    const attackerSquare = getPieceSquare(piece);
-    const inRange = heroes.find((hero) => {
-      const targetSquare = getPieceSquare(hero);
-      if (!targetSquare) return false;
-      return isWithinAttackRange(attackerSquare, targetSquare, rangeForPiece(piece));
-    });
-    if (inRange) {
-      const targetSquare = getPieceSquare(inRange);
-      clearTargetSelection(true);
-      clearHighlights();
-      if (targetSquare) {
-        targetSquare.classList.add('square--target');
-      }
-      highlightRange(piece);
-      const abilityToUse =
-        hasActive(stats, 'incapacitar') && shouldUseIncapacitar(stats, pieceMap.get(inRange))
-          ? 'incapacitar'
-          : null;
-      prepareAttackInfo(piece, inRange, abilityToUse);
-      updateStatusBar(piece);
-      await wait(1500);
-      resolveAttack(piece, inRange, { ability: abilityToUse });
-      return true;
-    }
-    return false;
-  };
-
   if (!isAlive(piece)) {
     nextTurn();
     return;
@@ -689,29 +712,35 @@ async function runVillainTurn(piece) {
   updateStatusBar(piece);
   await wait(1200);
 
-  if (await attackIfPossible()) return;
+  const decision = bestVillainDecision(piece);
 
-  const target = closestHeroTarget(piece);
-  if (target) {
-    const moveTo = bestSquareTowardHeroes(piece);
-    if (moveTo) {
+  if (decision) {
+    const origin = getPieceSquare(piece);
+    if (decision.square && decision.square !== origin) {
       const reachable = reachableSquares(piece);
-      const distance = reachable.get(moveTo) ?? attackDistance(getPieceSquare(piece), moveTo);
-      moveTo.classList.add('square--target');
+      const moveDistance = reachable.get(decision.square) ?? attackDistance(origin, decision.square);
+      decision.square.classList.add('square--target');
       await wait(1000);
-      moveTo.appendChild(piece);
-      spendMovement(piece, distance);
+      decision.square.appendChild(piece);
+      spendMovement(piece, moveDistance);
       clearRangeHighlights();
       highlightMovement(piece);
       highlightRange(piece);
       await wait(1000);
     }
+
+    clearTargetSelection(true);
+    clearHighlights();
+    if (decision.targetSquare) {
+      decision.targetSquare.classList.add('square--target');
+    }
+    highlightRange(piece);
+    prepareAttackInfo(piece, decision.target, decision.ability);
+    updateStatusBar(piece);
+    await wait(1500);
+    resolveAttack(piece, decision.target, { ability: decision.ability });
+    return;
   }
-
-  renderLifeCards();
-  updateStatusBar(piece);
-
-  if (await attackIfPossible()) return;
 
   clearHighlights();
   finishTurn(piece);
