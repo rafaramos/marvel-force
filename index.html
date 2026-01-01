@@ -1840,6 +1840,10 @@
       });
 
       const recipientNames = affected.map(({ stats }) => stats.name).join(', ');
+      if (affected.length > 0) {
+        addPoints(attacker, affected.length * 10);
+        renderLifeCards();
+      }
       const message = affected.length
         ? `${attackerStats.name} aplica Probabilidad sobre ${recipientNames}.`
         : `${attackerStats.name} intenta aplicar Probabilidad, pero nadie se beneficia.`;
@@ -2086,9 +2090,10 @@
       const targetThreat = targetStats.ataque ?? 0;
       const targetVida = targetStats.currentVida ?? targetStats.vida ?? 0;
       const potentialDamage = Math.max(attackerStats.danoCC ?? 0, attackerStats.danoAD ?? 0);
-      const canHurtEasily = targetResilience <= 0 || targetVida <= potentialDamage + 2;
-      const lowThreat = targetThreat <= 9;
-      return !(canHurtEasily && lowThreat);
+      const canLikelyFinish = targetVida <= potentialDamage + 4;
+      const tanky = targetResilience > 0 && targetVida > potentialDamage + 6;
+      const veryDangerous = targetThreat >= 11;
+      return (tanky || veryDangerous) && !canLikelyFinish;
     }
 
     function selectBestEnemyAction(piece, targetPiece) {
