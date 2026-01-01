@@ -275,7 +275,7 @@ const personajes = {
     poderes: poderesFuente.thor,
     habilidades: { activas: [], pasivas: [] },
   },
-  ironman: {
+  iron-man: {
     name: 'Iron Man',
     movimiento: 12,
     ataque: 10,
@@ -287,8 +287,8 @@ const personajes = {
     rango: 5,
     vida: 9,
     agilidad: 30,
-    imagen: 'imagenes/ironman.webp',
-    poderes: poderesFuente.ironman,
+    imagen: 'imagenes/iron-man.webp',
+    poderes: poderesFuente.iron-man,
     habilidades: { activas: ['explosion'], pasivas: ['astucia', 'regeneración'] },
   },
   hulka: {
@@ -307,7 +307,7 @@ const personajes = {
     poderes: poderesFuente.hulka,
     habilidades: { activas: [], pasivas: [] },
   },
-  brujaescarlata: {
+  bruja-escarlata: {
     name: 'Bruja Escarlata',
     movimiento: 6,
     ataque: 8,
@@ -319,8 +319,8 @@ const personajes = {
     rango: 4,
     vida: 5,
     agilidad: 30,
-    imagen: 'imagenes/brujaescarlata.webp',
-    poderes: poderesFuente.brujaescarlata,
+    imagen: 'imagenes/bruja-escarlata.webp',
+    poderes: poderesFuente.bruja-escarlata,
     habilidades: { activas: ['incapacitar', 'probabilidad'], pasivas: [] },
   },
   thanos: {
@@ -371,7 +371,7 @@ const personajes = {
     poderes: poderesFuente.kang,
     habilidades: { activas: ['pulso', 'incapacitar'], pasivas: ['fase'] },
   },
-  superskrull: {
+  super-skrull: {
     name: 'Súper Skrull',
     movimiento: 8,
     ataque: 11,
@@ -383,8 +383,8 @@ const personajes = {
     rango: 4,
     vida: 9,
     agilidad: 30,
-    imagen: 'imagenes/superskrull.webp',
-    poderes: poderesFuente.superskrull,
+    imagen: 'imagenes/super-skrull.webp',
+    poderes: poderesFuente.super-skrull,
     habilidades: { activas: ['incapacitar'], pasivas: [] },
   },
 };
