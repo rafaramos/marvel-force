@@ -1827,10 +1827,8 @@
       finishTurn(attacker);
     }
 
-    function applyProbabilidad(attacker, target) {
-      const attackerStats = pieceMap.get(attacker);
-      const centerSquare = getPieceSquare(target);
-      if (!attackerStats || !centerSquare) return;
+    function alliedPiecesInRange1(centerSquare, team) {
+      if (!centerSquare) return [];
 
       const directions = [
         [0, 0],
@@ -1840,40 +1838,54 @@
         [0, -1],
       ];
 
-      const affected = [];
+      const allies = [];
       const seenPieces = new Set();
 
       directions.forEach(([dr, dc]) => {
         const square = getSquareAt(Number(centerSquare.dataset.row) + dr, Number(centerSquare.dataset.col) + dc);
         const occupant = square?.querySelector('.piece');
         if (!occupant || seenPieces.has(occupant)) return;
-        if (occupant.dataset.team !== attacker.dataset.team) return;
+        if (occupant.dataset.team !== team) return;
         seenPieces.add(occupant);
-        const stats = pieceMap.get(occupant);
-        if (!stats) return;
-        stats.probabilidadTurns = PROBABILIDAD_DURATION;
-        affected.push({ piece: occupant, stats });
+        allies.push(occupant);
       });
 
-      const recipientNames = affected.map(({ stats }) => stats.name).join(', ');
-      if (affected.length > 0) {
-        addPoints(attacker, affected.length * 10);
+      return allies;
+    }
+
+    function applyProbabilidad(attacker, target) {
+      const attackerStats = pieceMap.get(attacker);
+      const centerSquare = getPieceSquare(target);
+      if (!attackerStats || !centerSquare) return;
+
+      const affected = alliedPiecesInRange1(centerSquare, attacker.dataset.team).map((piece) => {
+        const stats = pieceMap.get(piece);
+        if (!stats) return null;
+        stats.probabilidadTurns = PROBABILIDAD_DURATION;
+        return { piece, stats };
+      });
+
+      const validAffected = affected.filter(Boolean);
+
+      const recipientNames = validAffected.map(({ stats }) => stats.name).join(', ');
+      if (validAffected.length > 0) {
+        addPoints(attacker, validAffected.length * 10);
         renderLifeCards();
       }
-      const message = affected.length
+      const message = validAffected.length
         ? `${attackerStats.name} aplica Probabilidad sobre ${recipientNames}.`
         : `${attackerStats.name} intenta aplicar Probabilidad, pero nadie se beneficia.`;
 
       addHistoryEntry(attacker.dataset.team, message, {
         attacker,
-        defenders: affected.map(({ piece }) => piece),
+        defenders: validAffected.map(({ piece }) => piece),
       });
 
       pendingAttackInfo = {
         action: actionLabel('probabilidad'),
         attackerName: attackerStats.name,
         roll: '-',
-        targets: affected.map(({ stats }) => ({
+        targets: validAffected.map(({ stats }) => ({
           name: stats.name,
           success: true,
           damage: 0,
