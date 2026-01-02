@@ -436,18 +436,17 @@ function prepareAttackInfo(attacker, defender, ability = null) {
   updateCombatInfo();
 }
 
-function resolveAttack(attacker, defender, { ability = null } = {}) {
-  const attackerStats = pieceMap.get(attacker);
-  const defenderStats = pieceMap.get(defender);
-  const attackerSquare = getPieceSquare(attacker);
-  const targetSquare = getPieceSquare(defender);
-  const distance = attackDistance(attackerSquare, targetSquare);
-
+function calculateAttackRoll(attackerStats) {
   const die1 = Math.floor(Math.random() * 6) + 1;
   const die2 = Math.floor(Math.random() * 6) + 1;
   const roll = die1 + die2;
-  const astuto = hasPassive(attackerStats, 'astucia');
-  const critical = roll === 12 || (astuto && roll === 11);
+  const critical = roll === 12 || (hasPassive(attackerStats, 'astucia') && roll === 11);
+  return { roll, critical };
+}
+
+function buildAttackInfo(attackerStats, defenderStats, distance, rollInfo, ability) {
+  const { roll, critical } = rollInfo;
+  const { totalDamage, garrasRoll } = calculateDamage(attackerStats, defenderStats, distance, critical);
   let success = false;
   if (critical) {
     success = true;
@@ -456,11 +455,24 @@ function resolveAttack(attacker, defender, { ability = null } = {}) {
   } else if (roll + attackerStats.ataque >= defenderStats.defensa) {
     success = true;
   }
+  const inflictedDamage = success && ability !== 'incapacitar' ? totalDamage : 0;
+  return {
+    roll,
+    critical,
+    success,
+    totalDamage,
+    inflictedDamage,
+    garrasRoll,
+  };
+}
 
-  const { totalDamage, garrasRoll } = calculateDamage(attackerStats, defenderStats, distance, critical);
-  if (success) {
-    const inflictedDamage = ability === 'incapacitar' ? 0 : totalDamage;
-    defenderStats.currentVida = Math.max(defenderStats.currentVida - inflictedDamage, 0);
+function applyAttackOutcome(attacker, defender, outcome, ability, { skipFinish = false } = {}) {
+  const attackerStats = pieceMap.get(attacker);
+  const defenderStats = pieceMap.get(defender);
+  if (!attackerStats || !defenderStats) return;
+
+  if (outcome.success) {
+    defenderStats.currentVida = Math.max(defenderStats.currentVida - outcome.inflictedDamage, 0);
     if (ability === 'incapacitar') {
       defenderStats.skipTurns = (defenderStats.skipTurns ?? 0) + 1;
     }
@@ -470,29 +482,85 @@ function resolveAttack(attacker, defender, { ability = null } = {}) {
     attacker: attackerStats.ataque,
     defender: defenderStats.defensa,
     difference: attackerStats.ataque - defenderStats.defensa,
-    roll,
-    success,
-    critical,
-    damage: success ? (ability === 'incapacitar' ? 0 : totalDamage) : 0,
+    roll: outcome.roll,
+    success: outcome.success,
+    critical: outcome.critical,
+    damage: outcome.success ? (ability === 'incapacitar' ? 0 : outcome.totalDamage) : 0,
     defenderVida: defenderStats.currentVida,
     attackerName: attackerStats.name,
     defenderName: defenderStats.name,
     action: ability ? powerLabel(ability) : 'Ataque',
-    damageRoll: garrasRoll,
+    damageRoll: outcome.garrasRoll,
   };
 
   appendHistory(attacker, defender);
 
-  if (success && defenderStats.currentVida <= 0) {
+  if (outcome.success && defenderStats.currentVida <= 0) {
     eliminatePiece(defender);
   }
 
   renderLifeCards();
   hideTooltip();
+  if (!skipFinish) {
+    clearRangeHighlights();
+    selectedTarget = null;
+    attackButton.classList.remove('button--pulse');
+    updateCombatInfo();
+    finishTurn(attacker);
+  } else {
+    updateCombatInfo();
+  }
+}
+
+function resolveAttack(attacker, defender, { ability = null, rollInfo = null, skipFinish = false } = {}) {
+  const attackerStats = pieceMap.get(attacker);
+  const defenderStats = pieceMap.get(defender);
+  const attackerSquare = getPieceSquare(attacker);
+  const targetSquare = getPieceSquare(defender);
+  const distance = attackDistance(attackerSquare, targetSquare);
+
+  const roll = rollInfo ?? calculateAttackRoll(attackerStats);
+  const outcome = buildAttackInfo(attackerStats, defenderStats, distance, roll, ability);
+  applyAttackOutcome(attacker, defender, outcome, ability, { skipFinish });
+}
+
+function squaresInRange1(centerSquare) {
+  const row = Number(centerSquare.dataset.row);
+  const col = Number(centerSquare.dataset.col);
+  const positions = [
+    [row, col],
+    [row + 1, col],
+    [row - 1, col],
+    [row, col + 1],
+    [row, col - 1],
+  ];
+  return positions.map(([r, c]) => getSquareAt(r, c)).filter(Boolean);
+}
+
+function resolveAreaAttack(attacker, centerSquare, ability) {
+  const attackerStats = pieceMap.get(attacker);
+  if (!attackerStats) return;
+  const targets = Array.from(
+    new Set(
+      squaresInRange1(centerSquare)
+        .map((square) => square.querySelector('.piece'))
+        .filter((piece) => piece && piece !== attacker && isAlive(piece))
+    )
+  );
+
+  if (targets.length === 0) {
+    alert('No hay objetivos en el área.');
+    return;
+  }
+
+  const rollInfo = calculateAttackRoll(attackerStats);
+  targets.forEach((target) => {
+    resolveAttack(attacker, target, { ability, rollInfo, skipFinish: true });
+  });
+
   clearRangeHighlights();
   selectedTarget = null;
   attackButton.classList.remove('button--pulse');
-  updateCombatInfo();
   finishTurn(attacker);
 }
 
@@ -513,15 +581,27 @@ function clearTargetSelection(preserveAttack = false) {
 function performAttackAction(ability = null) {
   const attacker = turnOrder[turnIndex];
   if (!attacker || !isHero(attacker)) return;
-  if (!selectedTarget) {
+  const attackerSquare = getPieceSquare(attacker);
+  const targetSquare = selectedTarget ? getPieceSquare(selectedTarget) : null;
+  const maxRange = rangeForPiece(attacker);
+
+  if (ability === 'pulso' && !selectedTarget) {
+    resolveAreaAttack(attacker, attackerSquare, ability);
+    return;
+  }
+
+  if (!targetSquare) {
     alert('Selecciona primero un enemigo dentro de tu rango.');
     return;
   }
-  const attackerSquare = getPieceSquare(attacker);
-  const targetSquare = getPieceSquare(selectedTarget);
-  const maxRange = rangeForPiece(attacker);
+
   if (!isWithinAttackRange(attackerSquare, targetSquare, maxRange)) {
     alert('El objetivo está fuera de rango.');
+    return;
+  }
+
+  if (ability === 'explosion' || ability === 'pulso') {
+    resolveAreaAttack(attacker, targetSquare, ability);
     return;
   }
   prepareAttackInfo(attacker, selectedTarget, ability);
