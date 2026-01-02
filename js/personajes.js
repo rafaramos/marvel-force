@@ -94,7 +94,7 @@ const personajes = {
     ataque: 11,
     defensa: 15,
     danoCC: 2,
-    danoAD: 4,
+    danoAD: 3,
     resistenciaCC: 0,
     resistenciaAD: 2,
     rango: 5,
