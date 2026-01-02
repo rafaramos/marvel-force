@@ -1187,13 +1187,13 @@
       });
     }
 
-    function isWithinAttackRange(attackerSquare, targetSquare, maxRange) {
+    function isWithinAttackRange(attackerSquare, targetSquare, maxRange, { includeOrigin = false } = {}) {
       const attackerRow = Number(attackerSquare.dataset.row);
       const attackerCol = Number(attackerSquare.dataset.col);
       const targetRow = Number(targetSquare.dataset.row);
       const targetCol = Number(targetSquare.dataset.col);
       const distance = Math.abs(targetRow - attackerRow) + Math.abs(targetCol - attackerCol);
-      return distance > 0 && distance <= maxRange;
+      return distance <= maxRange && (includeOrigin ? distance >= 0 : distance > 0);
     }
 
     function highlightRange(piece) {
@@ -1826,22 +1826,27 @@
       const centerSquare = getPieceSquare(target);
       if (!attackerStats || !centerSquare) return;
 
-      const deltas = [-1, 0, 1];
+      const directions = [
+        [0, 0],
+        [1, 0],
+        [-1, 0],
+        [0, 1],
+        [0, -1],
+      ];
+
       const affected = [];
       const seenPieces = new Set();
 
-      deltas.forEach((dr) => {
-        deltas.forEach((dc) => {
-          const square = getSquareAt(Number(centerSquare.dataset.row) + dr, Number(centerSquare.dataset.col) + dc);
-          const occupant = square?.querySelector('.piece');
-          if (!occupant || seenPieces.has(occupant)) return;
-          if (occupant.dataset.team !== attacker.dataset.team) return;
-          seenPieces.add(occupant);
-          const stats = pieceMap.get(occupant);
-          if (!stats) return;
-          stats.probabilidadTurns = PROBABILIDAD_DURATION;
-          affected.push({ piece: occupant, stats });
-        });
+      directions.forEach(([dr, dc]) => {
+        const square = getSquareAt(Number(centerSquare.dataset.row) + dr, Number(centerSquare.dataset.col) + dc);
+        const occupant = square?.querySelector('.piece');
+        if (!occupant || seenPieces.has(occupant)) return;
+        if (occupant.dataset.team !== attacker.dataset.team) return;
+        seenPieces.add(occupant);
+        const stats = pieceMap.get(occupant);
+        if (!stats) return;
+        stats.probabilidadTurns = PROBABILIDAD_DURATION;
+        affected.push({ piece: occupant, stats });
       });
 
       const recipientNames = affected.map(({ stats }) => stats.name).join(', ');
@@ -1906,7 +1911,8 @@
       const attackerSquare = getPieceSquare(attacker);
       const targetSquare = getPieceSquare(selectedTarget);
       const maxRange = rangeForPiece(attacker);
-      if (!isWithinAttackRange(attackerSquare, targetSquare, maxRange)) {
+      const includeOrigin = actionKey === 'probabilidad';
+      if (!isWithinAttackRange(attackerSquare, targetSquare, maxRange, { includeOrigin })) {
         alert('El objetivo está fuera de rango.');
         clearTargetSelection();
         return;
@@ -1949,12 +1955,20 @@
 
       const targetPiece = square.querySelector('.piece');
 
-      if (targetPiece && targetPiece !== activePiece) {
+      if (targetPiece) {
+        const isSamePiece = targetPiece === activePiece;
         const isAllyTarget = targetPiece.dataset.team === activePiece.dataset.team;
-        if (isAllyTarget && currentAction !== 'probabilidad') return;
+
+        if (currentAction === 'probabilidad') {
+          if (!isAllyTarget) return;
+        } else {
+          if (isAllyTarget || isSamePiece) return;
+        }
+
         const attackerSquare = getPieceSquare(activePiece);
         const maxRange = rangeForPiece(activePiece);
-        if (!isWithinAttackRange(attackerSquare, square, maxRange)) {
+        const includeOrigin = currentAction === 'probabilidad';
+        if (!isWithinAttackRange(attackerSquare, square, maxRange, { includeOrigin })) {
           alert('Objetivo fuera de rango.');
           clearTargetSelection();
           return;
