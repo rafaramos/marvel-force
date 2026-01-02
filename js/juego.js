@@ -20,6 +20,24 @@ const POWER_LABELS = {
 
 const squareByCoord = new Map();
 
+const FLYING_CHARACTERS = new Set([
+  'avispa',
+  'duende',
+  'magneto',
+  'ultron',
+  'chaquetaAmarilla',
+  'antorcha',
+  'thor',
+  'iron-man',
+  'super-skrull',
+  'doom',
+  'thanos',
+]);
+
+const PHASING_CHARACTERS = new Set(['kang']);
+
+const LEAPING_CHARACTERS = new Set(['hulk', 'spider', 'hulka']);
+
 squares.forEach((square, index) => {
   const row = Math.floor(index / 8) + 1;
   const col = (index % 8) + 1;
@@ -48,6 +66,11 @@ function livingPieces(team) {
 
 function hasPassive(stats, power) {
   return stats?.poderes?.pasivos?.includes(power);
+}
+
+function canTraverseEnemies(piece) {
+  const key = piece?.dataset?.key;
+  return FLYING_CHARACTERS.has(key) || PHASING_CHARACTERS.has(key) || LEAPING_CHARACTERS.has(key);
 }
 
 function hasActive(stats, power) {
@@ -159,7 +182,7 @@ function reachableSquares(piece) {
 
       const occupant = neighbor.querySelector('.piece');
       if (occupant && occupant !== piece && occupant.dataset.team !== piece.dataset.team) {
-        return;
+        if (!canTraverseEnemies(piece)) return;
       }
 
       const nextDistance = distance + 1;
