@@ -1738,17 +1738,23 @@
     function resolvePulse(attacker) {
       const attackerStats = pieceMap.get(attacker);
       const attackerSquare = getPieceSquare(attacker);
-      const maxRange = rangeForPiece(attacker);
-
       const affectedPieces = [];
       let totalDamageDealt = 0;
-      squares.forEach((square) => {
-        const occupant = square.querySelector('.piece');
+
+      const CROSS_OFFSETS = [
+        [1, 0],
+        [-1, 0],
+        [0, 1],
+        [0, -1],
+      ];
+
+      CROSS_OFFSETS.forEach(([dr, dc]) => {
+        const row = Number(attackerSquare.dataset.row) + dr;
+        const col = Number(attackerSquare.dataset.col) + dc;
+        const square = getSquareAt(row, col);
+        const occupant = square?.querySelector('.piece');
         if (!occupant) return;
-        const distance = attackDistance(attackerSquare, square);
-        if (distance <= maxRange) {
-          affectedPieces.push({ piece: occupant, square, distance });
-        }
+        affectedPieces.push({ piece: occupant, square, distance: 1 });
       });
 
       const targetsSummary = [];
