@@ -1646,23 +1646,28 @@
       const critical = isCriticalRoll(attackerStats, roll);
       const baseDamage = attackerStats.danoAD;
 
-      const deltas = [-1, 0, 1];
       const affectedPieces = [];
       const seenPieces = new Set();
       let totalDamageDealt = 0;
       let anySuccess = false;
 
-      deltas.forEach((dr) => {
-        deltas.forEach((dc) => {
-          const row = Number(centerSquare.dataset.row) + dr;
-          const col = Number(centerSquare.dataset.col) + dc;
-          const square = getSquareAt(row, col);
-          if (!square) return;
-          const piece = square.querySelector('.piece');
-          if (!piece || seenPieces.has(piece)) return;
-          seenPieces.add(piece);
-          affectedPieces.push({ piece, square });
-        });
+      const CROSS_OFFSETS = [
+        [0, 0],
+        [1, 0],
+        [-1, 0],
+        [0, 1],
+        [0, -1],
+      ];
+
+      CROSS_OFFSETS.forEach(([dr, dc]) => {
+        const row = Number(centerSquare.dataset.row) + dr;
+        const col = Number(centerSquare.dataset.col) + dc;
+        const square = getSquareAt(row, col);
+        if (!square) return;
+        const piece = square.querySelector('.piece');
+        if (!piece || seenPieces.has(piece)) return;
+        seenPieces.add(piece);
+        affectedPieces.push({ piece, square });
       });
 
       const targetsSummary = [];
