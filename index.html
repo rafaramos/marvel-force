@@ -1197,6 +1197,76 @@
       return square?.querySelector('.piece, .object');
     }
 
+    function squareHasObject(square) {
+      return Boolean(square?.querySelector('.object'));
+    }
+
+    function squareHasVegetation(square) {
+      if (!square) return false;
+      const terrain = square.dataset.terrain?.toLowerCase();
+      return (
+        square.classList.contains('square--bush') ||
+        square.classList.contains('square--tree') ||
+        terrain === 'arbusto' ||
+        terrain === 'arbol' ||
+        terrain === 'árbol'
+      );
+    }
+
+    function hasObjectBetween(attackerSquare, defenderSquare) {
+      if (!attackerSquare || !defenderSquare) return false;
+      const attackerRow = Number(attackerSquare.dataset.row);
+      const attackerCol = Number(attackerSquare.dataset.col);
+      const defenderRow = Number(defenderSquare.dataset.row);
+      const defenderCol = Number(defenderSquare.dataset.col);
+
+      if (attackerRow === defenderRow) {
+        const startCol = Math.min(attackerCol, defenderCol) + 1;
+        const endCol = Math.max(attackerCol, defenderCol) - 1;
+        for (let col = startCol; col <= endCol; col += 1) {
+          if (squareHasObject(getSquareAt(attackerRow, col))) return true;
+        }
+      }
+
+      if (attackerCol === defenderCol) {
+        const startRow = Math.min(attackerRow, defenderRow) + 1;
+        const endRow = Math.max(attackerRow, defenderRow) - 1;
+        for (let row = startRow; row <= endRow; row += 1) {
+          if (squareHasObject(getSquareAt(row, attackerCol))) return true;
+        }
+      }
+
+      const rowStep = defenderRow === attackerRow ? 0 : defenderRow > attackerRow ? -1 : 1;
+      const colStep = defenderCol === attackerCol ? 0 : defenderCol > attackerCol ? -1 : 1;
+      const adjacentSquares = [
+        getSquareAt(defenderRow + rowStep, defenderCol),
+        getSquareAt(defenderRow, defenderCol + colStep),
+        getSquareAt(defenderRow + rowStep, defenderCol + colStep),
+      ];
+
+      return adjacentSquares.some((square) => squareHasObject(square));
+    }
+
+    function computeDefenseBonus(attackerSquare, defenderSquare, defenderStats) {
+      let bonus = 0;
+      const sources = [];
+      if (!attackerSquare || !defenderSquare || !defenderStats) return { bonus, sources };
+      const hasStealth = hasPassive(defenderStats, 'sigilo');
+      const coverBonus = hasStealth ? 2 : 1;
+
+      if (hasObjectBetween(attackerSquare, defenderSquare)) {
+        bonus += coverBonus;
+        sources.push(`Objetivo +${coverBonus}`);
+      }
+
+      if (squareHasVegetation(defenderSquare)) {
+        bonus += coverBonus;
+        sources.push(`Vegetación +${coverBonus}`);
+      }
+
+      return { bonus, sources };
+    }
+
     function computeReachableSquares(piece) {
       const origin = getPieceSquare(piece);
       if (!origin) return;
@@ -1347,11 +1417,12 @@
     }
 
     function evaluateAttackRoll(attackerStats, defenderStats, roll, distance, options = {}) {
-      const { allowCounter = false } = options;
+      const { allowCounter = false, defenseOverride = null } = options;
       const critical = isCriticalRoll(attackerStats, roll);
       const isPifia = roll === 2;
       const isMelee = distance <= 1;
       const defenderCanRanged = effectiveRangeFromStats(defenderStats) > 1;
+      const defenseTarget = defenseOverride ?? defenderStats.defensa;
 
       let success = false;
 
@@ -1359,17 +1430,17 @@
         success = true;
       } else if (isPifia) {
         if (isMelee || defenderCanRanged) {
-          success = roll + attackerStats.ataque >= defenderStats.defensa;
+          success = roll + attackerStats.ataque >= defenseTarget;
         } else {
           success = false;
         }
       } else {
-        success = roll + attackerStats.ataque >= defenderStats.defensa;
+        success = roll + attackerStats.ataque >= defenseTarget;
       }
 
       const shouldCounter = allowCounter && isPifia && (isMelee || defenderCanRanged);
 
-      return { success, critical, isPifia, shouldCounter };
+      return { success, critical, isPifia, shouldCounter, defenseTarget };
     }
 
     function hasProbabilidad(stats) {
@@ -1476,9 +1547,33 @@
       return 'Ataque';
     }
 
-    function neededRollToHit(attackerStats, defenderStats) {
+    function defenseContext(attacker, defender) {
+      const defenderStats = pieceMap.get(defender);
+      const attackerSquare = getPieceSquare(attacker);
+      const defenderSquare = getPieceSquare(defender);
+      if (!defenderStats) {
+        return {
+          defenseValue: 0,
+          defenseBonus: 0,
+          defenseSources: [],
+          attackerSquare,
+          defenderSquare,
+        };
+      }
+      const { bonus, sources } = computeDefenseBonus(attackerSquare, defenderSquare, defenderStats);
+      return {
+        defenseValue: defenderStats.defensa + bonus,
+        defenseBonus: bonus,
+        defenseSources: sources,
+        attackerSquare,
+        defenderSquare,
+      };
+    }
+
+    function neededRollToHit(attackerStats, defenderStats, defenseOverride = null) {
       if (!attackerStats || !defenderStats) return 0;
-      const delta = defenderStats.defensa - attackerStats.ataque;
+      const defenseValue = defenseOverride ?? defenderStats.defensa;
+      const delta = defenseValue - attackerStats.ataque;
       return Math.max(4, delta);
     }
 
@@ -1496,15 +1591,19 @@
         critical,
         baseDamageBeforeClaws,
         baseDamageAfterClaws,
+        defenseValue,
+        defenseSources = [],
       }) {
-        const need = neededRollToHit(attackerStats, defenderStats);
+        const defenseTarget = defenseValue ?? defenderStats.defensa;
+        const need = neededRollToHit(attackerStats, defenderStats, defenseTarget);
         const attackTypeLabel = isMelee ? 'ataque cuerpo a cuerpo' : 'ataque a distancia';
         const resistanceLabel = isMelee ? 'resistencia cuerpo a cuerpo' : 'resistencia de ataque a distancia';
         const baseDamage = rawDamage ?? damage;
         const inflictedDamage = success && actionKey !== 'incapacitar' ? damage : 0;
+        const defenseBonusLabel = defenseSources.length ? ` (Bonificación: ${defenseSources.join(', ')})` : '';
 
         if (actionKey === 'incapacitar') {
-          const opening = `${attackerStats.name} realiza un ataque de Incapacitación con ${attackerStats.ataque} a ${defenderStats.name} que defiende con ${defenderStats.defensa}.`;
+          const opening = `${attackerStats.name} realiza un ataque de Incapacitación con ${attackerStats.ataque} a ${defenderStats.name} que defiende con ${defenseTarget}${defenseBonusLabel}.`;
           const rollLine = `${attackerStats.name} necesita un ${need} y ${roll ? `consigue un ${roll}.` : 'prepara la tirada.'}`;
           const resultLine = success
             ? `${attackerStats.name} incapacita a ${defenderStats.name}.`
@@ -1512,7 +1611,7 @@
           return `${opening} ${rollLine} ${resultLine}`;
         }
 
-        const opening = `${attackerStats.name} realiza un ${attackTypeLabel} con ${attackerStats.ataque} a ${defenderStats.name} que defiende con ${defenderStats.defensa}.`;
+        const opening = `${attackerStats.name} realiza un ${attackTypeLabel} con ${attackerStats.ataque} a ${defenderStats.name} que defiende con ${defenseTarget}${defenseBonusLabel}.`;
         const rollLine = `${attackerStats.name} necesita un ${need} y ${roll ? `consigue un ${roll}${critical ? ' (Crítico)' : ''}.` : 'prepara la tirada.'}`;
 
         if (!success) {
@@ -1571,11 +1670,15 @@
     function prepareAttackInfo(attacker, defender, actionKey = 'attack') {
       const attackerStats = pieceMap.get(attacker);
       const defenderStats = pieceMap.get(defender);
+      const { defenseValue, defenseBonus, defenseSources } = defenseContext(attacker, defender);
+      const defenseNote = defenseBonus
+        ? `Bonificación defensa +${defenseBonus}${defenseSources.length ? ` (${defenseSources.join(' + ')})` : ''}`
+        : null;
       pendingAttackInfo = {
         action: actionLabel(actionKey),
         attacker: attackerStats.ataque,
-        defender: defenderStats.defensa,
-        difference: attackerStats.ataque - defenderStats.defensa,
+        defender: defenseValue,
+        difference: attackerStats.ataque - defenseValue,
         roll: null,
         success: null,
         critical: false,
@@ -1584,7 +1687,7 @@
         attackerName: attackerStats.name,
         defenderName: defenderStats.name,
         clawsRoll: null,
-        note: null,
+        note: defenseNote,
       };
       attackButton.classList.add('button--pulse');
       updateCombatInfo();
@@ -1597,6 +1700,7 @@
       const attackerSquare = getPieceSquare(attacker);
       const targetSquare = getPieceSquare(defender);
       const distance = attackDistance(attackerSquare, targetSquare);
+      const { defenseValue, defenseBonus, defenseSources } = defenseContext(attacker, defender);
 
       const die1 = Math.floor(Math.random() * 6) + 1;
       const die2 = Math.floor(Math.random() * 6) + 1;
@@ -1606,7 +1710,7 @@
         defenderStats,
         roll,
         distance,
-        { allowCounter }
+        { allowCounter, defenseOverride: defenseValue }
       );
 
       const {
@@ -1632,11 +1736,26 @@
         }
       }
 
+      const notes = [];
+      if (actionKey === 'incapacitar') {
+        notes.push('El ataque no causa daño.');
+      } else if (shouldCounter) {
+        notes.push('Pifia: el defensor realizará una réplica.');
+      }
+
+      if (defenseBonus) {
+        notes.push(
+          `Bonificación defensa +${defenseBonus}${
+            defenseSources.length ? ` (${defenseSources.join(' + ')})` : ''
+          }`
+        );
+      }
+
       pendingAttackInfo = {
         action: actionLabelOverride || actionLabel(actionKey),
         attacker: attackerStats.ataque,
-        defender: defenderStats.defensa,
-        difference: attackerStats.ataque - defenderStats.defensa,
+        defender: defenseValue,
+        difference: attackerStats.ataque - defenseValue,
         roll,
         success,
         critical,
@@ -1650,13 +1769,8 @@
         rawDamage,
         baseDamageBeforeClaws,
         baseDamageAfterClaws,
-        neededRoll: neededRollToHit(attackerStats, defenderStats),
-        note:
-          actionKey === 'incapacitar'
-            ? 'El ataque no causa daño.'
-            : shouldCounter
-            ? 'Pifia: el defensor realizará una réplica.'
-            : null,
+        neededRoll: neededRollToHit(attackerStats, defenderStats, defenseValue),
+        note: notes.length ? notes.join(' | ') : null,
       };
 
       const popupMessage = buildAttackPopupMessage({
@@ -1673,6 +1787,8 @@
         critical,
         baseDamageBeforeClaws,
         baseDamageAfterClaws,
+        defenseValue,
+        defenseSources,
       });
 
       if (success && actionKey === 'incapacitar') {
@@ -1755,8 +1871,10 @@
       affectedPieces.forEach(({ piece, square }) => {
         const targetStats = pieceMap.get(piece);
         const distance = attackDistance(attackerSquare, square);
+        const { defenseValue } = defenseContext(attacker, piece);
         const { success } = evaluateAttackRoll(attackerStats, targetStats, roll, distance, {
           allowCounter: false,
+          defenseOverride: defenseValue,
         });
         let damage = 0;
         if (success) {
@@ -1845,8 +1963,10 @@
         const die1 = Math.floor(Math.random() * 6) + 1;
         const die2 = Math.floor(Math.random() * 6) + 1;
         const roll = die1 + die2;
+        const { defenseValue } = defenseContext(attacker, piece);
         const { success, critical, isPifia } = evaluateAttackRoll(attackerStats, targetStats, roll, distance, {
           allowCounter: false,
+          defenseOverride: defenseValue,
         });
         let damage = 0;
         if (success) {

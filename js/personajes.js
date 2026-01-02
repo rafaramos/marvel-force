@@ -86,7 +86,7 @@ const personajes = {
     imagen: 'imagenes/lobezno.webp',
     animacion: 'animaciones/lobezno.webp',
     poderes: poderesFuente.lobezno,
-    habilidades: { activas: [], pasivas: ['regeneracion', 'garras'] },
+    habilidades: { activas: [], pasivas: ['regeneracion', 'garras', 'sigilo'] },
   },
   ciclope: {
     name: 'Cíclope',
