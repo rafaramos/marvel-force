@@ -35,7 +35,7 @@ const personajes = {
     imagen: 'imagenes/hulk.webp',
     animacion: 'animaciones/hulk.webp',
     poderes: poderesFuente.hulk,
-    habilidades: { activas: [], pasivas: ['regeneracion'] },
+    habilidades: { activas: [], pasivas: ['regeneracion', 'superfuerza'] },
   },
   capitan: {
     name: 'Capitán América',
@@ -188,7 +188,7 @@ const personajes = {
     imagen: 'imagenes/juggernaut.webp',
     animacion: 'animaciones/juggernaut.webp',
     poderes: poderesFuente.juggernaut,
-    habilidades: { activas: [], pasivas: [] },
+    habilidades: { activas: [], pasivas: ['superfuerza'] },
   },
   mole: {
     name: 'Mole',
@@ -222,7 +222,7 @@ const personajes = {
     imagen: 'imagenes/la-cosa.webp',
     animacion: 'animaciones/la-cosa.webp',
     poderes: poderesFuente.cosa,
-    habilidades: { activas: [], pasivas: [] },
+    habilidades: { activas: [], pasivas: ['superfuerza'] },
   },
   antorcha: {
     name: 'Antorcha Humana',
@@ -290,7 +290,7 @@ const personajes = {
     imagen: 'imagenes/thor.webp',
     animacion: 'animaciones/thor.webp',
     poderes: poderesFuente.thor,
-    habilidades: { activas: [], pasivas: [] },
+    habilidades: { activas: [], pasivas: ['superfuerza'] },
   },
     'iron-man': {
     name: 'Iron Man',
@@ -307,7 +307,7 @@ const personajes = {
     imagen: 'imagenes/iron-man.webp',
     animacion: 'animaciones/iron-man.webp',
       poderes: poderesFuente['iron-man'],
-    habilidades: { activas: ['explosion'], pasivas: ['astucia', 'regeneración'] },
+    habilidades: { activas: ['explosion'], pasivas: ['astucia', 'regeneración', 'superfuerza'] },
   },
   hulka: {
     name: 'Hulka',
@@ -324,7 +324,7 @@ const personajes = {
     imagen: 'imagenes/hulka.webp',
     animacion: 'animaciones/hulka.webp',
     poderes: poderesFuente.hulka,
-    habilidades: { activas: [], pasivas: [] },
+    habilidades: { activas: [], pasivas: ['superfuerza'] },
   },
     'bruja-escarlata': {
     name: 'Bruja Escarlata',
@@ -375,7 +375,7 @@ const personajes = {
     imagen: 'imagenes/magneto.webp',
     animacion: 'animaciones/magneto.webp',
     poderes: poderesFuente.magneto,
-    habilidades: { activas: [], pasivas: [] },
+    habilidades: { activas: [], pasivas: ['telekinesis'] },
   },
   kang: {
     name: 'Kang',
@@ -409,7 +409,7 @@ const personajes = {
     imagen: 'imagenes/super-skrull.webp',
     animacion: 'animaciones/super-skrull.webp',
       poderes: poderesFuente['super-skrull'],
-    habilidades: { activas: ['incapacitar'], pasivas: [] },
+    habilidades: { activas: ['incapacitar'], pasivas: ['superfuerza'] },
   },
 };
 

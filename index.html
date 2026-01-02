@@ -614,6 +614,7 @@
   <main class="wrapper">
     <div class="controls" aria-label="Controles de turno">
       <button class="button" id="passTurn" type="button">Pasar</button>
+      <button class="button" id="grab" type="button">Agarrar</button>
       <button class="button button--primary" id="attack" type="button">Atacar</button>
     </div>
     <div class="controls" id="powerControls" aria-label="Poderes activos"></div>
@@ -836,6 +837,7 @@
     const allyPanel = document.getElementById('allyPanel');
     const enemyPanel = document.getElementById('enemyPanel');
     const passButton = document.getElementById('passTurn');
+    const grabButton = document.getElementById('grab');
     const attackButton = document.getElementById('attack');
     const powerControls = document.getElementById('powerControls');
     const turnInfo = document.getElementById('turnInfo');
@@ -1350,8 +1352,9 @@
           const square = getSquareAt(nr, nc);
           if (!square) continue;
           const occupant = getSquareOccupant(square);
-          if (occupant && (!occupant.classList.contains('piece') || occupant.dataset.team !== piece.dataset.team) && !canPhase)
-            continue;
+          const isObject = occupant?.classList?.contains('object');
+          if (isObject) continue;
+          if (occupant && occupant.dataset.team !== piece.dataset.team && !canPhase) continue;
           visited.set(key, nextCost);
           queue.push({ row: nr, col: nc, cost: nextCost });
         }
@@ -1419,6 +1422,7 @@
       const isEnemyTurn = piece.dataset.team === 'enemigo';
       passButton.disabled = isEnemyTurn;
       attackButton.disabled = isEnemyTurn;
+      grabButton.disabled = isEnemyTurn;
       updateStatusBar(piece);
       updateCombatInfo();
       currentAction = 'attack';
@@ -1608,6 +1612,7 @@
 
     function actionLabel(actionKey) {
       if (actionKey === 'incapacitar') return 'Incapacitar';
+      if (actionKey === 'agarrar') return 'Agarrar';
       if (actionKey === 'explosion') return 'Explosión';
       if (actionKey === 'pulso') return 'Pulso';
       if (actionKey === 'probabilidad') return 'Probabilidad';
@@ -1723,15 +1728,84 @@
         } | ${summary}`;
         return;
       }
-      let rollText = info.roll ? ` | Tirada 2d6: ${info.roll}` : '';
-      let successText = '';
-      if (info.roll) {
-        successText = info.success ? (info.critical ? ' (Crítico)' : ' (Éxito)') : ' (Fallo)';
+      const actionLabelText = info.action || 'Acción';
+      const attackerLabel = info.attackerName || info.attacker || 'Atacante';
+      const defenderLabel = info.defenderName || info.defender || 'Objetivo';
+      const attackerTag = info.attacker ? ` (${info.attacker})` : '';
+      const defenderTag = info.defender ? ` (${info.defender})` : '';
+      const participants = `${actionLabelText} ${attackerLabel}${attackerTag} vs ${defenderLabel}${defenderTag}`;
+      const hasRoll = info.roll !== undefined && info.roll !== null && info.roll !== '';
+      const rollOutcome =
+        info.success === undefined
+          ? ''
+          : info.success
+            ? info.critical
+              ? ' (Crítico)'
+              : ' (Éxito)'
+            : ' (Fallo)';
+      const rollText = hasRoll ? `Tirada 2d6: ${info.roll}${rollOutcome}` : '';
+      const damageText = hasRoll && info.damage !== undefined ? `Daño: ${info.damage}` : '';
+      const vidaText = hasRoll && info.defenderVida !== undefined ? `Vida defensor: ${info.defenderVida}` : '';
+      const clawsText = info.clawsRoll ? `Garras d6: ${info.clawsRoll}` : '';
+      const noteText = info.note || '';
+      const differenceText = info.difference !== undefined && info.difference !== null ? `Diferencia: ${info.difference}` : '';
+      const details = [differenceText, rollText, damageText, vidaText, clawsText, noteText].filter(Boolean).join(' | ');
+      combatBox.textContent = details ? `${participants} | ${details}` : participants;
+    }
+
+    function canGrabObject(attacker, object) {
+      if (!attacker || !object) return { canGrab: false, reason: 'Selecciona primero un objeto válido.' };
+      if (!object.classList.contains('object')) return { canGrab: false, reason: 'Solo puedes agarrar objetos.' };
+      const objectState = getObjectStats(object);
+      if (!objectState || objectState.currentVida <= 0 || object.dataset.eliminated === 'true') {
+        return { canGrab: false, reason: 'El objeto ya no está disponible.' };
       }
-      const damageText = info.roll ? ` | Daño: ${info.damage} | Vida defensor: ${info.defenderVida}` : '';
-      const clawsText = info.clawsRoll ? ` | Garras d6: ${info.clawsRoll}` : '';
-      const noteText = info.note ? ` | ${info.note}` : '';
-      combatBox.textContent = `${info.action} ${info.attackerName} (${info.attacker}) vs ${info.defenderName} (${info.defender}) | Diferencia: ${info.difference}${rollText}${successText}${damageText}${clawsText}${noteText}`;
+      const attackerStats = pieceMap.get(attacker);
+      const attackerSquare = getPieceSquare(attacker);
+      const targetSquare = getPieceSquare(object);
+      if (!attackerSquare || !targetSquare) {
+        return { canGrab: false, reason: 'No se puede determinar la posición del objetivo.' };
+      }
+      const distance = attackDistance(attackerSquare, targetSquare);
+      const hasTelekinesis = hasPassive(attackerStats, 'telekinesis');
+      const hasSuperStrength = hasPassive(attackerStats, 'superfuerza');
+      const isHeavy = objectState.tipo === 'heavy' || object.dataset.type === 'heavy';
+      if (isHeavy && !hasTelekinesis && !hasSuperStrength) {
+        return {
+          canGrab: false,
+          reason: 'Solo personajes con Superfuerza o Telekinesis pueden agarrar objetos pesados.',
+        };
+      }
+      const meleeReach = distance === 1;
+      const telekinesisRange = hasTelekinesis && isWithinAttackRange(attackerSquare, targetSquare, rangeForPiece(attacker));
+      if (!meleeReach && !telekinesisRange) {
+        return { canGrab: false, reason: 'Debes estar adyacente o dentro de tu rango de Telekinesis.' };
+      }
+      return { canGrab: true };
+    }
+
+    function resolveGrab(attacker, object) {
+      const { canGrab, reason } = canGrabObject(attacker, object);
+      if (!canGrab) {
+        alert(reason);
+        return;
+      }
+      const attackerStats = pieceMap.get(attacker);
+      const objectStats = getObjectStats(object);
+      const message = `${attackerStats.name} agarra ${objectStats?.name || 'un objeto'}.`;
+
+      eliminateObject(object);
+      addHistoryEntry(attacker.dataset.team, message, { attacker });
+      pendingAttackInfo = {
+        action: actionLabel('agarrar'),
+        attackerName: attackerStats?.name,
+        defenderName: objectStats?.name || 'Objeto',
+        note: message,
+      };
+      clearRangeHighlights();
+      clearTargetSelection(true);
+      updateCombatInfo();
+      finishTurn(attacker);
     }
 
     function prepareAttackInfo(attacker, defender, actionKey = 'attack') {
@@ -2211,7 +2285,22 @@
         return;
       }
       if (!selectedTarget) {
-        alert(actionKey === 'probabilidad' ? 'Selecciona primero un aliado dentro de tu rango.' : 'Selecciona primero un enemigo dentro de tu rango.');
+        const prompt =
+          actionKey === 'probabilidad'
+            ? 'Selecciona primero un aliado dentro de tu rango.'
+            : actionKey === 'agarrar'
+              ? 'Selecciona primero un objeto dentro de tu alcance.'
+              : 'Selecciona primero un enemigo dentro de tu rango.';
+        alert(prompt);
+        return;
+      }
+      if (actionKey === 'agarrar') {
+        if (!selectedTarget.classList.contains('object')) {
+          alert('Solo puedes agarrar objetos.');
+          clearTargetSelection();
+          return;
+        }
+        resolveGrab(attacker, selectedTarget);
         return;
       }
       const attackerSquare = getPieceSquare(attacker);
@@ -2235,6 +2324,7 @@
       }
     }
 
+    grabButton.addEventListener('click', () => handleActionClick('agarrar'));
     attackButton.addEventListener('click', () => handleActionClick('attack'));
 
     const movementPool = new Map();
@@ -2271,6 +2361,32 @@
           if (isObjectTarget) return;
         } else {
           if (isAllyTarget || isSamePiece) return;
+        }
+
+        if (currentAction === 'agarrar') {
+          if (!isObjectTarget) {
+            alert('Solo puedes agarrar objetos.');
+            return;
+          }
+          const { canGrab, reason } = canGrabObject(activePiece, targetPiece);
+          if (!canGrab) {
+            alert(reason);
+            clearTargetSelection();
+            return;
+          }
+          clearTargetSelection();
+          square.classList.add('square--target');
+          selectedTarget = targetPiece;
+          const attackerStats = pieceMap.get(activePiece);
+          const objectStats = getObjectStats(targetPiece);
+          pendingAttackInfo = {
+            action: actionLabel('agarrar'),
+            attackerName: attackerStats?.name,
+            defenderName: objectStats?.name || 'Objeto',
+            note: 'Listo para agarrar.',
+          };
+          updateCombatInfo();
+          return;
         }
 
         const attackerSquare = getPieceSquare(activePiece);
