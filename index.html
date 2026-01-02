@@ -806,6 +806,29 @@
       return state;
     }
 
+    function heldObjectRange(stats) {
+      const held = stats?.heldObject;
+      if (!held) return null;
+      return held.tipo === 'heavy' ? 3 : 4;
+    }
+
+    function heldObjectMeleeBonus(stats) {
+      const held = stats?.heldObject;
+      if (!held) return 0;
+      return held.tipo === 'heavy' ? 2 : 1;
+    }
+
+    function heldObjectRangedBonus(stats) {
+      const held = stats?.heldObject;
+      if (!held) return 0;
+      return held.tipo === 'heavy' ? 3 : 2;
+    }
+
+    function releaseHeldObject(stats) {
+      if (!stats?.heldObject) return;
+      stats.heldObject = null;
+    }
+
     function buildBoard() {
       board.innerHTML = '';
       for (let row = 1; row <= BOARD_ROWS; row += 1) {
@@ -937,6 +960,7 @@
         incapacitatedTurns: 0,
         probabilidadTurns: 0,
         puntos: 0,
+        heldObject: null,
       };
       piece.dataset.key = key;
       piece.dataset.team = team;
@@ -1403,11 +1427,20 @@
       return distance <= maxRange && (includeOrigin ? distance >= 0 : distance > 0);
     }
 
+    function attackRangeForAction(piece, action = currentAction) {
+      if (action === 'attack') {
+        const stats = pieceMap.get(piece);
+        const heldRange = heldObjectRange(stats);
+        if (heldRange) return heldRange;
+      }
+      return rangeForPiece(piece);
+    }
+
     function highlightRange(piece) {
       clearRangeHighlights();
       const origin = getPieceSquare(piece);
       if (!origin) return;
-      const maxRange = rangeForPiece(piece);
+      const maxRange = attackRangeForAction(piece);
       if (maxRange <= 0) return;
       squares.forEach((square) => {
         if (isWithinAttackRange(origin, square, maxRange)) {
@@ -1450,7 +1483,8 @@
 
     function calculateDamage(attackerStats, defenderStats, distance, isCritical) {
       const isMelee = distance <= 1;
-      const baseDamageBeforeClaws = isMelee ? attackerStats.danoCC : attackerStats.danoAD;
+      const bonus = isMelee ? heldObjectMeleeBonus(attackerStats) : heldObjectRangedBonus(attackerStats);
+      const baseDamageBeforeClaws = (isMelee ? attackerStats.danoCC : attackerStats.danoAD) + bonus;
       let clawsRoll = null;
       const hasClaws = isMelee && hasPassive(attackerStats, 'garras');
       if (hasClaws) {
@@ -1471,6 +1505,24 @@
         baseDamageBeforeClaws,
         baseDamageAfterClaws,
       };
+    }
+
+    function consumeHeldObjectUse(attackerStats, { isRangedAttack = false, actionKey = 'attack' } = {}) {
+      if (!attackerStats?.heldObject || actionKey !== 'attack') return null;
+      const held = attackerStats.heldObject;
+      held.usesRemaining = Math.max((held.usesRemaining ?? 0) - 1, 0);
+      const depleted = held.usesRemaining <= 0;
+      const lostControl = isRangedAttack || depleted;
+      const result = {
+        lostControl,
+        depleted,
+        remainingUses: held.usesRemaining,
+        name: held.name,
+      };
+      if (lostControl) {
+        releaseHeldObject(attackerStats);
+      }
+      return result;
     }
 
     function evaluateAttackRoll(attackerStats, defenderStats, roll, distance, options = {}) {
@@ -1761,6 +1813,9 @@
         return { canGrab: false, reason: 'El objeto ya no está disponible.' };
       }
       const attackerStats = pieceMap.get(attacker);
+      if (attackerStats?.heldObject) {
+        return { canGrab: false, reason: 'Solo puedes llevar un objeto a la vez.' };
+      }
       const attackerSquare = getPieceSquare(attacker);
       const targetSquare = getPieceSquare(object);
       if (!attackerSquare || !targetSquare) {
@@ -1792,7 +1847,16 @@
       }
       const attackerStats = pieceMap.get(attacker);
       const objectStats = getObjectStats(object);
-      const message = `${attackerStats.name} agarra ${objectStats?.name || 'un objeto'}.`;
+      const usesRemaining = objectStats?.tipo === 'heavy' ? 1 : 2;
+      attackerStats.heldObject = {
+        id: objectStats?.id,
+        name: objectStats?.name,
+        tipo: objectStats?.tipo,
+        usesRemaining,
+      };
+      const message = `${attackerStats.name} agarra ${objectStats?.name || 'un objeto'} (${usesRemaining} uso${
+        usesRemaining === 1 ? '' : 's'
+      }).`;
 
       eliminateObject(object);
       addHistoryEntry(attacker.dataset.team, message, { attacker });
@@ -1884,6 +1948,18 @@
         notes.push('El ataque no causa daño.');
       } else if (shouldCounter) {
         notes.push('Pifia: el defensor realizará una réplica.');
+      }
+
+      const heldObjectResult = consumeHeldObjectUse(attackerStats, {
+        isRangedAttack: distance > 1,
+        actionKey,
+      });
+      if (heldObjectResult) {
+        if (heldObjectResult.lostControl) {
+          notes.push('Pierdes el objeto tras el ataque.');
+        } else {
+          notes.push(`Usos restantes del objeto: ${heldObjectResult.remainingUses}.`);
+        }
       }
 
       if (defenseBonus) {
@@ -2305,7 +2381,7 @@
       }
       const attackerSquare = getPieceSquare(attacker);
       const targetSquare = getPieceSquare(selectedTarget);
-      const maxRange = rangeForPiece(attacker);
+      const maxRange = attackRangeForAction(attacker, actionKey);
       const includeOrigin = actionKey === 'probabilidad';
       if (!isWithinAttackRange(attackerSquare, targetSquare, maxRange, { includeOrigin })) {
         alert('El objetivo está fuera de rango.');
@@ -2390,7 +2466,7 @@
         }
 
         const attackerSquare = getPieceSquare(activePiece);
-        const maxRange = rangeForPiece(activePiece);
+        const maxRange = attackRangeForAction(activePiece, currentAction);
         const includeOrigin = currentAction === 'probabilidad';
         if (!isWithinAttackRange(attackerSquare, square, maxRange, { includeOrigin })) {
           alert('Objetivo fuera de rango.');
@@ -2511,7 +2587,7 @@
     function chooseEnemyMoveSquare(piece, targetSquare) {
       computeReachableSquares(piece);
       const origin = getPieceSquare(piece);
-      const maxRange = rangeForPiece(piece);
+      const maxRange = attackRangeForAction(piece, 'attack');
       if (origin && targetSquare && isWithinAttackRange(origin, targetSquare, maxRange)) {
         return null;
       }
@@ -2545,7 +2621,8 @@
       const targetStats = pieceMap.get(targetPiece);
       const targetSquare = getPieceSquare(targetPiece);
       const origin = getPieceSquare(piece);
-      const inRange = origin && targetSquare && isWithinAttackRange(origin, targetSquare, rangeForPiece(piece));
+      const inRange =
+        origin && targetSquare && isWithinAttackRange(origin, targetSquare, attackRangeForAction(piece, 'attack'));
       if (!inRange) return 'move';
 
       if (abilities.includes('explosion')) {
