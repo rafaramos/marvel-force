@@ -5,7 +5,7 @@ const poderesFuente =
 const personajes = {
   avispa: {
     name: 'Avispa',
-    movimiento: 8,
+    movimiento: 4,
     ataque: 8,
     defensa: 18,
     danoCC: 2,
@@ -22,7 +22,7 @@ const personajes = {
   },
   hulk: {
     name: 'Hulk',
-    movimiento: 9,
+    movimiento: 5,
     ataque: 11,
     defensa: 17,
     danoCC: 5,
@@ -39,7 +39,7 @@ const personajes = {
   },
   capitan: {
     name: 'Capitán América',
-    movimiento: 8,
+    movimiento: 4,
     ataque: 10,
     defensa: 17,
     danoCC: 2,
@@ -56,7 +56,7 @@ const personajes = {
   },
   spider: {
     name: 'Spider-Man',
-    movimiento: 10,
+    movimiento: 5,
     ataque: 12,
     defensa: 18,
     danoCC: 2,
@@ -73,7 +73,7 @@ const personajes = {
   },
   lobezno: {
     name: 'Lobezno',
-    movimiento: 8,
+    movimiento: 4,
     ataque: 10,
     defensa: 16,
     danoCC: 2,
@@ -90,7 +90,7 @@ const personajes = {
   },
   ciclope: {
     name: 'Cíclope',
-    movimiento: 6,
+    movimiento: 3,
     ataque: 11,
     defensa: 15,
     danoCC: 2,
@@ -107,7 +107,7 @@ const personajes = {
   },
   chaquetaAmarilla: {
     name: 'Chaqueta Amarilla',
-    movimiento: 8,
+    movimiento: 4,
     ataque: 8,
     defensa: 17,
     danoCC: 2,
@@ -124,7 +124,7 @@ const personajes = {
   },
   duende: {
     name: 'Duende',
-    movimiento: 8,
+    movimiento: 4,
     ataque: 9,
     defensa: 16,
     danoCC: 2,
@@ -141,7 +141,7 @@ const personajes = {
   },
   dientesDeSable: {
     name: 'Dientes de Sable',
-    movimiento: 8,
+    movimiento: 4,
     ataque: 10,
     defensa: 16,
     danoCC: 3,
@@ -158,7 +158,7 @@ const personajes = {
   },
   boomerang: {
     name: 'Boomerang',
-    movimiento: 6,
+    movimiento: 3,
     ataque: 9,
     defensa: 15,
     danoCC: 1,
@@ -175,7 +175,7 @@ const personajes = {
   },
   juggernaut: {
     name: 'Juggernaut',
-    movimiento: 8,
+    movimiento: 4,
     ataque: 13,
     defensa: 18,
     danoCC: 4,
@@ -192,7 +192,7 @@ const personajes = {
   },
   mole: {
     name: 'Mole',
-    movimiento: 5,
+    movimiento: 3,
     ataque: 9,
     defensa: 16,
     danoCC: 3,
@@ -209,7 +209,7 @@ const personajes = {
   },
   cosa: {
     name: 'La Cosa',
-    movimiento: 8,
+    movimiento: 4,
     ataque: 10,
     defensa: 17,
     danoCC: 4,
@@ -226,7 +226,7 @@ const personajes = {
   },
   antorcha: {
     name: 'Antorcha Humana',
-    movimiento: 10,
+    movimiento: 5,
     ataque: 10,
     defensa: 15,
     danoCC: 3,
@@ -243,7 +243,7 @@ const personajes = {
   },
   doom: {
     name: 'Dr Doom',
-    movimiento: 8,
+    movimiento: 4,
     ataque: 12,
     defensa: 18,
     danoCC: 3,
@@ -260,7 +260,7 @@ const personajes = {
   },
   ultron: {
     name: 'Ultrón',
-    movimiento: 12,
+    movimiento: 6,
     ataque: 14,
     defensa: 18,
     danoCC: 3,
@@ -277,7 +277,7 @@ const personajes = {
   },
   thor: {
     name: 'Thor',
-    movimiento: 8,
+    movimiento: 4,
     ataque: 12,
     defensa: 17,
     danoCC: 4,
@@ -294,7 +294,7 @@ const personajes = {
   },
     'iron-man': {
     name: 'Iron Man',
-    movimiento: 12,
+    movimiento: 6,
     ataque: 10,
     defensa: 17,
     danoCC: 3,
@@ -311,7 +311,7 @@ const personajes = {
   },
   hulka: {
     name: 'Hulka',
-    movimiento: 10,
+    movimiento: 5,
     ataque: 11,
     defensa: 17,
     danoCC: 4,
@@ -328,7 +328,7 @@ const personajes = {
   },
     'bruja-escarlata': {
     name: 'Bruja Escarlata',
-    movimiento: 6,
+    movimiento: 3,
     ataque: 8,
     defensa: 16,
     danoCC: 1,
@@ -345,7 +345,7 @@ const personajes = {
   },
   thanos: {
     name: 'Thanos',
-    movimiento: 12,
+    movimiento: 6,
     ataque: 15,
     defensa: 18,
     danoCC: 4,
@@ -362,7 +362,7 @@ const personajes = {
   },
   magneto: {
     name: 'Magneto',
-    movimiento: 9,
+    movimiento: 5,
     ataque: 10,
     defensa: 17,
     danoCC: 4,
@@ -379,7 +379,7 @@ const personajes = {
   },
   kang: {
     name: 'Kang',
-    movimiento: 10,
+    movimiento: 5,
     ataque: 13,
     defensa: 18,
     danoCC: 2,
@@ -396,7 +396,7 @@ const personajes = {
   },
     'super-skrull': {
     name: 'Súper Skrull',
-    movimiento: 8,
+    movimiento: 4,
     ataque: 11,
     defensa: 16,
     danoCC: 4,
