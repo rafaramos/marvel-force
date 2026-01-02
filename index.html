@@ -139,6 +139,35 @@
       transition: box-shadow 160ms ease, outline-color 160ms ease;
     }
 
+    .object {
+      position: absolute;
+      inset: 8px;
+      border-radius: 12px;
+      display: grid;
+      place-items: center;
+      color: #f4f4f4;
+      font-weight: 700;
+      text-align: center;
+      padding: 6px;
+      text-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
+      border: 3px solid rgba(0, 0, 0, 0.45);
+      box-shadow: 0 6px 14px rgba(0, 0, 0, 0.38);
+      z-index: 2;
+    }
+
+    .object--light {
+      background: linear-gradient(160deg, #dfe6e9 0%, #95a5a6 100%);
+    }
+
+    .object--heavy {
+      background: linear-gradient(160deg, #7f8c8d 0%, #2c3e50 100%);
+    }
+
+    .object__label {
+      font-size: 12px;
+      line-height: 1.2;
+    }
+
     .piece[data-team='aliado'] {
       border-color: #2b9afc;
       box-shadow: 0 4px 10px rgba(0, 98, 204, 0.45);
@@ -660,32 +689,65 @@
       let backgroundStarted = false;
       const PROBABILIDAD_DURATION = 2;
 
-    const initialPositions = [
-      { key: 'avispa', team: 'aliado', row: 1, col: 1, className: 'piece--white' },
-      { key: 'hulk', team: 'aliado', row: 2, col: 1, className: 'piece--red' },
-      { key: 'capitan', team: 'aliado', row: 3, col: 1, className: 'piece--violet' },
-      { key: 'spider', team: 'aliado', row: 4, col: 1, className: 'piece--blue' },
-      { key: 'lobezno', team: 'aliado', row: 5, col: 1, className: 'piece--gold' },
-      { key: 'ciclope', team: 'aliado', row: 6, col: 1, className: 'piece--white' },
-      { key: 'cosa', team: 'aliado', row: 7, col: 1, className: 'piece--red' },
-      { key: 'antorcha', team: 'aliado', row: 8, col: 1, className: 'piece--gold' },
-      { key: 'thor', team: 'aliado', row: 9, col: 1, className: 'piece--violet' },
-      { key: 'iron-man', team: 'aliado', row: 10, col: 1, className: 'piece--gold' },
-      { key: 'hulka', team: 'aliado', row: 1, col: 2, className: 'piece--red' },
-      { key: 'bruja-escarlata', team: 'aliado', row: 2, col: 2, className: 'piece--violet' },
-      { key: 'duende', team: 'enemigo', row: 1, col: 16, className: 'piece--black' },
-      { key: 'chaquetaAmarilla', team: 'enemigo', row: 2, col: 16, className: 'piece--black' },
-      { key: 'dientesDeSable', team: 'enemigo', row: 3, col: 16, className: 'piece--black' },
-      { key: 'boomerang', team: 'enemigo', row: 4, col: 16, className: 'piece--black' },
-      { key: 'juggernaut', team: 'enemigo', row: 5, col: 16, className: 'piece--black' },
-      { key: 'mole', team: 'enemigo', row: 6, col: 16, className: 'piece--black' },
-      { key: 'doom', team: 'enemigo', row: 7, col: 16, className: 'piece--black' },
-      { key: 'ultron', team: 'enemigo', row: 8, col: 16, className: 'piece--black' },
-      { key: 'thanos', team: 'enemigo', row: 9, col: 16, className: 'piece--black' },
-      { key: 'magneto', team: 'enemigo', row: 10, col: 16, className: 'piece--black' },
-      { key: 'kang', team: 'enemigo', row: 1, col: 15, className: 'piece--black' },
-      { key: 'super-skrull', team: 'enemigo', row: 2, col: 15, className: 'piece--black' },
-    ];
+      const initialObjects = [
+        {
+          name: 'Semáforo',
+          type: 'light',
+          coords: [
+            { row: 4, col: 8 },
+          ],
+        },
+        {
+          name: 'Cascote',
+          type: 'light',
+          coords: [
+            { row: 7, col: 9 },
+          ],
+        },
+        {
+          name: 'Autobús',
+          type: 'heavy',
+          coords: [
+            { row: 5, col: 11 },
+            { row: 5, col: 12 },
+          ],
+        },
+        {
+          name: 'Camión',
+          type: 'heavy',
+          coords: [
+            { row: 6, col: 5 },
+            { row: 7, col: 5 },
+          ],
+        },
+      ];
+
+      const initialPositions = [
+        { key: 'avispa', team: 'aliado', row: 1, col: 1, className: 'piece--white' },
+        { key: 'hulk', team: 'aliado', row: 2, col: 1, className: 'piece--red' },
+        { key: 'capitan', team: 'aliado', row: 3, col: 1, className: 'piece--violet' },
+        { key: 'spider', team: 'aliado', row: 4, col: 1, className: 'piece--blue' },
+        { key: 'lobezno', team: 'aliado', row: 5, col: 1, className: 'piece--gold' },
+        { key: 'ciclope', team: 'aliado', row: 6, col: 1, className: 'piece--white' },
+        { key: 'cosa', team: 'aliado', row: 7, col: 1, className: 'piece--red' },
+        { key: 'antorcha', team: 'aliado', row: 8, col: 1, className: 'piece--gold' },
+        { key: 'thor', team: 'aliado', row: 9, col: 1, className: 'piece--violet' },
+        { key: 'iron-man', team: 'aliado', row: 10, col: 1, className: 'piece--gold' },
+        { key: 'hulka', team: 'aliado', row: 1, col: 2, className: 'piece--red' },
+        { key: 'bruja-escarlata', team: 'aliado', row: 2, col: 2, className: 'piece--violet' },
+        { key: 'duende', team: 'enemigo', row: 1, col: 16, className: 'piece--black' },
+        { key: 'chaquetaAmarilla', team: 'enemigo', row: 2, col: 16, className: 'piece--black' },
+        { key: 'dientesDeSable', team: 'enemigo', row: 3, col: 16, className: 'piece--black' },
+        { key: 'boomerang', team: 'enemigo', row: 4, col: 16, className: 'piece--black' },
+        { key: 'juggernaut', team: 'enemigo', row: 5, col: 16, className: 'piece--black' },
+        { key: 'mole', team: 'enemigo', row: 6, col: 16, className: 'piece--black' },
+        { key: 'doom', team: 'enemigo', row: 7, col: 16, className: 'piece--black' },
+        { key: 'ultron', team: 'enemigo', row: 8, col: 16, className: 'piece--black' },
+        { key: 'thanos', team: 'enemigo', row: 9, col: 16, className: 'piece--black' },
+        { key: 'magneto', team: 'enemigo', row: 10, col: 16, className: 'piece--black' },
+        { key: 'kang', team: 'enemigo', row: 1, col: 15, className: 'piece--black' },
+        { key: 'super-skrull', team: 'enemigo', row: 2, col: 15, className: 'piece--black' },
+      ];
 
     function createPieceElement({ key, team, className }) {
       const stats = pieceStats[key];
@@ -702,6 +764,16 @@
       return piece;
     }
 
+    function createObjectElement({ name, type }) {
+      const object = document.createElement('span');
+      object.className = `object object--${type}`;
+      object.dataset.type = type;
+      object.setAttribute('role', 'img');
+      object.setAttribute('aria-label', `${name} (${type === 'light' ? 'liviano' : 'pesado'})`);
+      object.innerHTML = `<span class="object__label">${name}</span>`;
+      return object;
+    }
+
     function buildBoard() {
       board.innerHTML = '';
       for (let row = 1; row <= BOARD_ROWS; row += 1) {
@@ -711,6 +783,10 @@
           const occupant = initialPositions.find((item) => item.row === row && item.col === col);
           if (occupant) {
             square.appendChild(createPieceElement(occupant));
+          }
+          const objectDef = initialObjects.find((item) => item.coords.some((coord) => coord.row === row && coord.col === col));
+          if (objectDef) {
+            square.appendChild(createObjectElement(objectDef));
           }
           board.appendChild(square);
         }
@@ -1117,6 +1193,10 @@
       return squaresByCoord.get(`${row},${col}`);
     }
 
+    function getSquareOccupant(square) {
+      return square?.querySelector('.piece, .object');
+    }
+
     function computeReachableSquares(piece) {
       const origin = getPieceSquare(piece);
       if (!origin) return;
@@ -1146,8 +1226,9 @@
           if (visited.has(key) && visited.get(key) <= nextCost) continue;
           const square = getSquareAt(nr, nc);
           if (!square) continue;
-          const occupant = square.querySelector('.piece');
-          if (occupant && occupant.dataset.team !== piece.dataset.team && !canPhase) continue;
+          const occupant = getSquareOccupant(square);
+          if (occupant && (!occupant.classList.contains('piece') || occupant.dataset.team !== piece.dataset.team) && !canPhase)
+            continue;
           visited.set(key, nextCost);
           queue.push({ row: nr, col: nc, cost: nextCost });
         }
@@ -1157,7 +1238,7 @@
       visited.forEach((dist, key) => {
         const square = squaresByCoord.get(key);
         if (!square) return;
-        const occupied = square.querySelector('.piece');
+        const occupied = getSquareOccupant(square);
         if (!occupied && dist > 0) {
           movementDistances.set(square, dist);
         }
@@ -1972,6 +2053,11 @@
       if (!square) return;
 
       const targetPiece = square.querySelector('.piece');
+      const targetObject = square.querySelector('.object');
+
+      if (targetObject) {
+        return;
+      }
 
       if (targetPiece) {
         const isSamePiece = targetPiece === activePiece;
@@ -2010,7 +2096,7 @@
       }
 
       if (!square.classList.contains('square--move')) return;
-      if (square.querySelector('.piece')) return;
+      if (getSquareOccupant(square)) return;
       const distance = movementDistances.get(square);
       if (distance === undefined || distance > remainingMovement(activePiece)) return;
       await animatePieceToSquare(activePiece, square);
