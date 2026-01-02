@@ -722,6 +722,10 @@
         },
       ];
 
+      initialObjects.forEach((object, index) => {
+        object.id = object.id || `object-${index}`;
+      });
+
       const initialPositions = [
         { key: 'avispa', team: 'aliado', row: 1, col: 1, className: 'piece--white' },
         { key: 'hulk', team: 'aliado', row: 2, col: 1, className: 'piece--red' },
@@ -764,14 +768,41 @@
       return piece;
     }
 
-    function createObjectElement({ name, type }) {
+    function createObjectElement({ name, type, id }) {
       const object = document.createElement('span');
       object.className = `object object--${type}`;
       object.dataset.type = type;
+      object.dataset.objectId = id;
+      object.dataset.team = 'neutral';
       object.setAttribute('role', 'img');
       object.setAttribute('aria-label', `${name} (${type === 'light' ? 'liviano' : 'pesado'})`);
       object.innerHTML = `<span class="object__label">${name}</span>`;
       return object;
+    }
+
+    const objectStates = new Map();
+
+    function ensureObjectState(objectDef) {
+      if (!objectDef || !objectDef.id) return null;
+      if (objectStates.has(objectDef.id)) return objectStates.get(objectDef.id);
+      const maxVida = objectDef.type === 'heavy' ? 4 : 2;
+      const state = {
+        id: objectDef.id,
+        name: objectDef.name,
+        tipo: objectDef.type,
+        defensa: 0,
+        resistenciaCC: 0,
+        resistenciaAD: 0,
+        rango: 0,
+        movimiento: 0,
+        ataque: 0,
+        danoCC: 0,
+        danoAD: 0,
+        currentVida: maxVida,
+        maxVida,
+      };
+      objectStates.set(objectDef.id, state);
+      return state;
     }
 
     function buildBoard() {
@@ -786,6 +817,7 @@
           }
           const objectDef = initialObjects.find((item) => item.coords.some((coord) => coord.row === row && coord.col === col));
           if (objectDef) {
+            ensureObjectState(objectDef);
             square.appendChild(createObjectElement(objectDef));
           }
           board.appendChild(square);
@@ -1185,6 +1217,24 @@
     let resolveDeathPopup = null;
     const pendingDeathMessages = [];
 
+    function getObjectStats(element) {
+      const id = element?.dataset?.objectId;
+      if (!id) return null;
+      return objectStates.get(id) || null;
+    }
+
+    function getEntityStats(entity) {
+      return pieceMap.get(entity) || getObjectStats(entity);
+    }
+
+    function getEntityIdentifier(entity) {
+      if (!entity) return null;
+      if (entity.classList.contains('object')) {
+        return `object-${entity.dataset.objectId}`;
+      }
+      return entity;
+    }
+
     function getPieceSquare(piece) {
       return piece.closest('.square');
     }
@@ -1251,6 +1301,9 @@
       let bonus = 0;
       const sources = [];
       if (!attackerSquare || !defenderSquare || !defenderStats) return { bonus, sources };
+      if (defenderStats.tipo === 'light' || defenderStats.tipo === 'heavy') {
+        return { bonus: 0, sources: [] };
+      }
       const hasStealth = hasPassive(defenderStats, 'sigilo');
       const coverBonus = hasStealth ? 2 : 1;
 
@@ -1403,7 +1456,7 @@
         ? Math.max(baseDamageBeforeClaws, clawsRoll)
         : baseDamageBeforeClaws;
       const baseDamageWithCrit = isCritical ? baseDamageAfterClaws * 2 : baseDamageAfterClaws;
-      const resistance = isMelee ? defenderStats.resistenciaCC : defenderStats.resistenciaAD;
+      const resistance = isMelee ? defenderStats?.resistenciaCC ?? 0 : defenderStats?.resistenciaAD ?? 0;
       const totalDamage = Math.max(baseDamageWithCrit - resistance, 0);
       return {
         totalDamage,
@@ -1482,6 +1535,20 @@
       piece.remove();
     }
 
+    function eliminateObject(objectElement) {
+      const id = objectElement?.dataset?.objectId;
+      if (!id) return;
+      const state = objectStates.get(id);
+      if (state) {
+        state.currentVida = 0;
+        state.eliminated = true;
+      }
+      board.querySelectorAll(`.object[data-object-id="${id}"]`).forEach((el) => {
+        el.dataset.eliminated = 'true';
+        el.remove();
+      });
+    }
+
     function rangeForPiece(piece) {
       const r = parseInt(piece.dataset.rango, 10);
       return r === 0 ? 1 : r;
@@ -1548,7 +1615,7 @@
     }
 
     function defenseContext(attacker, defender) {
-      const defenderStats = pieceMap.get(defender);
+      const defenderStats = getEntityStats(defender);
       const attackerSquare = getPieceSquare(attacker);
       const defenderSquare = getPieceSquare(defender);
       if (!defenderStats) {
@@ -1669,7 +1736,7 @@
 
     function prepareAttackInfo(attacker, defender, actionKey = 'attack') {
       const attackerStats = pieceMap.get(attacker);
-      const defenderStats = pieceMap.get(defender);
+      const defenderStats = getEntityStats(defender);
       const { defenseValue, defenseBonus, defenseSources } = defenseContext(attacker, defender);
       const defenseNote = defenseBonus
         ? `Bonificación defensa +${defenseBonus}${defenseSources.length ? ` (${defenseSources.join(' + ')})` : ''}`
@@ -1696,11 +1763,13 @@
     function resolveAttack(attacker, defender, actionKey = 'attack', options = {}) {
       const { allowCounter = true, skipTurnAdvance = false, actionLabelOverride = null } = options;
       const attackerStats = pieceMap.get(attacker);
-      const defenderStats = pieceMap.get(defender);
+      const defenderStats = getEntityStats(defender);
+      if (!attackerStats || !defenderStats) return;
       const attackerSquare = getPieceSquare(attacker);
       const targetSquare = getPieceSquare(defender);
       const distance = attackDistance(attackerSquare, targetSquare);
       const { defenseValue, defenseBonus, defenseSources } = defenseContext(attacker, defender);
+      const canCounter = allowCounter && !defender.classList.contains('object');
 
       const die1 = Math.floor(Math.random() * 6) + 1;
       const die2 = Math.floor(Math.random() * 6) + 1;
@@ -1710,7 +1779,7 @@
         defenderStats,
         roll,
         distance,
-        { allowCounter, defenseOverride: defenseValue }
+        { allowCounter: canCounter, defenseOverride: defenseValue }
       );
 
       const {
@@ -1723,7 +1792,7 @@
         baseDamageAfterClaws,
       } = calculateDamage(attackerStats, defenderStats, distance, critical);
       const damageApplied = success && actionKey !== 'incapacitar' ? totalDamage : 0;
-      if (success && actionKey === 'incapacitar') {
+      if (success && actionKey === 'incapacitar' && defender.classList.contains('piece')) {
         setIncapacitated(defender, 1);
         if (isEnemy(attacker, defender)) {
           addPoints(attacker, SCORE_PER_DAMAGE);
@@ -1802,7 +1871,11 @@
         if (isEnemy(attacker, defender)) {
           addPoints(attacker, SCORE_PER_KILL);
         }
-        eliminatePiece(defender);
+        if (defender.classList.contains('object')) {
+          eliminateObject(defender);
+        } else {
+          eliminatePiece(defender);
+        }
       }
 
       registerTurnSound({ damageDealt: damageApplied, attackFailed: !success });
@@ -1861,15 +1934,16 @@
         const col = Number(centerSquare.dataset.col) + dc;
         const square = getSquareAt(row, col);
         if (!square) return;
-        const piece = square.querySelector('.piece');
-        if (!piece || seenPieces.has(piece)) return;
-        seenPieces.add(piece);
-        affectedPieces.push({ piece, square });
+        const occupant = square.querySelector('.piece, .object');
+        const id = getEntityIdentifier(occupant);
+        if (!occupant || !id || seenPieces.has(id)) return;
+        seenPieces.add(id);
+        affectedPieces.push({ piece: occupant, square });
       });
 
       const targetsSummary = [];
       affectedPieces.forEach(({ piece, square }) => {
-        const targetStats = pieceMap.get(piece);
+        const targetStats = getEntityStats(piece);
         const distance = attackDistance(attackerSquare, square);
         const { defenseValue } = defenseContext(attacker, piece);
         const { success } = evaluateAttackRoll(attackerStats, targetStats, roll, distance, {
@@ -1899,7 +1973,11 @@
           if (isEnemy(attacker, piece)) {
             addPoints(attacker, SCORE_PER_KILL);
           }
-          eliminatePiece(piece);
+          if (piece.classList.contains('object')) {
+            eliminateObject(piece);
+          } else {
+            eliminatePiece(piece);
+          }
         }
       });
 
@@ -1951,15 +2029,20 @@
         const row = Number(attackerSquare.dataset.row) + dr;
         const col = Number(attackerSquare.dataset.col) + dc;
         const square = getSquareAt(row, col);
-        const occupant = square?.querySelector('.piece');
-        if (!occupant) return;
-        affectedPieces.push({ piece: occupant, square, distance: 1 });
+        const occupant = square?.querySelector('.piece, .object');
+        const id = getEntityIdentifier(occupant);
+        if (!occupant || !id) return;
+        affectedPieces.push({ piece: occupant, square, distance: 1, id });
       });
 
       const targetsSummary = [];
 
-      affectedPieces.forEach(({ piece, square, distance }) => {
-        const targetStats = pieceMap.get(piece);
+      const seenPieces = new Set();
+
+      affectedPieces.forEach(({ piece, square, distance, id }) => {
+        if (seenPieces.has(id)) return;
+        seenPieces.add(id);
+        const targetStats = getEntityStats(piece);
         const die1 = Math.floor(Math.random() * 6) + 1;
         const die2 = Math.floor(Math.random() * 6) + 1;
         const roll = die1 + die2;
@@ -1992,7 +2075,11 @@
           if (isEnemy(attacker, piece)) {
             addPoints(attacker, SCORE_PER_KILL);
           }
-          eliminatePiece(piece);
+          if (piece.classList.contains('object')) {
+            eliminateObject(piece);
+          } else {
+            eliminatePiece(piece);
+          }
         }
       });
 
@@ -2172,19 +2259,16 @@
       const square = event.target.closest('.square');
       if (!square) return;
 
-      const targetPiece = square.querySelector('.piece');
-      const targetObject = square.querySelector('.object');
-
-      if (targetObject) {
-        return;
-      }
+      const targetPiece = square.querySelector('.piece, .object');
 
       if (targetPiece) {
         const isSamePiece = targetPiece === activePiece;
         const isAllyTarget = targetPiece.dataset.team === activePiece.dataset.team;
+        const isObjectTarget = targetPiece.classList.contains('object');
 
         if (currentAction === 'probabilidad') {
           if (!isAllyTarget) return;
+          if (isObjectTarget) return;
         } else {
           if (isAllyTarget || isSamePiece) return;
         }
