@@ -2780,13 +2780,18 @@
 
     function handleDraftPick(key) {
       if (!draftActive) return;
+      if (draftIndex >= draftOrder.length) {
+        finalizeDraft();
+        return;
+      }
+
       const pickerId = draftOrder[draftIndex];
       if (!pickerId) return;
       if (!availablePool().includes(key)) return;
       if (selections[pickerId].length >= 12) return;
 
       selections[pickerId].push(key);
-      draftIndex += 1;
+      draftIndex = Math.min(draftIndex + 1, draftOrder.length);
       renderDraftCards();
 
       if (selections.player1.length === 12 && selections.player2.length === 12) {
@@ -2808,8 +2813,16 @@
     }
 
     function performAIPick() {
+      if (!draftActive) return;
+      if (draftIsComplete() || draftIndex >= draftOrder.length) {
+        finalizeDraft();
+        return;
+      }
       const options = availablePool();
-      if (options.length === 0) return;
+      if (options.length === 0) {
+        finalizeDraft();
+        return;
+      }
       const randomKey = options[Math.floor(Math.random() * options.length)];
       handleDraftPick(randomKey);
     }
@@ -2836,6 +2849,9 @@
       initialPositions = buildPositionsFromSelections();
       rebuildGameState();
       draftScreen.hidden = true;
+      draftScreen.style.display = 'none';
+      draftScreen.style.opacity = '0';
+      draftScreen.style.visibility = 'hidden';
       startGame();
     }
 
@@ -2880,15 +2896,10 @@
     }
 
     function handleModeSelection(mode) {
+      if (draftActive || gameStarted) return;
       showDraftScreen();
       beginDraft(mode);
     }
-
-    modeButtons.forEach((button) => {
-      button.addEventListener('click', () => {
-        handleModeSelection(button.dataset.mode);
-      });
-    });
 
     modeSelection.addEventListener('click', (event) => {
       const button = event.target.closest('[data-mode]');
