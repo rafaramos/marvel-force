@@ -1132,6 +1132,23 @@
     let currentAction = 'attack';
     let movementAnimationDuration = DEFAULT_MOVE_DURATION_MS;
     const movementPool = new Map();
+    let turnOrder = [];
+    let turnIndex = 0;
+
+    function recomputeTurnOrder() {
+      turnOrder = pieces
+        .map(({ element }) => element)
+        .filter(Boolean)
+        .sort((a, b) => {
+          const statsA = pieceMap.get(a);
+          const statsB = pieceMap.get(b);
+          if (statsA.agilidad === statsB.agilidad) {
+            return Math.random() < 0.5 ? -1 : 1;
+          }
+          return statsB.agilidad - statsA.agilidad;
+        });
+      turnIndex = 0;
+    }
 
     function hasPassive(stats, key) {
       return Boolean(stats?.habilidades?.pasivas?.includes(key));
@@ -1481,23 +1498,6 @@
       });
     }
 
-    let turnOrder = [];
-    let turnIndex = 0;
-
-    function recomputeTurnOrder() {
-      turnOrder = pieces
-        .map(({ element }) => element)
-        .filter(Boolean)
-        .sort((a, b) => {
-          const statsA = pieceMap.get(a);
-          const statsB = pieceMap.get(b);
-          if (statsA.agilidad === statsB.agilidad) {
-            return Math.random() < 0.5 ? -1 : 1;
-          }
-          return statsB.agilidad - statsA.agilidad;
-        });
-      turnIndex = 0;
-    }
     let selectedTarget = null;
     let pendingAttackInfo = null;
     let latestActionMessage = null;
