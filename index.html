@@ -839,14 +839,17 @@
     .life-card__label {
       display: block;
       line-height: 1.2;
-      white-space: nowrap;
+      max-width: 100%;
+      font-size: clamp(0.82rem, 1vw + 0.35rem, 1.05rem);
+      word-break: break-word;
     }
 
     .life-card__meta {
       font-variant-numeric: tabular-nums;
       margin-left: auto;
-      font-size: 0.92rem;
+      font-size: clamp(0.8rem, 0.8vw + 0.45rem, 1.02rem);
       opacity: 0.95;
+      text-align: right;
     }
 
     .status-bar {
