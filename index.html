@@ -1023,6 +1023,28 @@
       const selections = { player1: [], player2: [] };
       let availableCharacters = [];
 
+      function revealModes() {
+        startScreen.classList.add('start-screen--modes');
+        playButton.hidden = true;
+        playButton.style.display = 'none';
+        playButton.setAttribute('aria-hidden', 'true');
+        modeSelection.hidden = false;
+        modeSelection.removeAttribute('hidden');
+        modeSelection.style.display = 'grid';
+      }
+
+      function hideStartScreen() {
+        startScreen.classList.add('start-screen--hidden');
+        startScreen.setAttribute('aria-hidden', 'true');
+        setTimeout(() => {
+          startScreen.hidden = true;
+        }, 220);
+      }
+
+      playButton.addEventListener('click', () => {
+        revealModes();
+      });
+
       const allySlots = [
         { row: 1, col: 1, className: 'piece--white' },
         { row: 2, col: 1, className: 'piece--red' },
@@ -2689,24 +2711,6 @@
       finishTurn(currentPiece, { showPopup: false });
     });
 
-    function revealModes() {
-      startScreen.classList.add('start-screen--modes');
-      playButton.hidden = true;
-      playButton.style.display = 'none';
-      playButton.setAttribute('aria-hidden', 'true');
-      modeSelection.hidden = false;
-      modeSelection.removeAttribute('hidden');
-      modeSelection.style.display = 'grid';
-    }
-
-    function hideStartScreen() {
-      startScreen.classList.add('start-screen--hidden');
-      startScreen.setAttribute('aria-hidden', 'true');
-      setTimeout(() => {
-        startScreen.hidden = true;
-      }, 220);
-    }
-
     function ownerLabel(playerId) {
       if (playerId === 'player1') return 'Jugador 1';
       return isPlayerVsAI ? 'IA' : 'Jugador 2';
@@ -2865,10 +2869,6 @@
         startTurn(turnOrder[turnIndex]);
       }
     }
-
-    playButton.addEventListener('click', () => {
-      revealModes();
-    });
 
     modeButtons.forEach((button) => {
       button.addEventListener('click', () => {
