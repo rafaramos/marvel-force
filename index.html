@@ -71,6 +71,19 @@
       font-weight: 600;
     }
 
+    .start-screen__cover {
+      width: min(420px, 70vw);
+      filter: drop-shadow(0 14px 34px rgba(0, 0, 0, 0.45));
+    }
+
+    .start-screen__cover img {
+      width: 100%;
+      height: auto;
+      display: block;
+      border-radius: 18px;
+      border: 2px solid rgba(255, 255, 255, 0.18);
+    }
+
     .draft-screen {
       position: fixed;
       inset: 0;
@@ -877,6 +890,9 @@
 </head>
 <body>
   <div id="startScreen" class="start-screen">
+    <div class="start-screen__cover" aria-hidden="true">
+      <img src="imagenes/portada.svg" alt="" />
+    </div>
     <div>
       <h1 class="start-screen__headline">Marvel Force</h1>
       <p class="start-screen__subtitle">Elige cómo quieres jugar</p>
