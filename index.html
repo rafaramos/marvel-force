@@ -1360,7 +1360,7 @@
 
       const panelWidth = container.clientWidth || container.getBoundingClientRect().width || 0;
       const slotWidth = characters.length > 0 ? panelWidth / characters.length : 0;
-      const computedNameSize = Math.max(14, Math.min(26, slotWidth / 6));
+      const computedNameSize = Math.max(18, Math.min(42, slotWidth / 5.5));
 
       characters.forEach((char) => {
         const card = document.createElement('div');
