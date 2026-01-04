@@ -2837,19 +2837,25 @@
       startGame();
     }
 
-      function beginDraft(mode) {
-        isPlayerVsAI = mode === 'ai';
-        selections.player1 = [];
-        selections.player2 = [];
-        availableCharacters = Object.keys(pieceStats);
-        firstPicker = Math.random() < 0.5 ? 'player1' : 'player2';
-        draftOrder = generateDraftOrder(firstPicker);
-        draftIndex = 0;
-        draftActive = true;
-        draftScreen.hidden = false;
-        draftScreen.style.display = 'grid';
-        updateDraftLabels();
-        renderDraftCards();
+    function showDraftScreen() {
+      draftScreen.hidden = false;
+      draftScreen.style.display = 'grid';
+      draftScreen.style.opacity = '1';
+      draftScreen.style.visibility = 'visible';
+    }
+
+    function beginDraft(mode) {
+      isPlayerVsAI = mode === 'ai';
+      selections.player1 = [];
+      selections.player2 = [];
+      availableCharacters = Object.keys(pieceStats);
+      firstPicker = Math.random() < 0.5 ? 'player1' : 'player2';
+      draftOrder = generateDraftOrder(firstPicker);
+      draftIndex = 0;
+      draftActive = true;
+      showDraftScreen();
+      updateDraftLabels();
+      renderDraftCards();
 
       const pickerId = draftOrder[draftIndex];
       if (isPlayerVsAI && pickerId === 'player2') {
@@ -2870,12 +2876,21 @@
       }
     }
 
+    function handleModeSelection(mode) {
+      hideStartScreen();
+      beginDraft(mode);
+    }
+
     modeButtons.forEach((button) => {
       button.addEventListener('click', () => {
-        const mode = button.dataset.mode;
-        hideStartScreen();
-        beginDraft(mode);
+        handleModeSelection(button.dataset.mode);
       });
+    });
+
+    modeSelection.addEventListener('click', (event) => {
+      const button = event.target.closest('[data-mode]');
+      if (!button) return;
+      handleModeSelection(button.dataset.mode);
     });
   </script>
 </body>
