@@ -1365,7 +1365,7 @@
           card.classList.add('duel-card--eliminated');
         }
         card.style.flexBasis = `${100 / characters.length}%`;
-        const nameSizeVw = Math.min(3.6, Math.max(2, 8 / characters.length));
+        const nameSizeVw = Math.min(3.2, Math.max(1.8, 7 / characters.length));
         card.style.setProperty('--duel-name-size', `${nameSizeVw}vw`);
         const overlayClass = char.role === 'attacker' ? 'duel-card__overlay--attacker' : 'duel-card__overlay--defender';
         card.innerHTML = `
