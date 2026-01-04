@@ -2774,8 +2774,8 @@
 
     function draftIsComplete() {
       const teamsFull = selections.player1.length === 12 && selections.player2.length === 12;
-      const noPicksLeft = draftIndex >= draftOrder.length || availablePool().length === 0;
-      return teamsFull || noPicksLeft;
+      const outOfTurns = draftIndex >= draftOrder.length;
+      return teamsFull || outOfTurns;
     }
 
     function handleDraftPick(key) {
@@ -2788,6 +2788,11 @@
       selections[pickerId].push(key);
       draftIndex += 1;
       renderDraftCards();
+
+      if (selections.player1.length === 12 && selections.player2.length === 12) {
+        finalizeDraft();
+        return;
+      }
 
       if (draftIsComplete()) {
         finalizeDraft();
