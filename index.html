@@ -892,8 +892,8 @@
     <div id="modeSelection" class="start-screen__modes" hidden>
       <p class="start-screen__subtitle">Selecciona el modo</p>
       <div class="start-screen__buttons">
-        <button class="button" type="button" data-mode="pvp">1 vs 1</button>
-        <button class="button button--primary" type="button" data-mode="ai">1 vs IA</button>
+        <button class="button" type="button" data-mode="pvp" onclick="handleModeSelection('pvp')">1 vs 1</button>
+        <button class="button button--primary" type="button" data-mode="ai" onclick="handleModeSelection('ai')">1 vs IA</button>
       </div>
     </div>
   </div>
@@ -1023,22 +1023,22 @@
       const selections = { player1: [], player2: [] };
       let availableCharacters = [];
 
-      function revealModes() {
-        startScreen.classList.add('start-screen--modes');
-        playButton.hidden = true;
-        playButton.style.display = 'none';
-        playButton.setAttribute('aria-hidden', 'true');
-        modeSelection.hidden = false;
-        modeSelection.removeAttribute('hidden');
-        modeSelection.style.display = 'grid';
-      }
+    function revealModes() {
+      startScreen.classList.add('start-screen--modes');
+      playButton.hidden = true;
+      playButton.style.display = 'none';
+      playButton.setAttribute('aria-hidden', 'true');
+      modeSelection.hidden = false;
+      modeSelection.removeAttribute('hidden');
+      modeSelection.style.display = 'grid';
+    }
 
-      function hideStartScreen() {
-        startScreen.classList.add('start-screen--hidden');
-        startScreen.setAttribute('aria-hidden', 'true');
-        startScreen.hidden = true;
-        startScreen.style.display = 'none';
-      }
+    function hideStartScreen() {
+      startScreen.classList.add('start-screen--hidden');
+      startScreen.setAttribute('aria-hidden', 'true');
+      startScreen.hidden = true;
+      startScreen.style.display = 'none';
+    }
 
       playButton.addEventListener('click', () => {
         revealModes();
@@ -2838,6 +2838,7 @@
     }
 
     function showDraftScreen() {
+      hideStartScreen();
       draftScreen.hidden = false;
       draftScreen.style.display = 'grid';
       draftScreen.style.opacity = '1';
@@ -2877,7 +2878,7 @@
     }
 
     function handleModeSelection(mode) {
-      hideStartScreen();
+      showDraftScreen();
       beginDraft(mode);
     }
 
