@@ -620,6 +620,7 @@
       left: 50%;
       transform: translateX(-50%);
       width: calc(100% - 32px);
+      max-width: none;
       padding: clamp(14px, 1.8vw, 28px) clamp(18px, 2vw, 32px);
       background: linear-gradient(120deg, rgba(0, 0, 0, 0.78), rgba(15, 77, 32, 0.9));
       border-radius: 14px;
@@ -637,6 +638,7 @@
       letter-spacing: 0.05em;
       text-shadow: 0 3px 10px rgba(0, 0, 0, 0.55), 0 0 30px rgba(251, 211, 77, 0.35);
       text-transform: none;
+      width: 100%;
     }
 
     .turn-popup__hint {
@@ -740,7 +742,7 @@
     }
 
     .duel-card__name {
-      font-size: clamp(1.3rem, 1vw + 1rem, 2.1rem);
+      font-size: clamp(1.1rem, 2vw + 0.2rem, 2.1rem);
       margin: 0 0 4px;
       text-transform: uppercase;
     }
