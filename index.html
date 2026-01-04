@@ -50,6 +50,13 @@
       background: linear-gradient(180deg, #0f4d20 0%, #0d3618 100%);
       padding: 24px 16px;
       z-index: 50;
+      transition: opacity 220ms ease, visibility 220ms ease;
+    }
+
+    .start-screen--hidden {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
     }
 
     .start-screen__headline {
@@ -65,9 +72,18 @@
     }
 
     .start-screen__modes {
-      display: grid;
+      display: none;
       gap: 12px;
       justify-items: center;
+    }
+
+    .start-screen__modes[hidden] {
+      display: none !important;
+    }
+
+    .start-screen--modes .start-screen__modes {
+      display: grid;
+      animation: fadeIn 240ms ease;
     }
 
     .start-screen__buttons {
@@ -121,6 +137,40 @@
       box-shadow: 0 0 0 0 rgba(241, 124, 0, 0.65);
     }
 
+    .start-screen__play {
+      padding: 16px 36px;
+      font-size: clamp(18px, 4vw, 24px);
+      letter-spacing: 0.6px;
+      border-radius: 18px;
+      background: linear-gradient(135deg, #ffae34 0%, #ff6b00 50%, #ffd166 100%);
+      color: #1c1200;
+      box-shadow:
+        0 12px 24px rgba(0, 0, 0, 0.35),
+        0 0 18px rgba(255, 174, 52, 0.6),
+        inset 0 2px 0 rgba(255, 255, 255, 0.35);
+      border: 2px solid rgba(255, 230, 184, 0.7);
+      text-transform: uppercase;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .start-screen__play::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(120deg, transparent 0%, rgba(255, 255, 255, 0.35) 40%, transparent 80%);
+      transform: translateX(-120%);
+      transition: transform 450ms ease;
+    }
+
+    .start-screen__play:hover::after {
+      transform: translateX(120%);
+    }
+
+    .start-screen__play:active {
+      transform: translateY(1px);
+    }
+
     @keyframes pulse {
       0% {
         box-shadow: 0 0 0 0 rgba(241, 124, 0, 0.65);
@@ -130,6 +180,17 @@
       }
       100% {
         box-shadow: 0 0 0 0 rgba(241, 124, 0, 0);
+      }
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
       }
     }
 
@@ -625,7 +686,7 @@
       <h1 class="start-screen__headline">Marvel Force</h1>
       <p class="start-screen__subtitle">Elige cómo quieres jugar</p>
     </div>
-    <button id="playButton" class="button button--primary button--pulse" type="button">Jugar</button>
+    <button id="playButton" class="button button--primary button--pulse start-screen__play" type="button">Jugar</button>
     <div id="modeSelection" class="start-screen__modes" hidden>
       <p class="start-screen__subtitle">Selecciona el modo</p>
       <div class="start-screen__buttons">
@@ -1121,7 +1182,6 @@
 
     ['keydown', 'mousedown', 'mouseup', 'touchstart'].forEach((eventName) => {
       document.addEventListener(eventName, (event) => {
-        startBackgroundMusic();
         handleGlobalDismiss(event);
       });
     });
@@ -2366,22 +2426,31 @@
     });
 
     function revealModes() {
+      startScreen.classList.add('start-screen--modes');
       playButton.hidden = true;
+      playButton.setAttribute('aria-hidden', 'true');
       modeSelection.hidden = false;
+    }
+
+    function hideStartScreen() {
+      startScreen.classList.add('start-screen--hidden');
+      startScreen.setAttribute('aria-hidden', 'true');
+      setTimeout(() => {
+        startScreen.hidden = true;
+      }, 220);
     }
 
     function startGame(mode) {
       if (gameStarted) return;
       isPlayerVsAI = mode === 'ai';
       gameStarted = true;
-      startScreen.hidden = true;
+      hideStartScreen();
       gameContainer.hidden = false;
       startBackgroundMusic();
       startTurn(turnOrder[turnIndex]);
     }
 
     playButton.addEventListener('click', () => {
-      startBackgroundMusic();
       revealModes();
     });
 
