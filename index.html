@@ -40,10 +40,16 @@
     }
 
     .start-screen {
+      position: fixed;
+      inset: 0;
       display: grid;
+      place-items: center;
       gap: 16px;
       justify-items: center;
       text-align: center;
+      background: linear-gradient(180deg, #0f4d20 0%, #0d3618 100%);
+      padding: 24px 16px;
+      z-index: 50;
     }
 
     .start-screen__headline {
@@ -615,8 +621,10 @@
 </head>
 <body>
   <div id="startScreen" class="start-screen">
-    <h1 class="start-screen__headline">Marvel Force</h1>
-    <p class="start-screen__subtitle">Elige cómo quieres jugar</p>
+    <div>
+      <h1 class="start-screen__headline">Marvel Force</h1>
+      <p class="start-screen__subtitle">Elige cómo quieres jugar</p>
+    </div>
     <button id="playButton" class="button button--primary button--pulse" type="button">Jugar</button>
     <div id="modeSelection" class="start-screen__modes" hidden>
       <p class="start-screen__subtitle">Selecciona el modo</p>
