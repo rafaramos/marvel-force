@@ -2692,8 +2692,11 @@
     function revealModes() {
       startScreen.classList.add('start-screen--modes');
       playButton.hidden = true;
+      playButton.style.display = 'none';
       playButton.setAttribute('aria-hidden', 'true');
       modeSelection.hidden = false;
+      modeSelection.removeAttribute('hidden');
+      modeSelection.style.display = 'grid';
     }
 
     function hideStartScreen() {
