@@ -39,6 +39,38 @@
       align-items: center;
     }
 
+    .start-screen {
+      display: grid;
+      gap: 16px;
+      justify-items: center;
+      text-align: center;
+    }
+
+    .start-screen__headline {
+      font-size: clamp(28px, 4vw, 36px);
+      margin: 0;
+      letter-spacing: 0.3px;
+    }
+
+    .start-screen__subtitle {
+      margin: 0;
+      opacity: 0.85;
+      font-weight: 600;
+    }
+
+    .start-screen__modes {
+      display: grid;
+      gap: 12px;
+      justify-items: center;
+    }
+
+    .start-screen__buttons {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
     .controls {
       display: flex;
       justify-content: center;
@@ -582,7 +614,20 @@
   </style>
 </head>
 <body>
-  <main class="wrapper">
+  <div id="startScreen" class="start-screen">
+    <h1 class="start-screen__headline">Marvel Force</h1>
+    <p class="start-screen__subtitle">Elige cómo quieres jugar</p>
+    <button id="playButton" class="button button--primary button--pulse" type="button">Jugar</button>
+    <div id="modeSelection" class="start-screen__modes" hidden>
+      <p class="start-screen__subtitle">Selecciona el modo</p>
+      <div class="start-screen__buttons">
+        <button class="button" type="button" data-mode="pvp">1 vs 1</button>
+        <button class="button button--primary" type="button" data-mode="ai">1 vs IA</button>
+      </div>
+    </div>
+  </div>
+
+  <main id="gameContainer" class="wrapper" hidden>
     <div class="controls" aria-label="Controles de turno">
       <button class="button" id="passTurn" type="button">Pasar</button>
       <button class="button button--primary" id="attack" type="button">Atacar</button>
@@ -640,6 +685,11 @@
     <script src="js/personajes.js"></script>
     <script>
       const board = document.querySelector('.board');
+      const startScreen = document.getElementById('startScreen');
+      const gameContainer = document.getElementById('gameContainer');
+      const playButton = document.getElementById('playButton');
+      const modeSelection = document.getElementById('modeSelection');
+      const modeButtons = modeSelection.querySelectorAll('[data-mode]');
       const pieceStats =
         (typeof personajes !== 'undefined' && personajes) ||
         (typeof window !== 'undefined' ? window.personajes : {});
@@ -658,6 +708,8 @@
       backgroundMusic.loop = true;
       backgroundMusic.volume = 0.35;
       let backgroundStarted = false;
+      let isPlayerVsAI = true;
+      let gameStarted = false;
       const PROBABILIDAD_DURATION = 2;
 
     const initialPositions = [
@@ -1082,7 +1134,7 @@
           probabilidad: 'Probabilidad',
         };
         btn.textContent = labels[ability] || ability;
-        btn.disabled = piece.dataset.team === 'enemigo';
+        btn.disabled = isPlayerVsAI && piece.dataset.team === 'enemigo';
         btn.addEventListener('click', () => handleActionClick(ability));
         powerControls.appendChild(btn);
       });
@@ -1213,8 +1265,9 @@
       document.querySelectorAll('.piece').forEach((p) => p.classList.remove('piece--active'));
       piece.classList.add('piece--active');
       const isEnemyTurn = piece.dataset.team === 'enemigo';
-      passButton.disabled = isEnemyTurn;
-      attackButton.disabled = isEnemyTurn;
+      const shouldDisableControls = isPlayerVsAI && isEnemyTurn;
+      passButton.disabled = shouldDisableControls;
+      attackButton.disabled = shouldDisableControls;
       updateStatusBar(piece);
       updateCombatInfo();
       currentAction = 'attack';
@@ -1966,7 +2019,7 @@
 
     board.addEventListener('click', async (event) => {
       const activePiece = turnOrder[turnIndex];
-      if (activePiece?.dataset.team === 'enemigo') return;
+      if (isPlayerVsAI && activePiece?.dataset.team === 'enemigo') return;
 
       const square = event.target.closest('.square');
       if (!square) return;
@@ -2239,7 +2292,7 @@
       if (turnOrder.length === 0) return;
       turnIndex = (turnIndex + 1) % turnOrder.length;
       const nextPiece = turnOrder[turnIndex];
-      const delay = nextPiece?.dataset.team === 'enemigo' ? AI_DELAY_MS : TURN_DELAY_MS;
+      const delay = isPlayerVsAI && nextPiece?.dataset.team === 'enemigo' ? AI_DELAY_MS : TURN_DELAY_MS;
       setTimeout(() => startTurn(nextPiece), delay);
     }
 
@@ -2293,7 +2346,7 @@
       clearHighlights();
       highlightMovement(piece);
       highlightRange(piece);
-      if (piece.dataset.team === 'enemigo') {
+      if (isPlayerVsAI && piece.dataset.team === 'enemigo') {
         performEnemyTurn(piece);
       }
     }
@@ -2304,7 +2357,32 @@
       finishTurn(currentPiece, { showPopup: false });
     });
 
-    startTurn(turnOrder[turnIndex]);
+    function revealModes() {
+      playButton.hidden = true;
+      modeSelection.hidden = false;
+    }
+
+    function startGame(mode) {
+      if (gameStarted) return;
+      isPlayerVsAI = mode === 'ai';
+      gameStarted = true;
+      startScreen.hidden = true;
+      gameContainer.hidden = false;
+      startBackgroundMusic();
+      startTurn(turnOrder[turnIndex]);
+    }
+
+    playButton.addEventListener('click', () => {
+      startBackgroundMusic();
+      revealModes();
+    });
+
+    modeButtons.forEach((button) => {
+      button.addEventListener('click', () => {
+        const mode = button.dataset.mode;
+        startGame(mode);
+      });
+    });
   </script>
 </body>
 </html>
