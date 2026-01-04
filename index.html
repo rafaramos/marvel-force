@@ -2778,7 +2778,8 @@
       draftIndex += 1;
       renderDraftCards();
 
-      if (draftIndex >= draftOrder.length) {
+      const draftedAllTeams = selections.player1.length === 12 && selections.player2.length === 12;
+      if (draftIndex >= draftOrder.length || draftedAllTeams) {
         finalizeDraft();
         return;
       }
