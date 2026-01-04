@@ -2757,6 +2757,11 @@
     }
 
     function updateDraftLabels() {
+      if (draftIndex >= draftOrder.length) {
+        finalizeDraft();
+        return;
+      }
+
       const pickerId = draftOrder[draftIndex];
       draftPicker.textContent = `Elige: ${ownerLabel(pickerId)}`;
       draftTurn.textContent = `Turno ${draftIndex + 1} de ${draftOrder.length}`;
@@ -2765,6 +2770,12 @@
       const remaining = 12 - selections[pickerId].length;
       draftPrompt.textContent = `${ownerLabel(pickerId)} selecciona (${remaining} plazas restantes en su equipo).`;
       draftInfo.textContent = 'Los personajes elegidos no se pueden repetir. Tras la última elección comenzará la partida.';
+    }
+
+    function draftIsComplete() {
+      const teamsFull = selections.player1.length === 12 && selections.player2.length === 12;
+      const noPicksLeft = draftIndex >= draftOrder.length || availablePool().length === 0;
+      return teamsFull || noPicksLeft;
     }
 
     function handleDraftPick(key) {
@@ -2778,8 +2789,7 @@
       draftIndex += 1;
       renderDraftCards();
 
-      const draftedAllTeams = selections.player1.length === 12 && selections.player2.length === 12;
-      if (draftIndex >= draftOrder.length || draftedAllTeams) {
+      if (draftIsComplete()) {
         finalizeDraft();
         return;
       }
