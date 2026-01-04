@@ -1036,9 +1036,8 @@
       function hideStartScreen() {
         startScreen.classList.add('start-screen--hidden');
         startScreen.setAttribute('aria-hidden', 'true');
-        setTimeout(() => {
-          startScreen.hidden = true;
-        }, 220);
+        startScreen.hidden = true;
+        startScreen.style.display = 'none';
       }
 
       playButton.addEventListener('click', () => {
@@ -2838,18 +2837,19 @@
       startGame();
     }
 
-    function beginDraft(mode) {
-      isPlayerVsAI = mode === 'ai';
-      selections.player1 = [];
-      selections.player2 = [];
-      availableCharacters = Object.keys(pieceStats);
-      firstPicker = Math.random() < 0.5 ? 'player1' : 'player2';
-      draftOrder = generateDraftOrder(firstPicker);
-      draftIndex = 0;
-      draftActive = true;
-      draftScreen.hidden = false;
-      updateDraftLabels();
-      renderDraftCards();
+      function beginDraft(mode) {
+        isPlayerVsAI = mode === 'ai';
+        selections.player1 = [];
+        selections.player2 = [];
+        availableCharacters = Object.keys(pieceStats);
+        firstPicker = Math.random() < 0.5 ? 'player1' : 'player2';
+        draftOrder = generateDraftOrder(firstPicker);
+        draftIndex = 0;
+        draftActive = true;
+        draftScreen.hidden = false;
+        draftScreen.style.display = 'grid';
+        updateDraftLabels();
+        renderDraftCards();
 
       const pickerId = draftOrder[draftIndex];
       if (isPlayerVsAI && pickerId === 'player2') {
