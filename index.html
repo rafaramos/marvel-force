@@ -733,7 +733,7 @@
     }
 
     .duel-card__name {
-      font-size: var(--duel-name-size, clamp(1rem, 1.1vw + 0.5rem, 1.65rem));
+      font-size: var(--duel-name-size, clamp(18px, 2.6vw, 36px));
       margin: 0 0 4px;
       text-transform: uppercase;
       line-height: 1.05;
@@ -1358,10 +1358,6 @@
       container.classList.remove('duel-panel--hidden');
       container.style.setProperty('--duel-slot-count', characters.length);
 
-      const panelWidth = container.clientWidth || container.getBoundingClientRect().width || 0;
-      const slotWidth = characters.length > 0 ? panelWidth / characters.length : 0;
-      const computedNameSize = Math.max(18, Math.min(42, slotWidth / 5.5));
-
       characters.forEach((char) => {
         const card = document.createElement('div');
         card.className = 'duel-card';
@@ -1369,7 +1365,8 @@
           card.classList.add('duel-card--eliminated');
         }
         card.style.flexBasis = `${100 / characters.length}%`;
-        card.style.setProperty('--duel-name-size', `${computedNameSize}px`);
+        const nameSizeVw = Math.min(3.6, Math.max(2, 8 / characters.length));
+        card.style.setProperty('--duel-name-size', `${nameSizeVw}vw`);
         const overlayClass = char.role === 'attacker' ? 'duel-card__overlay--attacker' : 'duel-card__overlay--defender';
         card.innerHTML = `
           <img class="duel-card__image" src="${char.imagen}" alt="${char.name}" />
