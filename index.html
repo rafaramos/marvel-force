@@ -91,12 +91,12 @@
     }
 
     .draft-panel {
-      width: min(1200px, 96vw);
+      width: min(1600px, 98vw);
       background: rgba(10, 28, 16, 0.92);
       border: 2px solid rgba(255, 255, 255, 0.2);
       box-shadow: 0 20px 40px rgba(0, 0, 0, 0.45);
       border-radius: 20px;
-      padding: clamp(16px, 2vw, 26px);
+      padding: clamp(16px, 1.6vw, 24px);
       display: grid;
       gap: 14px;
       color: #f4f4f4;
@@ -175,8 +175,9 @@
 
     .draft-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-      gap: 12px;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 10px;
+      align-items: start;
     }
 
     .draft-card {
@@ -189,6 +190,7 @@
       cursor: pointer;
       transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease, opacity 140ms ease;
       isolation: isolate;
+      min-height: 150px;
     }
 
     .draft-card:hover {
@@ -203,39 +205,27 @@
 
     .draft-card__image {
       width: 100%;
-      aspect-ratio: 4 / 5;
+      aspect-ratio: 1 / 1;
       object-fit: cover;
       display: block;
       filter: saturate(1.05);
     }
 
     .draft-card__body {
+      position: absolute;
+      inset: auto 0 0;
       padding: 10px 12px 12px;
-      display: grid;
-      gap: 4px;
-      background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(0, 0, 0, 0.25));
+      background: linear-gradient(180deg, transparent, rgba(0, 0, 0, 0.8));
     }
 
     .draft-card__title {
       margin: 0;
-      font-size: 1.05rem;
+      font-size: 1.02rem;
       letter-spacing: 0.03em;
-    }
-
-    .draft-card__meta {
-      margin: 0;
-      opacity: 0.9;
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-      font-size: 0.92rem;
-    }
-
-    .draft-card__tag {
-      padding: 4px 8px;
-      border-radius: 8px;
-      background: rgba(255, 255, 255, 0.08);
-      border: 1px solid rgba(255, 255, 255, 0.14);
+      text-shadow: 0 2px 8px rgba(0, 0, 0, 0.7);
+      line-height: 1.2;
+      color: #ffffff;
+      font-weight: 800;
     }
 
     .draft-card--taken {
@@ -2751,10 +2741,6 @@
           <img class="draft-card__image" src="${stats?.imagen || ''}" alt="${stats?.name || key}" loading="lazy" />
           <div class="draft-card__body">
             <p class="draft-card__title">${stats?.name || key}</p>
-            <p class="draft-card__meta">
-              <span class="draft-card__tag">Rango ${stats?.rango ?? '-'}</span>
-              <span class="draft-card__tag">Agilidad ${stats?.agilidad ?? '-'}</span>
-            </p>
           </div>
         `;
 
