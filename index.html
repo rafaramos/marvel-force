@@ -71,6 +71,206 @@
       font-weight: 600;
     }
 
+    .draft-screen {
+      position: fixed;
+      inset: 0;
+      background: radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.08), transparent 35%),
+        radial-gradient(circle at 80% 15%, rgba(255, 200, 120, 0.06), transparent 32%),
+        linear-gradient(180deg, #0f4d20 0%, #0d3618 100%);
+      display: grid;
+      place-items: center;
+      padding: clamp(16px, 4vw, 36px);
+      z-index: 45;
+      transition: opacity 200ms ease, visibility 200ms ease;
+    }
+
+    .draft-screen[hidden] {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    .draft-panel {
+      width: min(1200px, 96vw);
+      background: rgba(10, 28, 16, 0.92);
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.45);
+      border-radius: 20px;
+      padding: clamp(16px, 2vw, 26px);
+      display: grid;
+      gap: 14px;
+      color: #f4f4f4;
+    }
+
+    .draft-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: baseline;
+      flex-wrap: wrap;
+    }
+
+    .draft-kicker {
+      margin: 0;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      font-weight: 800;
+      font-size: 0.9rem;
+      opacity: 0.9;
+      color: #ffd166;
+    }
+
+    .draft-title {
+      margin: 4px 0 0;
+      font-size: clamp(26px, 3vw, 34px);
+      letter-spacing: 0.04em;
+    }
+
+    .draft-subtitle {
+      margin: 6px 0 0;
+      opacity: 0.9;
+      font-weight: 500;
+    }
+
+    .draft-meta {
+      text-align: right;
+      min-width: 220px;
+    }
+
+    .draft-meta strong {
+      display: block;
+      font-size: clamp(18px, 2.2vw, 22px);
+    }
+
+    .draft-legend {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+      font-size: 0.95rem;
+      opacity: 0.92;
+    }
+
+    .draft-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .draft-swatch {
+      width: 12px;
+      height: 12px;
+      border-radius: 999px;
+      background: #2b9afc;
+      box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.2);
+    }
+
+    .draft-swatch--enemy {
+      background: #ef3f3f;
+    }
+
+    .draft-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+    }
+
+    .draft-card {
+      position: relative;
+      background: #0b0b0b;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      box-shadow: 0 10px 18px rgba(0, 0, 0, 0.45);
+      cursor: pointer;
+      transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease, opacity 140ms ease;
+      isolation: isolate;
+    }
+
+    .draft-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 14px 22px rgba(0, 0, 0, 0.5);
+      border-color: rgba(255, 209, 102, 0.6);
+    }
+
+    .draft-card:active {
+      transform: translateY(0);
+    }
+
+    .draft-card__image {
+      width: 100%;
+      aspect-ratio: 4 / 5;
+      object-fit: cover;
+      display: block;
+      filter: saturate(1.05);
+    }
+
+    .draft-card__body {
+      padding: 10px 12px 12px;
+      display: grid;
+      gap: 4px;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(0, 0, 0, 0.25));
+    }
+
+    .draft-card__title {
+      margin: 0;
+      font-size: 1.05rem;
+      letter-spacing: 0.03em;
+    }
+
+    .draft-card__meta {
+      margin: 0;
+      opacity: 0.9;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      font-size: 0.92rem;
+    }
+
+    .draft-card__tag {
+      padding: 4px 8px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+    }
+
+    .draft-card--taken {
+      opacity: 0.45;
+      pointer-events: none;
+    }
+
+    .draft-card--taken::after {
+      content: attr(data-owner);
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      background: rgba(0, 0, 0, 0.6);
+      color: #ffd166;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      font-size: 1.05rem;
+      text-transform: uppercase;
+    }
+
+    .draft-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .draft-prompt {
+      margin: 0;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+
     .start-screen__modes {
       display: none;
       gap: 12px;
@@ -696,6 +896,32 @@
     </div>
   </div>
 
+  <div id="draftScreen" class="draft-screen" hidden>
+    <div class="draft-panel" role="dialog" aria-labelledby="draftTitle" aria-live="polite">
+      <div class="draft-header">
+        <div>
+          <p class="draft-kicker">Fase de selección</p>
+          <h2 id="draftTitle" class="draft-title">Elige tu equipo</h2>
+          <p id="draftSubtitle" class="draft-subtitle">Se asignará aleatoriamente quién elige primero.</p>
+        </div>
+        <div class="draft-meta">
+          <span id="draftPicker" class="draft-subtitle"></span>
+          <strong id="draftTurn">Turno de selección</strong>
+          <span id="draftCounter" class="draft-subtitle"></span>
+        </div>
+      </div>
+      <div class="draft-legend">
+        <span class="draft-badge"><span class="draft-swatch"></span> Equipo del Jugador 1</span>
+        <span class="draft-badge"><span class="draft-swatch draft-swatch--enemy"></span> Equipo del Jugador 2 / IA</span>
+      </div>
+      <p id="draftPrompt" class="draft-prompt">Cargando personajes...</p>
+      <div id="draftGrid" class="draft-grid" aria-label="Personajes disponibles para elegir"></div>
+      <div class="draft-footer">
+        <p id="draftInfo" class="draft-subtitle"></p>
+      </div>
+    </div>
+  </div>
+
   <main id="gameContainer" class="wrapper" hidden>
     <div class="controls" aria-label="Controles de turno">
       <button class="button" id="passTurn" type="button">Pasar</button>
@@ -755,10 +981,18 @@
     <script>
       const board = document.querySelector('.board');
       const startScreen = document.getElementById('startScreen');
+      const draftScreen = document.getElementById('draftScreen');
       const gameContainer = document.getElementById('gameContainer');
       const playButton = document.getElementById('playButton');
       const modeSelection = document.getElementById('modeSelection');
       const modeButtons = modeSelection.querySelectorAll('[data-mode]');
+      const draftGrid = document.getElementById('draftGrid');
+      const draftPrompt = document.getElementById('draftPrompt');
+      const draftPicker = document.getElementById('draftPicker');
+      const draftTurn = document.getElementById('draftTurn');
+      const draftCounter = document.getElementById('draftCounter');
+      const draftInfo = document.getElementById('draftInfo');
+      const draftSubtitle = document.getElementById('draftSubtitle');
       const pieceStats =
         (typeof personajes !== 'undefined' && personajes) ||
         (typeof window !== 'undefined' ? window.personajes : {});
@@ -780,33 +1014,44 @@
       let isPlayerVsAI = true;
       let gameStarted = false;
       const PROBABILIDAD_DURATION = 2;
+      let draftOrder = [];
+      let draftIndex = 0;
+      let firstPicker = 'player1';
+      let draftActive = false;
+      const selections = { player1: [], player2: [] };
+      let availableCharacters = [];
 
-    const initialPositions = [
-      { key: 'avispa', team: 'aliado', row: 1, col: 1, className: 'piece--white' },
-      { key: 'hulk', team: 'aliado', row: 2, col: 1, className: 'piece--red' },
-      { key: 'capitan', team: 'aliado', row: 3, col: 1, className: 'piece--violet' },
-      { key: 'spider', team: 'aliado', row: 4, col: 1, className: 'piece--blue' },
-      { key: 'lobezno', team: 'aliado', row: 5, col: 1, className: 'piece--gold' },
-      { key: 'ciclope', team: 'aliado', row: 6, col: 1, className: 'piece--white' },
-      { key: 'cosa', team: 'aliado', row: 7, col: 1, className: 'piece--red' },
-      { key: 'antorcha', team: 'aliado', row: 8, col: 1, className: 'piece--gold' },
-      { key: 'thor', team: 'aliado', row: 9, col: 1, className: 'piece--violet' },
-      { key: 'iron-man', team: 'aliado', row: 10, col: 1, className: 'piece--gold' },
-      { key: 'hulka', team: 'aliado', row: 1, col: 2, className: 'piece--red' },
-      { key: 'bruja-escarlata', team: 'aliado', row: 2, col: 2, className: 'piece--violet' },
-      { key: 'duende', team: 'enemigo', row: 1, col: 16, className: 'piece--black' },
-      { key: 'chaquetaAmarilla', team: 'enemigo', row: 2, col: 16, className: 'piece--black' },
-      { key: 'dientesDeSable', team: 'enemigo', row: 3, col: 16, className: 'piece--black' },
-      { key: 'boomerang', team: 'enemigo', row: 4, col: 16, className: 'piece--black' },
-      { key: 'juggernaut', team: 'enemigo', row: 5, col: 16, className: 'piece--black' },
-      { key: 'mole', team: 'enemigo', row: 6, col: 16, className: 'piece--black' },
-      { key: 'doom', team: 'enemigo', row: 7, col: 16, className: 'piece--black' },
-      { key: 'ultron', team: 'enemigo', row: 8, col: 16, className: 'piece--black' },
-      { key: 'thanos', team: 'enemigo', row: 9, col: 16, className: 'piece--black' },
-      { key: 'magneto', team: 'enemigo', row: 10, col: 16, className: 'piece--black' },
-      { key: 'kang', team: 'enemigo', row: 1, col: 15, className: 'piece--black' },
-      { key: 'super-skrull', team: 'enemigo', row: 2, col: 15, className: 'piece--black' },
-    ];
+      const allySlots = [
+        { row: 1, col: 1, className: 'piece--white' },
+        { row: 2, col: 1, className: 'piece--red' },
+        { row: 3, col: 1, className: 'piece--violet' },
+        { row: 4, col: 1, className: 'piece--blue' },
+        { row: 5, col: 1, className: 'piece--gold' },
+        { row: 6, col: 1, className: 'piece--white' },
+        { row: 7, col: 1, className: 'piece--red' },
+        { row: 8, col: 1, className: 'piece--gold' },
+        { row: 9, col: 1, className: 'piece--violet' },
+        { row: 10, col: 1, className: 'piece--gold' },
+        { row: 1, col: 2, className: 'piece--red' },
+        { row: 2, col: 2, className: 'piece--violet' },
+      ];
+
+      const enemySlots = [
+        { row: 1, col: 16, className: 'piece--black' },
+        { row: 2, col: 16, className: 'piece--black' },
+        { row: 3, col: 16, className: 'piece--black' },
+        { row: 4, col: 16, className: 'piece--black' },
+        { row: 5, col: 16, className: 'piece--black' },
+        { row: 6, col: 16, className: 'piece--black' },
+        { row: 7, col: 16, className: 'piece--black' },
+        { row: 8, col: 16, className: 'piece--black' },
+        { row: 9, col: 16, className: 'piece--black' },
+        { row: 10, col: 16, className: 'piece--black' },
+        { row: 1, col: 15, className: 'piece--black' },
+        { row: 2, col: 15, className: 'piece--black' },
+      ];
+
+      let initialPositions = [];
 
     function createPieceElement({ key, team, className }) {
       const stats = pieceStats[key];
@@ -836,11 +1081,18 @@
           board.appendChild(square);
         }
       }
+      squares = Array.from(board.querySelectorAll('.square'));
+      squaresByCoord = new Map();
+      squares.forEach((square, index) => {
+        const row = Math.floor(index / BOARD_COLS) + 1;
+        const col = (index % BOARD_COLS) + 1;
+        square.dataset.row = row;
+        square.dataset.col = col;
+        squaresByCoord.set(`${row},${col}`, square);
+      });
     }
 
-    buildBoard();
-
-    const squares = Array.from(board.querySelectorAll('.square'));
+    let squares = [];
     const tooltip = document.getElementById('tooltip');
     const turnPopup = document.getElementById('turnPopup');
     const turnPopupMessage = document.getElementById('turnPopupMessage');
@@ -861,19 +1113,12 @@
     const ENEMY_ACTION_DELAY_MS = 500;
     const DEFAULT_MOVE_DURATION_MS = 1200;
 
-    const squaresByCoord = new Map();
-    squares.forEach((square, index) => {
-      const row = Math.floor(index / BOARD_COLS) + 1;
-      const col = (index % BOARD_COLS) + 1;
-      square.dataset.row = row;
-      square.dataset.col = col;
-      squaresByCoord.set(`${row},${col}`, square);
-    });
-
+    let squaresByCoord = new Map();
     const pieceMap = new Map();
     let movementDistances = new Map();
     let currentAction = 'attack';
     let movementAnimationDuration = DEFAULT_MOVE_DURATION_MS;
+    const movementPool = new Map();
 
     function hasPassive(stats, key) {
       return Boolean(stats?.habilidades?.pasivas?.includes(key));
@@ -957,17 +1202,24 @@
       pieceMap.set(piece, computedStats);
     }
 
-    const pieces = Array.from(board.querySelectorAll('.piece')).map((element) => ({
-      element,
-      key: element.dataset.key,
-      team: element.dataset.team,
-    }));
+    let pieces = [];
 
-    pieces.forEach(({ element, key, team }) => {
-      if (element) {
-        attachPieceData(element, key, team);
-      }
-    });
+    function hydratePieces() {
+      pieces = Array.from(board.querySelectorAll('.piece')).map((element) => ({
+        element,
+        key: element.dataset.key,
+        team: element.dataset.team,
+      }));
+
+      pieceMap.clear();
+      movementPool.clear();
+
+      pieces.forEach(({ element, key, team }) => {
+        if (element) {
+          attachPieceData(element, key, team);
+        }
+      });
+    }
 
     function renderLifeCards() {
       allyCards.innerHTML = '';
@@ -991,7 +1243,15 @@
       });
     }
 
-    renderLifeCards();
+    function rebuildGameState() {
+      buildBoard();
+      hydratePieces();
+      movementDistances = new Map();
+      recomputeTurnOrder();
+      renderLifeCards();
+    }
+
+    rebuildGameState();
 
     const ANIMATION_OVERRIDES = {
       antorcha: 'animaciones/antorcha-humana.webp',
@@ -1208,19 +1468,23 @@
       });
     }
 
-    const turnOrder = pieces
-      .map(({ element }) => element)
-      .filter(Boolean)
-      .sort((a, b) => {
-        const statsA = pieceMap.get(a);
-        const statsB = pieceMap.get(b);
-        if (statsA.agilidad === statsB.agilidad) {
-          return Math.random() < 0.5 ? -1 : 1;
-        }
-        return statsB.agilidad - statsA.agilidad;
-      });
-
+    let turnOrder = [];
     let turnIndex = 0;
+
+    function recomputeTurnOrder() {
+      turnOrder = pieces
+        .map(({ element }) => element)
+        .filter(Boolean)
+        .sort((a, b) => {
+          const statsA = pieceMap.get(a);
+          const statsB = pieceMap.get(b);
+          if (statsA.agilidad === statsB.agilidad) {
+            return Math.random() < 0.5 ? -1 : 1;
+          }
+          return statsB.agilidad - statsA.agilidad;
+        });
+      turnIndex = 0;
+    }
     let selectedTarget = null;
     let pendingAttackInfo = null;
     let latestActionMessage = null;
@@ -2070,8 +2334,6 @@
 
     attackButton.addEventListener('click', () => handleActionClick('attack'));
 
-    const movementPool = new Map();
-
     function remainingMovement(piece) {
       return movementPool.get(piece) ?? Number(piece.dataset.movimiento);
     }
@@ -2440,14 +2702,163 @@
       }, 220);
     }
 
-    function startGame(mode) {
-      if (gameStarted) return;
+    function ownerLabel(playerId) {
+      if (playerId === 'player1') return 'Jugador 1';
+      return isPlayerVsAI ? 'IA' : 'Jugador 2';
+    }
+
+    function generateDraftOrder(startingPlayer) {
+      const other = startingPlayer === 'player1' ? 'player2' : 'player1';
+      const order = [startingPlayer];
+      let current = other;
+      let streak = 0;
+      while (order.length < 24) {
+        order.push(current);
+        streak += 1;
+        if (streak === 2) {
+          current = current === 'player1' ? 'player2' : 'player1';
+          streak = 0;
+        }
+      }
+      return order;
+    }
+
+    function availablePool() {
+      return availableCharacters.filter((key) => !selections.player1.includes(key) && !selections.player2.includes(key));
+    }
+
+    function renderDraftCards() {
+      draftGrid.innerHTML = '';
+      const ownership = new Map();
+      Object.entries(selections).forEach(([playerId, picks]) => {
+        picks.forEach((key) => ownership.set(key, playerId));
+      });
+
+      availableCharacters.forEach((key) => {
+        const stats = pieceStats[key];
+        const card = document.createElement('button');
+        card.type = 'button';
+        card.className = 'draft-card';
+        card.innerHTML = `
+          <img class="draft-card__image" src="${stats?.imagen || ''}" alt="${stats?.name || key}" loading="lazy" />
+          <div class="draft-card__body">
+            <p class="draft-card__title">${stats?.name || key}</p>
+            <p class="draft-card__meta">
+              <span class="draft-card__tag">Rango ${stats?.rango ?? '-'}</span>
+              <span class="draft-card__tag">Agilidad ${stats?.agilidad ?? '-'}</span>
+            </p>
+          </div>
+        `;
+
+        if (ownership.has(key)) {
+          card.classList.add('draft-card--taken');
+          card.dataset.owner = ownerLabel(ownership.get(key));
+          card.disabled = true;
+        } else {
+          card.addEventListener('click', () => handleDraftPick(key));
+        }
+
+        draftGrid.appendChild(card);
+      });
+    }
+
+    function updateDraftLabels() {
+      const pickerId = draftOrder[draftIndex];
+      draftPicker.textContent = `Elige: ${ownerLabel(pickerId)}`;
+      draftTurn.textContent = `Turno ${draftIndex + 1} de ${draftOrder.length}`;
+      draftCounter.textContent = `Jugador 1: ${selections.player1.length}/12 · ${ownerLabel('player2')}: ${selections.player2.length}/12`;
+      draftSubtitle.textContent = `Empieza ${ownerLabel(firstPicker)}. Los turnos alternan ${firstPicker === 'player1' ? '1, 2, 2, 1...' : '2, 1, 1, 2...'} hasta llegar a 12 por bando.`;
+      const remaining = 12 - selections[pickerId].length;
+      draftPrompt.textContent = `${ownerLabel(pickerId)} selecciona (${remaining} plazas restantes en su equipo).`;
+      draftInfo.textContent = 'Los personajes elegidos no se pueden repetir. Tras la última elección comenzará la partida.';
+    }
+
+    function handleDraftPick(key) {
+      if (!draftActive) return;
+      const pickerId = draftOrder[draftIndex];
+      if (!pickerId) return;
+      if (!availablePool().includes(key)) return;
+      if (selections[pickerId].length >= 12) return;
+
+      selections[pickerId].push(key);
+      draftIndex += 1;
+      renderDraftCards();
+
+      if (draftIndex >= draftOrder.length) {
+        finalizeDraft();
+        return;
+      }
+
+      updateDraftLabels();
+
+      const nextPicker = draftOrder[draftIndex];
+      if (isPlayerVsAI && nextPicker === 'player2') {
+        setTimeout(performAIPick, 600);
+      }
+    }
+
+    function performAIPick() {
+      const options = availablePool();
+      if (options.length === 0) return;
+      const randomKey = options[Math.floor(Math.random() * options.length)];
+      handleDraftPick(randomKey);
+    }
+
+    function buildPositionsFromSelections() {
+      const positions = [];
+      selections.player1.forEach((key, idx) => {
+        const slot = allySlots[idx];
+        if (slot) {
+          positions.push({ ...slot, key, team: 'aliado' });
+        }
+      });
+      selections.player2.forEach((key, idx) => {
+        const slot = enemySlots[idx];
+        if (slot) {
+          positions.push({ ...slot, key, team: 'enemigo' });
+        }
+      });
+      return positions;
+    }
+
+    function finalizeDraft() {
+      draftActive = false;
+      initialPositions = buildPositionsFromSelections();
+      rebuildGameState();
+      draftScreen.hidden = true;
+      startGame();
+    }
+
+    function beginDraft(mode) {
       isPlayerVsAI = mode === 'ai';
+      selections.player1 = [];
+      selections.player2 = [];
+      availableCharacters = Object.keys(pieceStats);
+      firstPicker = Math.random() < 0.5 ? 'player1' : 'player2';
+      draftOrder = generateDraftOrder(firstPicker);
+      draftIndex = 0;
+      draftActive = true;
+      draftScreen.hidden = false;
+      updateDraftLabels();
+      renderDraftCards();
+
+      const pickerId = draftOrder[draftIndex];
+      if (isPlayerVsAI && pickerId === 'player2') {
+        setTimeout(performAIPick, 500);
+      }
+    }
+
+    function startGame() {
+      if (gameStarted) return;
       gameStarted = true;
       hideStartScreen();
+      draftScreen.hidden = true;
       gameContainer.hidden = false;
       startBackgroundMusic();
-      startTurn(turnOrder[turnIndex]);
+      if (turnOrder.length > 0) {
+        highlightRange(turnOrder[turnIndex]);
+        startTurn(turnOrder[turnIndex]);
+      }
     }
 
     playButton.addEventListener('click', () => {
@@ -2457,7 +2868,8 @@
     modeButtons.forEach((button) => {
       button.addEventListener('click', () => {
         const mode = button.dataset.mode;
-        startGame(mode);
+        hideStartScreen();
+        beginDraft(mode);
       });
     });
   </script>
