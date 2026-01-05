@@ -772,7 +772,13 @@ const personajes = {
 };
 
 Object.entries(personajes).forEach(([clave, personaje]) => {
-  personaje.poderes = obtenerPoderes(clave, personaje.poderesAlias);
+  const poderes = { ...obtenerPoderes(clave, personaje.poderesAlias) };
+  const habilidades = personaje.habilidades || { activos: [], pasivos: [] };
+
+  const activos = Array.from(new Set([...(poderes.activos || []), ...(habilidades.activas || [])]));
+  const pasivos = Array.from(new Set([...(poderes.pasivos || []), ...(habilidades.pasivas || [])]));
+
+  personaje.poderes = { activos, pasivos };
 });
 
 if (typeof window !== 'undefined') {
