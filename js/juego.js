@@ -82,16 +82,16 @@ function canTraverseEnemies(piece) {
 
 function normalizedPowers(stats, key) {
   const list = stats?.poderes?.[key] ?? [];
-  return list.map((entry) => normalizeAbilityKey(entry?.nombre ?? entry));
+  return list.map((entry) => normalizePowerKey(entry?.nombre ?? entry));
 }
 
 function hasPassive(stats, power) {
-  const search = normalizeAbilityKey(power);
+  const search = normalizePowerKey(power);
   return normalizedPowers(stats, 'pasivos').includes(search);
 }
 
 function hasActive(stats, power) {
-  const search = normalizeAbilityKey(power);
+  const search = normalizePowerKey(power);
   return normalizedPowers(stats, 'activos').includes(search);
 }
 
@@ -180,18 +180,18 @@ const turnOrder = pieces
 let turnIndex = 0;
 let selectedTarget = null;
 let pendingAttackInfo = null;
-let selectedAbility = null;
+let selectedPower = null;
 
-function normalizeAbilityKey(ability) {
-  if (!ability) return null;
-  return ability
+function normalizePowerKey(power) {
+  if (!power) return null;
+  return power
     .toString()
     .toLowerCase()
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '');
 }
 
-const SUPPORT_ABILITIES = new Set([
+const SUPPORT_POWERS = new Set([
   'mejora de ataque',
   'mejora de agilidad',
   'mejora de defensa',
@@ -200,8 +200,8 @@ const SUPPORT_ABILITIES = new Set([
   'curar',
 ]);
 
-function isSupportAbility(ability) {
-  return ability ? SUPPORT_ABILITIES.has(normalizeAbilityKey(ability)) : false;
+function isSupportPower(power) {
+  return power ? SUPPORT_POWERS.has(normalizePowerKey(power)) : false;
 }
 
 function getPieceSquare(piece) {
@@ -313,7 +313,7 @@ function renderPowerButtons(piece) {
   const stats = pieceMap.get(piece);
   const activePowers = stats?.poderes?.activos ?? [];
   activePowers.forEach((powerKey) => {
-    const key = normalizeAbilityKey(powerKey?.nombre ?? powerKey);
+    const key = normalizePowerKey(powerKey?.nombre ?? powerKey);
     const label = powerKey?.nombre ?? powerLabel(key);
     const btn = document.createElement('button');
     btn.className = 'button';
@@ -711,7 +711,7 @@ function applyAttackBuffAction(attacker, centerTarget) {
   allies.forEach((piece) => applyAttackBuff(piece));
   clearRangeHighlights();
   selectedTarget = null;
-  selectedAbility = null;
+  selectedPower = null;
   attackButton.classList.remove('button--pulse');
   finishTurn(attacker);
 }
@@ -766,7 +766,7 @@ function gatherAlliesInArea(attacker, centerTarget) {
 function completeSupportAction(attacker) {
   clearRangeHighlights();
   selectedTarget = null;
-  selectedAbility = null;
+  selectedPower = null;
   attackButton.classList.remove('button--pulse');
   finishTurn(attacker);
 }
@@ -812,7 +812,7 @@ function clearTargetSelection(preserveAttack = false) {
   selectedTarget = null;
   if (!preserveAttack) {
     pendingAttackInfo = null;
-    selectedAbility = null;
+    selectedPower = null;
   }
   attackButton.classList.remove('button--pulse');
   hideTooltip();
@@ -822,25 +822,25 @@ function clearTargetSelection(preserveAttack = false) {
   }
 }
 
-function performAttackAction(ability = null) {
+function performAttackAction(power = null) {
   const attacker = turnOrder[turnIndex];
   if (!attacker) return;
-  const normalizedAbility = normalizeAbilityKey(ability);
-  const abilityKey = normalizedAbility ?? selectedAbility;
-  if (abilityKey) {
-    selectedAbility = abilityKey;
+  const normalizedPower = normalizePowerKey(power);
+  const powerKey = normalizedPower ?? selectedPower;
+  if (powerKey) {
+    selectedPower = powerKey;
   }
   const attackerSquare = getPieceSquare(attacker);
   const targetSquare = selectedTarget ? getPieceSquare(selectedTarget) : null;
   const maxRange = rangeForPiece(attacker);
 
-  if (abilityKey === 'pulso' && !selectedTarget) {
-    resolveAreaAttack(attacker, attackerSquare, abilityKey);
+  if (powerKey === 'pulso' && !selectedTarget) {
+    resolveAreaAttack(attacker, attackerSquare, powerKey);
     return;
   }
 
   if (!targetSquare) {
-    const needsAlly = isSupportAbility(abilityKey);
+    const needsAlly = isSupportPower(powerKey);
     alert(needsAlly ? 'Selecciona primero un compañero dentro de tu rango.' : 'Selecciona primero un enemigo dentro de tu rango.');
     return;
   }
@@ -850,37 +850,37 @@ function performAttackAction(ability = null) {
     return;
   }
 
-  if (abilityKey === 'mejora de ataque') {
+  if (powerKey === 'mejora de ataque') {
     applyAttackBuffAction(attacker, selectedTarget);
     return;
   }
 
-  if (abilityKey === 'mejora de defensa') {
+  if (powerKey === 'mejora de defensa') {
     applyDefenseBuffAction(attacker, selectedTarget);
     return;
   }
 
-  if (abilityKey === 'mejora de agilidad') {
+  if (powerKey === 'mejora de agilidad') {
     applyAgilityBuffAction(attacker, selectedTarget);
     return;
   }
 
-  if (abilityKey === 'probabilidad' || abilityKey === 'mejora de critico') {
+  if (powerKey === 'probabilidad' || powerKey === 'mejora de critico') {
     applyCritBuffAction(attacker, selectedTarget);
     return;
   }
 
-  if (abilityKey === 'curar') {
+  if (powerKey === 'curar') {
     handleHealAction(attacker, selectedTarget);
     return;
   }
 
-  if (abilityKey === 'explosion' || abilityKey === 'pulso') {
-    resolveAreaAttack(attacker, targetSquare, abilityKey);
+  if (powerKey === 'explosion' || powerKey === 'pulso') {
+    resolveAreaAttack(attacker, targetSquare, powerKey);
     return;
   }
-  prepareAttackInfo(attacker, selectedTarget, abilityKey);
-  resolveAttack(attacker, selectedTarget, { ability: abilityKey });
+  prepareAttackInfo(attacker, selectedTarget, powerKey);
+  resolveAttack(attacker, selectedTarget, { ability: powerKey });
 }
 
 function handleActivePower(powerKey) {
@@ -888,7 +888,7 @@ function handleActivePower(powerKey) {
 }
 
 attackButton.addEventListener('click', () => {
-  performAttackAction(selectedAbility);
+  performAttackAction(selectedPower);
 });
 
 const movementPool = new Map();
@@ -960,7 +960,7 @@ board.addEventListener('click', (event) => {
   const targetPiece = square.querySelector('.piece');
 
   if (targetPiece && targetPiece !== activePiece) {
-    const allowAllyTarget = isSupportAbility(selectedAbility);
+    const allowAllyTarget = isSupportPower(selectedPower);
     if (targetPiece.dataset.team === activePiece.dataset.team && !allowAllyTarget) return;
     const attackerSquare = getPieceSquare(activePiece);
     const maxRange = rangeForPiece(activePiece);
@@ -973,7 +973,7 @@ board.addEventListener('click', (event) => {
     square.classList.add('square--target');
     selectedTarget = targetPiece;
     if (!allowAllyTarget) {
-      prepareAttackInfo(activePiece, targetPiece, selectedAbility);
+      prepareAttackInfo(activePiece, targetPiece, selectedPower);
     }
     return;
   }
