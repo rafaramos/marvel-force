@@ -889,7 +889,7 @@ function startTurn(piece) {
     attackButton.disabled = true;
     passButton.disabled = true;
     renderPowerButtons(null);
-    setTimeout(() => runVillainTurn(piece), 700);
+    setTimeout(() => finishTurn(piece), 400);
     return;
   }
   attackButton.disabled = false;
