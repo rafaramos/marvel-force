@@ -1069,6 +1069,13 @@
       startScreen.style.display = 'none';
     }
 
+    window.addEventListener('load', () => {
+      if (gameStarted) return;
+      startIntroMusic();
+    });
+
+    startIntroMusic();
+
     ['pointerdown', 'keydown'].forEach((eventName) => {
       document.addEventListener(eventName, () => {
         if (gameStarted) return;
@@ -1079,6 +1086,8 @@
     document.addEventListener('click', (event) => {
       const button = event.target.closest('button');
       if (!button || button.disabled) return;
+      const isStartFlowButton = startScreen.contains(button) || draftScreen.contains(button);
+      if (!isStartFlowButton) return;
       playClickSound();
     });
 
