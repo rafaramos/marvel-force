@@ -75,17 +75,24 @@ function livingPieces(team) {
   return turnOrder.filter((piece) => piece.dataset.team === team && isAlive(piece));
 }
 
-function hasPassive(stats, power) {
-  return stats?.poderes?.pasivos?.includes(power);
-}
-
 function canTraverseEnemies(piece) {
   const key = piece?.dataset?.key;
   return FLYING_CHARACTERS.has(key) || PHASING_CHARACTERS.has(key) || LEAPING_CHARACTERS.has(key);
 }
 
+function normalizedPowers(stats, key) {
+  const list = stats?.poderes?.[key] ?? [];
+  return list.map((entry) => normalizeAbilityKey(entry?.nombre ?? entry));
+}
+
+function hasPassive(stats, power) {
+  const search = normalizeAbilityKey(power);
+  return normalizedPowers(stats, 'pasivos').includes(search);
+}
+
 function hasActive(stats, power) {
-  return stats?.poderes?.activos?.includes(power);
+  const search = normalizeAbilityKey(power);
+  return normalizedPowers(stats, 'activos').includes(search);
 }
 
 function powerLabel(key) {
