@@ -748,8 +748,7 @@ function handleActivePower(powerKey) {
 }
 
 attackButton.addEventListener('click', () => {
-  selectedAbility = null;
-  performAttackAction();
+  performAttackAction(selectedAbility);
 });
 
 const movementPool = new Map();
@@ -820,7 +819,7 @@ board.addEventListener('click', (event) => {
       clearTargetSelection();
       return;
     }
-    clearTargetSelection();
+    clearTargetSelection(true);
     square.classList.add('square--target');
     selectedTarget = targetPiece;
     prepareAttackInfo(activePiece, targetPiece, selectedAbility);
