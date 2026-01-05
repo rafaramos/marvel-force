@@ -1028,7 +1028,7 @@
       backgroundMusic.loop = true;
       backgroundMusic.volume = 0.35;
       let backgroundStarted = false;
-      let isPlayerVsAI = true;
+      let isPlayerVsAI = false;
       let gameStarted = false;
       const PROBABILIDAD_DURATION = 2;
       let draftOrder = [];
@@ -1510,7 +1510,7 @@
           probabilidad: 'Probabilidad',
         };
         btn.textContent = labels[ability] || ability;
-        btn.disabled = isPlayerVsAI && piece.dataset.team === 'enemigo';
+        btn.disabled = false;
         btn.addEventListener('click', () => handleActionClick(ability));
         powerControls.appendChild(btn);
       });
@@ -1627,10 +1627,8 @@
     function setActivePiece(piece) {
       document.querySelectorAll('.piece').forEach((p) => p.classList.remove('piece--active'));
       piece.classList.add('piece--active');
-      const isEnemyTurn = piece.dataset.team === 'enemigo';
-      const shouldDisableControls = isPlayerVsAI && isEnemyTurn;
-      passButton.disabled = shouldDisableControls;
-      attackButton.disabled = shouldDisableControls;
+      passButton.disabled = false;
+      attackButton.disabled = false;
       updateStatusBar(piece);
       updateCombatInfo();
       currentAction = 'attack';
@@ -2380,7 +2378,6 @@
 
     board.addEventListener('click', async (event) => {
       const activePiece = turnOrder[turnIndex];
-      if (isPlayerVsAI && activePiece?.dataset.team === 'enemigo') return;
 
       const square = event.target.closest('.square');
       if (!square) return;
@@ -2653,7 +2650,7 @@
       if (turnOrder.length === 0) return;
       turnIndex = (turnIndex + 1) % turnOrder.length;
       const nextPiece = turnOrder[turnIndex];
-      const delay = isPlayerVsAI && nextPiece?.dataset.team === 'enemigo' ? AI_DELAY_MS : TURN_DELAY_MS;
+      const delay = TURN_DELAY_MS;
       setTimeout(() => startTurn(nextPiece), delay);
     }
 
@@ -2707,11 +2704,6 @@
       clearHighlights();
       highlightMovement(piece);
       highlightRange(piece);
-      if (isPlayerVsAI && piece.dataset.team === 'enemigo') {
-        attackButton.disabled = true;
-        passButton.disabled = true;
-        setTimeout(() => finishTurn(piece, { showPopup: false }), 350);
-      }
     }
 
     passButton.addEventListener('click', () => {
@@ -2896,7 +2888,7 @@
     }
 
     function beginDraft(mode) {
-      isPlayerVsAI = mode === 'ai';
+      isPlayerVsAI = false;
       selections.player1 = [];
       selections.player2 = [];
       availableCharacters = Object.keys(pieceStats);
@@ -2909,9 +2901,6 @@
       renderDraftCards();
 
       const pickerId = draftOrder[draftIndex];
-      if (isPlayerVsAI && pickerId === 'player2') {
-        setTimeout(performAIPick, 500);
-      }
     }
 
     function startGame() {
