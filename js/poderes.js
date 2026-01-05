@@ -294,6 +294,49 @@ const poderes = {
   },
 };
 
+const pasivosGenerales = [
+  {
+    nombre: 'Volar/Saltar/Trepar/Fase',
+    descripcion: 'Puede cruzar obstáculos y enemigos al moverse, siempre que termine el desplazamiento en una casilla libre.',
+  },
+  {
+    nombre: 'Experto a/d',
+    descripcion: 'Añade +2 al daño base en cada ataque a distancia.',
+  },
+  {
+    nombre: 'Invulnerable a/d',
+    descripcion: 'Reduce en 2 el daño recibido de ataques a distancia.',
+  },
+  {
+    nombre: 'Regeneración',
+    descripcion: 'Recupera 1 punto de vida al finalizar su turno si está por debajo de su vida base.',
+  },
+  {
+    nombre: 'Superfuerza',
+    descripcion:
+      'Puede agarrar objetos pesados o livianos estando adyacente (pierde ese turno) y luego usarlos c/c o a/d: rango 2 para pesados, 3 para livianos; 2 usos c/c y 1 a/d por objeto.',
+  },
+  {
+    nombre: 'Invulnerable',
+    descripcion: 'Aumenta en 2 la resistencia frente a ataques cuerpo a cuerpo y a distancia.',
+  },
+  {
+    nombre: 'Astucia',
+    descripcion: 'Consigue crítico con 11 o 12 en tiradas de ataque de 2d6.',
+  },
+  {
+    nombre: 'Doble ataque c/c',
+    descripcion:
+      'Realiza dos ataques cuerpo a cuerpo consecutivos contra el mismo objetivo, resolviendo el daño tras cada tirada si el defensor sigue en pie.',
+  },
+  {
+    nombre: 'Robo de vida',
+    descripcion:
+      'Cada vez que inflige daño, recupera esa misma cantidad en puntos de vida sin superar su vida base.',
+  },
+];
+
 if (typeof window !== 'undefined') {
   window.poderes = poderes;
+  window.pasivosGenerales = pasivosGenerales;
 }
