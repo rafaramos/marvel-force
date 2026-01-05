@@ -2,6 +2,9 @@ const poderesFuente =
   (typeof window !== 'undefined' && window.poderes) ||
   (typeof poderes !== 'undefined' ? poderes : {});
 
+const obtenerPoderes = (clave, alias) =>
+  poderesFuente[clave] || (alias ? poderesFuente[alias] : undefined) || { activos: [], pasivos: [] };
+
 const personajes = {
   agenteShield: {
     nombre: 'Agente SHIELD',
@@ -192,9 +195,9 @@ const personajes = {
     rango: 2,
     vida: 6,
     agilidad: 10,
-    imagen: 'imagenes/onstrictor.webp',
-    animacion: 'animaciones/aonstrictor.webp',
-    poderes: poderesFuente.onstrictor,
+    imagen: 'imagenes/constrictor.webp',
+    animacion: 'animaciones/constrictor.webp',
+    poderes: poderesFuente.constrictor,
     habilidades: { activas: ['Incapacitar'], pasivas: [] }
   },
 
@@ -207,9 +210,9 @@ const personajes = {
     rango: 4,
     vida: 5,
     agilidad: 30,
-    imagen: 'imagenes/oomerang.webp',
-    animacion: 'animaciones/oomerang.webp',
-    poderes: poderesFuente.oomerang,
+    imagen: 'imagenes/boomerang.webp',
+    animacion: 'animaciones/boomerang.webp',
+    poderes: poderesFuente.boomerang,
     habilidades: { activas: ['Incapacitar','Explosión', 'Experto a/d', 'Invulnerable a/d'], pasivas: [] }
   },
 
@@ -389,7 +392,7 @@ const personajes = {
     agilidad: 10,
     imagen: 'imagenes/profesorXavier.webp',
     animacion: 'animaciones/profesorXavier.webp',
-    poderes: poderesFuente.aprofesorXavier,
+    poderes: poderesFuente.profesorXavier,
     habilidades: { activas: ['Control Mental','Mejora de Defensa','Mejora de Agilidad'], pasivas: [] }
   },
 
@@ -477,7 +480,7 @@ const personajes = {
     rango: 0,
     vida: 6,
     agilidad: 40,
-    imagen: 'imagenes/atorbellino.webp',
+    imagen: 'imagenes/torbellino.webp',
     animacion: 'animaciones/torbellino.webp',
     poderes: poderesFuente.torbellino,
     habilidades: { activas: [], pasivas: ['Doble ataque c/c','Invulnerable a/d'] }
@@ -584,7 +587,7 @@ const personajes = {
     agilidad: 30,
     imagen: 'imagenes/controller.webp',
     animacion: 'animaciones/controller.webp',
-    poderes: poderesFuente.avispa,
+    poderes: poderesFuente.controller,
     habilidades: { activas: ['Control Mental'], pasivas: ['Superfuerza','Resistencia','Regeneración'] }
   },
 
@@ -702,9 +705,9 @@ const personajes = {
     rango: 5,
     vida: 10,
     agilidad: 20,
-    imagen: 'imagenes/avispa.webp',
-    animacion: 'animaciones/avispa.webp',
-    poderes: poderesFuente.avispa,
+    imagen: 'imagenes/vision.webp',
+    animacion: 'animaciones/vision.webp',
+    poderes: poderesFuente.vision,
     habilidades: { activas: [], pasivas: ['Volar/Saltar/Trepar/Fase','Superfuerza','Invulnerable'] }
   },
 
@@ -767,6 +770,10 @@ const personajes = {
     habilidades: { activas: ['Incapacitar','Explosión'], pasivas: ['Resistencia','Invulnerable a/d'] }
   },
 };
+
+Object.entries(personajes).forEach(([clave, personaje]) => {
+  personaje.poderes = obtenerPoderes(clave, personaje.poderesAlias);
+});
 
 if (typeof window !== 'undefined') {
   window.personajes = personajes;

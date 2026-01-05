@@ -43,23 +43,11 @@ const POWER_LABELS = {
 
 const squareByCoord = new Map();
 
-const FLYING_CHARACTERS = new Set([
-  'avispa',
-  'duende',
-  'magneto',
-  'ultron',
-  'chaquetaAmarilla',
-  'antorcha',
-  'thor',
-  'iron-man',
-  'super-skrull',
-  'doom',
-  'thanos',
-]);
+const FLYING_CHARACTERS = new Set(['avispa', 'duende', 'magneto', 'ultron', 'thanos']);
 
 const PHASING_CHARACTERS = new Set(['kang']);
 
-const LEAPING_CHARACTERS = new Set(['hulk', 'spider', 'hulka']);
+const LEAPING_CHARACTERS = new Set(['hulk', 'spiderMan']);
 
 squares.forEach((square, index) => {
   const row = Math.floor(index / 8) + 1;
@@ -87,17 +75,24 @@ function livingPieces(team) {
   return turnOrder.filter((piece) => piece.dataset.team === team && isAlive(piece));
 }
 
-function hasPassive(stats, power) {
-  return stats?.poderes?.pasivos?.includes(power);
-}
-
 function canTraverseEnemies(piece) {
   const key = piece?.dataset?.key;
   return FLYING_CHARACTERS.has(key) || PHASING_CHARACTERS.has(key) || LEAPING_CHARACTERS.has(key);
 }
 
+function normalizedPowers(stats, key) {
+  const list = stats?.poderes?.[key] ?? [];
+  return list.map((entry) => normalizeAbilityKey(entry?.nombre ?? entry));
+}
+
+function hasPassive(stats, power) {
+  const search = normalizeAbilityKey(power);
+  return normalizedPowers(stats, 'pasivos').includes(search);
+}
+
 function hasActive(stats, power) {
-  return stats?.poderes?.activos?.includes(power);
+  const search = normalizeAbilityKey(power);
+  return normalizedPowers(stats, 'activos').includes(search);
 }
 
 function powerLabel(key) {
@@ -122,6 +117,9 @@ function attachPieceData(piece, key, team) {
     danoCC: base?.danoCC ?? baseDamage,
     danoAD: base?.danoAD ?? baseDamage,
     resistencia: baseResistencia,
+    baseAtaque: base?.ataque ?? 0,
+    baseDefensa: base?.defensa ?? 0,
+    baseAgilidad: base?.agilidad ?? 0,
     currentVida: base?.vida,
     skipTurns: 0,
   };
@@ -182,6 +180,29 @@ const turnOrder = pieces
 let turnIndex = 0;
 let selectedTarget = null;
 let pendingAttackInfo = null;
+let selectedAbility = null;
+
+function normalizeAbilityKey(ability) {
+  if (!ability) return null;
+  return ability
+    .toString()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+}
+
+const SUPPORT_ABILITIES = new Set([
+  'mejora de ataque',
+  'mejora de agilidad',
+  'mejora de defensa',
+  'mejora de critico',
+  'probabilidad',
+  'curar',
+]);
+
+function isSupportAbility(ability) {
+  return ability ? SUPPORT_ABILITIES.has(normalizeAbilityKey(ability)) : false;
+}
 
 function getPieceSquare(piece) {
   return piece.closest('.square');
@@ -292,11 +313,13 @@ function renderPowerButtons(piece) {
   const stats = pieceMap.get(piece);
   const activePowers = stats?.poderes?.activos ?? [];
   activePowers.forEach((powerKey) => {
+    const key = normalizeAbilityKey(powerKey?.nombre ?? powerKey);
+    const label = powerKey?.nombre ?? powerLabel(key);
     const btn = document.createElement('button');
     btn.className = 'button';
     btn.type = 'button';
-    btn.textContent = powerLabel(powerKey);
-    btn.addEventListener('click', () => handleActivePower(powerKey));
+    btn.textContent = label;
+    btn.addEventListener('click', () => handleActivePower(key));
     powerButtons.appendChild(btn);
   });
 }
@@ -496,7 +519,9 @@ function calculateAttackRoll(attackerStats) {
   const die1 = Math.floor(Math.random() * 6) + 1;
   const die2 = Math.floor(Math.random() * 6) + 1;
   const roll = die1 + die2;
-  const critical = roll === 12 || (hasPassive(attackerStats, 'astucia') && roll === 11);
+  const baseThreshold = hasPassive(attackerStats, 'astucia') ? 11 : 12;
+  const critThreshold = attackerStats.critBuff ? Math.max(10, baseThreshold - 1) : baseThreshold;
+  const critical = roll >= critThreshold;
   return { roll, critical };
 }
 
@@ -620,11 +645,174 @@ function resolveAreaAttack(attacker, centerSquare, ability) {
   finishTurn(attacker);
 }
 
+function applyStatBuff(piece, stat, amount, { duration = 2, capIncrease = null, label } = {}) {
+  const stats = pieceMap.get(piece);
+  if (!stats) return;
+  const baseKey = `base${stat.charAt(0).toUpperCase()}${stat.slice(1)}`;
+  const baseValue = stats[baseKey] ?? stats[stat] ?? 0;
+  const maxIncrease = capIncrease ?? amount;
+  const effectiveIncrease = Math.min(amount, maxIncrease);
+  stats.statBuffs = stats.statBuffs || {};
+  const existing = stats.statBuffs[stat];
+  stats.statBuffs[stat] = { amount: effectiveIncrease, remaining: duration, baseValue, label };
+  stats[stat] = baseValue + effectiveIncrease;
+  const message = existing
+    ? `renueva ${label ?? stat} (+${effectiveIncrease}) por ${duration} turnos.`
+    : `recibe ${label ?? stat} (+${effectiveIncrease}) por ${duration} turnos.`;
+  appendStatusHistory(piece, message);
+}
+
+function applyCritBuff(piece, duration = 2, label = 'Mejora de Crítico') {
+  const stats = pieceMap.get(piece);
+  if (!stats) return;
+  const refreshed = Boolean(stats.critBuff);
+  stats.critBuff = { remaining: duration, label };
+  appendStatusHistory(
+    piece,
+    refreshed
+      ? `renueva ${label.toLowerCase()} por ${duration} turnos.`
+      : `recibe ${label.toLowerCase()} por ${duration} turnos.`
+  );
+}
+
+function applyAttackBuff(piece, duration = 2) {
+  applyStatBuff(piece, 'ataque', 1, { duration, capIncrease: 1, label: 'Mejora de Ataque' });
+}
+
+function applyAttackBuffAction(attacker, centerTarget) {
+  if (!centerTarget) {
+    alert('Selecciona primero un compañero dentro de tu rango.');
+    return;
+  }
+  const centerSquare = getPieceSquare(centerTarget);
+  if (!centerSquare) return;
+  const allies = Array.from(
+    new Set(
+      squaresInRange1(centerSquare)
+        .map((square) => square.querySelector('.piece'))
+        .filter(
+          (piece) =>
+            piece &&
+            piece.dataset.team === attacker.dataset.team &&
+            isAlive(piece)
+        )
+    )
+  );
+
+  if (!allies.includes(centerTarget)) {
+    allies.unshift(centerTarget);
+  }
+
+  if (allies.length === 0) {
+    alert('No hay compañeros en el área para aplicar la mejora.');
+    return;
+  }
+
+  allies.forEach((piece) => applyAttackBuff(piece));
+  clearRangeHighlights();
+  selectedTarget = null;
+  selectedAbility = null;
+  attackButton.classList.remove('button--pulse');
+  finishTurn(attacker);
+}
+
+function applyDefenseBuffAction(attacker, centerTarget) {
+  const allies = gatherAlliesInArea(attacker, centerTarget);
+  if (!allies) return;
+  allies.forEach((piece) => applyStatBuff(piece, 'defensa', 1, { label: 'Mejora de Defensa' }));
+  completeSupportAction(attacker);
+}
+
+function applyAgilityBuffAction(attacker, centerTarget) {
+  const allies = gatherAlliesInArea(attacker, centerTarget);
+  if (!allies) return;
+  allies.forEach((piece) => applyStatBuff(piece, 'agilidad', 10, { label: 'Mejora de Agilidad' }));
+  completeSupportAction(attacker);
+}
+
+function applyCritBuffAction(attacker, centerTarget) {
+  const allies = gatherAlliesInArea(attacker, centerTarget);
+  if (!allies) return;
+  allies.forEach((piece) => applyCritBuff(piece, 2, 'Mejora de Crítico'));
+  completeSupportAction(attacker);
+}
+
+function gatherAlliesInArea(attacker, centerTarget) {
+  if (!centerTarget) {
+    alert('Selecciona primero un compañero dentro de tu rango.');
+    return null;
+  }
+  const centerSquare = getPieceSquare(centerTarget);
+  if (!centerSquare) return null;
+  const allies = Array.from(
+    new Set(
+      squaresInRange1(centerSquare)
+        .map((square) => square.querySelector('.piece'))
+        .filter((piece) => piece && piece.dataset.team === attacker.dataset.team && isAlive(piece))
+    )
+  );
+
+  if (!allies.includes(centerTarget)) {
+    allies.unshift(centerTarget);
+  }
+
+  if (allies.length === 0) {
+    alert('No hay compañeros en el área para aplicar la mejora.');
+    return null;
+  }
+  return allies;
+}
+
+function completeSupportAction(attacker) {
+  clearRangeHighlights();
+  selectedTarget = null;
+  selectedAbility = null;
+  attackButton.classList.remove('button--pulse');
+  finishTurn(attacker);
+}
+
+function handleHealAction(attacker, target) {
+  if (!target) {
+    alert('Selecciona primero un compañero dentro de tu rango.');
+    return;
+  }
+  const attackerStats = pieceMap.get(attacker);
+  const targetStats = pieceMap.get(target);
+  if (!attackerStats || !targetStats) return;
+  const damageTaken = Math.max((targetStats.vida ?? 0) - (targetStats.currentVida ?? 0), 0);
+  if (damageTaken <= 0) {
+    alert('El objetivo está a vida completa.');
+    return;
+  }
+
+  const { roll } = calculateAttackRoll(attackerStats);
+  const attackTotal = roll + attackerStats.ataque + damageTaken;
+  const success = attackTotal >= targetStats.defensa;
+  const healRoll = Math.floor(Math.random() * 6) + 1;
+  const healAmount = success ? Math.min(healRoll, damageTaken) : 0;
+  if (healAmount > 0) {
+    targetStats.currentVida = Math.min(targetStats.currentVida + healAmount, targetStats.vida);
+    appendStatusHistory(
+      target,
+      `${displayName(targetStats)} se cura ${healAmount} (tirada: ${roll} + daño recibido ${damageTaken}).`
+    );
+    renderLifeCards();
+  } else {
+    appendStatusHistory(
+      attacker,
+      `${displayName(attackerStats)} falla al curar (tirada: ${roll} + daño recibido ${damageTaken}).`
+    );
+  }
+  pendingAttackInfo = null;
+  completeSupportAction(attacker);
+}
+
 function clearTargetSelection(preserveAttack = false) {
   squares.forEach((square) => square.classList.remove('square--target'));
   selectedTarget = null;
   if (!preserveAttack) {
     pendingAttackInfo = null;
+    selectedAbility = null;
   }
   attackButton.classList.remove('button--pulse');
   hideTooltip();
@@ -637,17 +825,23 @@ function clearTargetSelection(preserveAttack = false) {
 function performAttackAction(ability = null) {
   const attacker = turnOrder[turnIndex];
   if (!attacker) return;
+  const normalizedAbility = normalizeAbilityKey(ability);
+  const abilityKey = normalizedAbility ?? selectedAbility;
+  if (abilityKey) {
+    selectedAbility = abilityKey;
+  }
   const attackerSquare = getPieceSquare(attacker);
   const targetSquare = selectedTarget ? getPieceSquare(selectedTarget) : null;
   const maxRange = rangeForPiece(attacker);
 
-  if (ability === 'pulso' && !selectedTarget) {
-    resolveAreaAttack(attacker, attackerSquare, ability);
+  if (abilityKey === 'pulso' && !selectedTarget) {
+    resolveAreaAttack(attacker, attackerSquare, abilityKey);
     return;
   }
 
   if (!targetSquare) {
-    alert('Selecciona primero un enemigo dentro de tu rango.');
+    const needsAlly = isSupportAbility(abilityKey);
+    alert(needsAlly ? 'Selecciona primero un compañero dentro de tu rango.' : 'Selecciona primero un enemigo dentro de tu rango.');
     return;
   }
 
@@ -656,12 +850,37 @@ function performAttackAction(ability = null) {
     return;
   }
 
-  if (ability === 'explosion' || ability === 'pulso') {
-    resolveAreaAttack(attacker, targetSquare, ability);
+  if (abilityKey === 'mejora de ataque') {
+    applyAttackBuffAction(attacker, selectedTarget);
     return;
   }
-  prepareAttackInfo(attacker, selectedTarget, ability);
-  resolveAttack(attacker, selectedTarget, { ability });
+
+  if (abilityKey === 'mejora de defensa') {
+    applyDefenseBuffAction(attacker, selectedTarget);
+    return;
+  }
+
+  if (abilityKey === 'mejora de agilidad') {
+    applyAgilityBuffAction(attacker, selectedTarget);
+    return;
+  }
+
+  if (abilityKey === 'probabilidad' || abilityKey === 'mejora de critico') {
+    applyCritBuffAction(attacker, selectedTarget);
+    return;
+  }
+
+  if (abilityKey === 'curar') {
+    handleHealAction(attacker, selectedTarget);
+    return;
+  }
+
+  if (abilityKey === 'explosion' || abilityKey === 'pulso') {
+    resolveAreaAttack(attacker, targetSquare, abilityKey);
+    return;
+  }
+  prepareAttackInfo(attacker, selectedTarget, abilityKey);
+  resolveAttack(attacker, selectedTarget, { ability: abilityKey });
 }
 
 function handleActivePower(powerKey) {
@@ -669,7 +888,7 @@ function handleActivePower(powerKey) {
 }
 
 attackButton.addEventListener('click', () => {
-  performAttackAction();
+  performAttackAction(selectedAbility);
 });
 
 const movementPool = new Map();
@@ -690,12 +909,36 @@ function spendMovement(piece, amount) {
 function applyEndOfTurnEffects(piece) {
   const stats = pieceMap.get(piece);
   if (!stats) return;
+  tickSupportEffects(piece);
   if (hasPassive(stats, 'regeneracion') && stats.currentVida < stats.vida) {
     const before = stats.currentVida;
     stats.currentVida = Math.min(stats.currentVida + 1, stats.vida);
     const healed = stats.currentVida - before;
     if (healed > 0) {
       appendStatusHistory(piece, `se regenera +${healed} (Vida: ${stats.currentVida}/${stats.vida})`);
+    }
+  }
+}
+
+function tickSupportEffects(piece) {
+  const stats = pieceMap.get(piece);
+  if (!stats) return;
+  if (stats.statBuffs) {
+    Object.entries(stats.statBuffs).forEach(([stat, buff]) => {
+      buff.remaining -= 1;
+      if (buff.remaining <= 0) {
+        stats[stat] = buff.baseValue;
+        appendStatusHistory(piece, `pierde ${buff.label ?? stat}.`);
+        delete stats.statBuffs[stat];
+      }
+    });
+  }
+
+  if (stats.critBuff) {
+    stats.critBuff.remaining -= 1;
+    if (stats.critBuff.remaining <= 0) {
+      appendStatusHistory(piece, `pierde ${stats.critBuff.label?.toLowerCase() ?? 'la mejora de crítico'}.`);
+      stats.critBuff = null;
     }
   }
 }
@@ -717,7 +960,8 @@ board.addEventListener('click', (event) => {
   const targetPiece = square.querySelector('.piece');
 
   if (targetPiece && targetPiece !== activePiece) {
-    if (targetPiece.dataset.team === activePiece.dataset.team) return;
+    const allowAllyTarget = isSupportAbility(selectedAbility);
+    if (targetPiece.dataset.team === activePiece.dataset.team && !allowAllyTarget) return;
     const attackerSquare = getPieceSquare(activePiece);
     const maxRange = rangeForPiece(activePiece);
     if (!isWithinAttackRange(attackerSquare, square, maxRange)) {
@@ -725,10 +969,12 @@ board.addEventListener('click', (event) => {
       clearTargetSelection();
       return;
     }
-    clearTargetSelection();
+    clearTargetSelection(true);
     square.classList.add('square--target');
     selectedTarget = targetPiece;
-    prepareAttackInfo(activePiece, targetPiece);
+    if (!allowAllyTarget) {
+      prepareAttackInfo(activePiece, targetPiece, selectedAbility);
+    }
     return;
   }
 
