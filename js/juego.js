@@ -43,23 +43,11 @@ const POWER_LABELS = {
 
 const squareByCoord = new Map();
 
-const FLYING_CHARACTERS = new Set([
-  'avispa',
-  'duende',
-  'magneto',
-  'ultron',
-  'chaquetaAmarilla',
-  'antorcha',
-  'thor',
-  'iron-man',
-  'super-skrull',
-  'doom',
-  'thanos',
-]);
+const FLYING_CHARACTERS = new Set(['avispa', 'duende', 'magneto', 'ultron', 'thanos']);
 
 const PHASING_CHARACTERS = new Set(['kang']);
 
-const LEAPING_CHARACTERS = new Set(['hulk', 'spider', 'hulka']);
+const LEAPING_CHARACTERS = new Set(['hulk', 'spiderMan']);
 
 squares.forEach((square, index) => {
   const row = Math.floor(index / 8) + 1;

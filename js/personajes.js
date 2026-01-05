@@ -348,7 +348,6 @@ const personajes = {
     imagen: 'imagenes/capitanAmerica.webp',
     animacion: 'animaciones/capitanAmerica.webp',
     poderes: poderesFuente.capitanAmerica,
-    poderesAlias: 'capitan',
     habilidades: { activas: ['Mejora de Agilidad','Curar'], pasivas: ['Invulnerable a/d','Astucia','Resistencia'] }
   },
 
@@ -364,7 +363,6 @@ const personajes = {
     imagen: 'imagenes/spiderMan.webp',
     animacion: 'animaciones/spiderMan.webp',
     poderes: poderesFuente.spiderMan,
-    poderesAlias: 'spider',
     habilidades: { activas: ['Incapacitar'], pasivas: ['Volar/Saltar/Trepar/Fase','Astucia','Doble ataque c/c','Mejora de Defensa'] }
   },
 
@@ -530,7 +528,6 @@ const personajes = {
     imagen: 'imagenes/brujaEscarlata.webp',
     animacion: 'animaciones/brujaEscarlata.webp',
     poderes: poderesFuente.brujaEscarlata,
-    poderesAlias: 'bruja-escarlata',
     habilidades: { activas: ['Incapacitar','Mejora de Crítico'], pasivas: ['Astucia'] }
   },
 

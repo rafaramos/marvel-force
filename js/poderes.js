@@ -9,33 +9,7 @@ const poderes = {
     pasivos: [
     ],
   },
-  thor: {
-    activos: [],
-    pasivos: [],
-  },
-  'iron-man': {
-    activos: [
-      {
-        nombre: 'Explosión',
-        descripcion: 'Ataque de área que afecta al objetivo y a los adyacentes con una sola tirada.',
-      },
-    ],
-    pasivos: [
-      {
-        nombre: 'Astucia',
-        descripcion: 'Consigue crítico con 11 o 12 en la tirada de ataque.',
-      },
-      {
-        nombre: 'Regeneración',
-        descripcion: 'Recupera 1 punto de vida al final de su turno si no está al máximo.',
-      },
-    ],
-  },
-  hulka: {
-    activos: [],
-    pasivos: [],
-  },
-  'bruja-escarlata': {
+  brujaEscarlata: {
     activos: [
       {
         nombre: 'Probabilidad',
@@ -81,15 +55,6 @@ const poderes = {
       },
     ],
   },
-  'super-skrull': {
-    activos: [
-      {
-        nombre: 'Incapacitar',
-        descripcion: 'Aturde a su objetivo si impacta, obligándolo a perder su siguiente turno.',
-      },
-    ],
-    pasivos: [],
-  },
   blade: {
     activos: [],
     pasivos: [
@@ -119,7 +84,7 @@ const poderes = {
       },
     ],
   },
-  capitan: {
+  capitanAmerica: {
     activos: [
     ],
     pasivos: [
@@ -129,7 +94,7 @@ const poderes = {
       },
     ],
   },
-  spider: {
+  spiderMan: {
     activos: [
       {
         nombre: 'Incapacitar',
@@ -159,16 +124,6 @@ const poderes = {
   },
   ciclope: {
     activos: [
-    ],
-    pasivos: [
-    ],
-  },
-  chaquetaAmarilla: {
-    activos: [
-      {
-        nombre: 'Incapacitar',
-        descripcion: 'Aturde al objetivo si impacta, sin causar daño.',
-      },
     ],
     pasivos: [
     ],
@@ -235,52 +190,6 @@ const poderes = {
     activos: [
     ],
     pasivos: [
-    ],
-  },
-  mole: {
-    activos: [
-      {
-        nombre: 'Incapacitar',
-        descripcion: 'Aplica un golpe preciso que hace perder el siguiente turno al rival.',
-      },
-    ],
-    pasivos: [
-    ],
-  },
-  cosa: {
-    activos: [],
-    pasivos: [],
-  },
-  antorcha: {
-    activos: [
-      {
-        nombre: 'Explosión',
-        descripcion: 'Ataque de área que afecta al objetivo y a los adyacentes con una sola tirada.',
-      },
-      {
-        nombre: 'Pulso',
-        descripcion:
-          'El atacante detona en su posición. Afecta en un radio igual a su rango, sin elegir objetivo.',
-      },
-    ],
-    pasivos: [],
-  },
-  doom: {
-    activos: [
-      {
-        nombre: 'Explosión',
-        descripcion: 'Ataque de área que afecta al objetivo y a los adyacentes con una sola tirada.',
-      },
-      {
-        nombre: 'Incapacitar',
-        descripcion: 'Aturde al objetivo si impacta, sin causar daño.',
-      },
-    ],
-    pasivos: [
-      {
-        nombre: 'Astucia',
-        descripcion: 'Consigue crítico con 11 o 12 en la tirada de ataque.',
-      },
     ],
   },
   ultron: {
