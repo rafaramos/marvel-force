@@ -294,6 +294,58 @@ const poderes = {
   },
 };
 
+const activosGenerales = [
+  {
+    nombre: 'Incapacitar',
+    descripcion:
+      'Si la tirada de ataque impacta, el defensor queda incapacitado y solo puede pasar su siguiente turno. No puede usarse sobre objetivos ya incapacitados.',
+  },
+  {
+    nombre: 'Explosión',
+    descripcion:
+      'Ataque que afecta al objetivo y a todas las casillas adyacentes, incluyendo aliados y el propio atacante si se encuentra en el área. Se compara la tirada con cada personaje y se resuelve el daño individualmente.',
+  },
+  {
+    nombre: 'Telekinesis',
+    descripcion:
+      'Permite agarrar objetos pesados o livianos dentro de su rango y usarlos cuerpo a cuerpo o a distancia respetando su rango normal.',
+  },
+  {
+    nombre: 'Control Mental',
+    descripcion:
+      'Realiza una tirada de ataque normal; si acierta, el defensor juega su siguiente turno para el equipo rival como si fuera un miembro de ese equipo.',
+  },
+  {
+    nombre: 'Pulso',
+    descripcion:
+      'Ataque en área que afecta al objetivo y a las casillas adyacentes. El atacante compara su tirada con cada personaje, pero no se hiere a sí mismo. Puede dañar a aliados.',
+  },
+  {
+    nombre: 'Barrera',
+    descripcion: 'Crea un obstáculo vertical de tres casillas, situando la casilla objetivo en el centro de la barrera.',
+  },
+  {
+    nombre: 'Mejora de Ataque',
+    descripcion:
+      'Aplica a un aliado (o a sí mismo) y a los aliados adyacentes una mejora de +1 al ataque durante 2 turnos. El bono máximo sobre el ataque base es 1; aplicar de nuevo solo renueva la duración.',
+  },
+  {
+    nombre: 'Mejora de Agilidad',
+    descripcion:
+      'Aplica a un aliado (o a sí mismo) y a los aliados adyacentes una mejora de +10 a la agilidad durante 2 turnos. El bono máximo sobre la agilidad base es 10; aplicar de nuevo solo renueva la duración.',
+  },
+  {
+    nombre: 'Mejora de Defensa',
+    descripcion:
+      'Aplica a un aliado (o a sí mismo) y a los aliados adyacentes una mejora de +1 a la defensa durante 2 turnos. El bono máximo sobre la defensa base es 1; aplicar de nuevo solo renueva la duración.',
+  },
+  {
+    nombre: 'Mejora de Crítico',
+    descripcion:
+      'Otorga Astucia durante 2 turnos a un aliado (o a sí mismo) y a los aliados adyacentes. Si ya tienen Astucia, también consiguen crítico con 10. Aplicaciones adicionales solo renuevan la duración.',
+  },
+];
+
 const pasivosGenerales = [
   {
     nombre: 'Volar/Saltar/Trepar/Fase',
@@ -338,5 +390,6 @@ const pasivosGenerales = [
 
 if (typeof window !== 'undefined') {
   window.poderes = poderes;
+  window.activosGenerales = activosGenerales;
   window.pasivosGenerales = pasivosGenerales;
 }
