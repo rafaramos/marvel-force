@@ -213,7 +213,7 @@ const personajes = {
     imagen: 'imagenes/boomerang.webp',
     animacion: 'animaciones/boomerang.webp',
     poderes: poderesFuente.boomerang,
-    habilidades: { activas: ['Incapacitar','Explosión', 'Experto a/d', 'Invulnerable a/d'], pasivas: [] }
+    habilidades: { activas: ['Incapacitar','Explosión'], pasivas: ['Experto a/d','Invulnerable a/d'] }
   },
 
   kingpin: {
@@ -288,7 +288,7 @@ const personajes = {
     imagen: 'imagenes/dientesDeSable.webp',
     animacion: 'animaciones/dientesDeSable.webp',
     poderes: poderesFuente.dientesDeSable,
-    habilidades: { activas: ['incapacitar'], pasivas: ['Sigilo', 'Garras/Comillos/Cuchillos/Espadas', 'Resistencia','Regeneración'] }
+    habilidades: { activas: [], pasivas: ['Sigilo', 'Garras/Comillos/Cuchillos/Espadas', 'Resistencia','Regeneración'] }
   },
 
   hulk: {
@@ -303,7 +303,7 @@ const personajes = {
     imagen: 'imagenes/hulk.webp',
     animacion: 'animaciones/hulk.webp',
     poderes: poderesFuente.hulk,
-    habilidades: { activas: [''], pasivas: ['Volar/Saltar/Trepar/Fase', 'Superfuerza', 'Invulnerabilidad','Regeneración'] }
+    habilidades: { activas: [], pasivas: ['Volar/Saltar/Trepar/Fase', 'Superfuerza', 'Invulnerabilidad','Regeneración'] }
   },
 
   maestroMarionetas: {
@@ -378,7 +378,7 @@ const personajes = {
     imagen: 'imagenes/lobezno.webp',
     animacion: 'animaciones/lobezno.webp',
     poderes: poderesFuente.lobezno,
-    habilidades: { activas: ['incapacitar'], pasivas: ['Sigilo','Garras/Comillos/Cuchillos/Espadas','Resistencia','Regeneración' ] }
+    habilidades: { activas: [], pasivas: ['Sigilo','Garras/Comillos/Cuchillos/Espadas','Resistencia','Regeneración' ] }
   },
 
   profesorXavier: {
