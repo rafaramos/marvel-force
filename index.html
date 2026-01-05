@@ -1012,6 +1012,14 @@
           stats.name = key;
           stats.nombre = key;
         }
+
+        const baseDamage = stats.dano ?? stats.danoCC ?? stats.danoAD ?? 0;
+        stats.dano = baseDamage;
+        stats.danoCC = stats.danoCC ?? baseDamage;
+        stats.danoAD = stats.danoAD ?? baseDamage;
+
+        const baseResistencia = stats.resistencia ?? stats.resistenciaCC ?? stats.resistenciaAD ?? 0;
+        stats.resistencia = baseResistencia;
       });
       const SCORE_PER_DAMAGE = 10;
       const SCORE_PER_KILL = 50;
@@ -1230,8 +1238,14 @@
       const stats = pieceStats[key];
       if (!stats) return;
       const abilities = stats.habilidades || { activas: [], pasivas: [] };
+      const baseDamage = stats.dano ?? stats.danoCC ?? stats.danoAD ?? 0;
+      const baseResistencia = stats.resistencia ?? 0;
       const computedStats = {
         ...stats,
+        dano: baseDamage,
+        danoCC: stats.danoCC ?? baseDamage,
+        danoAD: stats.danoAD ?? baseDamage,
+        resistencia: baseResistencia,
         habilidades: abilities,
         currentVida: stats.vida,
         maxVida: stats.vida,
@@ -1656,7 +1670,8 @@
 
     function calculateDamage(attackerStats, defenderStats, distance, isCritical) {
       const isMelee = distance <= 1;
-      const baseDamageBeforeClaws = isMelee ? attackerStats.danoCC : attackerStats.danoAD;
+      const damageForMode = isMelee ? attackerStats.danoCC : attackerStats.danoAD;
+      const baseDamageBeforeClaws = damageForMode ?? attackerStats.dano ?? 0;
       let clawsRoll = null;
       const hasClaws = isMelee && hasPassive(attackerStats, 'garras');
       if (hasClaws) {
@@ -1666,7 +1681,7 @@
         ? Math.max(baseDamageBeforeClaws, clawsRoll)
         : baseDamageBeforeClaws;
       const baseDamageWithCrit = isCritical ? baseDamageAfterClaws * 2 : baseDamageAfterClaws;
-      const resistance = isMelee ? defenderStats.resistenciaCC : defenderStats.resistenciaAD;
+      const resistance = defenderStats.resistencia ?? 0;
       const totalDamage = Math.max(baseDamageWithCrit - resistance, 0);
       return {
         totalDamage,
@@ -1758,10 +1773,8 @@
           <li>Mov: ${stats.movimiento}</li>
           <li>Atk: ${stats.ataque}</li>
           <li>Def: ${stats.defensa}</li>
-          <li>C/C: ${stats.danoCC}</li>
-          <li>A/D: ${stats.danoAD}</li>
-          <li>Res C/C: ${stats.resistenciaCC}</li>
-          <li>Res A/D: ${stats.resistenciaAD}</li>
+          <li>Daño: ${stats.dano ?? stats.danoCC ?? stats.danoAD ?? 0}</li>
+          <li>Resistencia: ${stats.resistencia ?? 0}</li>
           <li>Rango: ${stats.rango}</li>
           <li>Vida: ${Math.max(stats.currentVida, 0)}</li>
           <li>Agilidad: ${stats.agilidad}</li>
@@ -1832,7 +1845,7 @@
       }) {
         const need = neededRollToHit(attackerStats, defenderStats);
         const attackTypeLabel = isMelee ? 'ataque cuerpo a cuerpo' : 'ataque a distancia';
-        const resistanceLabel = isMelee ? 'resistencia cuerpo a cuerpo' : 'resistencia de ataque a distancia';
+        const resistanceLabel = 'resistencia';
         const baseDamage = rawDamage ?? damage;
         const inflictedDamage = success && actionKey !== 'incapacitar' ? damage : 0;
 
@@ -2534,10 +2547,10 @@
 
     function shouldUseIncapacitar(attackerStats, targetStats) {
       if (!attackerStats || !targetStats) return false;
-      const targetResilience = (targetStats.resistenciaCC ?? 0) + (targetStats.resistenciaAD ?? 0);
+      const targetResilience = targetStats.resistencia ?? 0;
       const targetThreat = targetStats.ataque ?? 0;
       const targetVida = targetStats.currentVida ?? targetStats.vida ?? 0;
-      const potentialDamage = Math.max(attackerStats.danoCC ?? 0, attackerStats.danoAD ?? 0);
+      const potentialDamage = attackerStats.dano ?? Math.max(attackerStats.danoCC ?? 0, attackerStats.danoAD ?? 0);
       const canLikelyFinish = targetVida <= potentialDamage + 4;
       const tanky = targetResilience > 0 && targetVida > potentialDamage + 6;
       const veryDangerous = targetThreat >= 11;
