@@ -2,6 +2,9 @@ const poderesFuente =
   (typeof window !== 'undefined' && window.poderes) ||
   (typeof poderes !== 'undefined' ? poderes : {});
 
+const obtenerPoderes = (clave, alias) =>
+  poderesFuente[clave] || (alias ? poderesFuente[alias] : undefined) || { activos: [], pasivos: [] };
+
 const personajes = {
   agenteShield: {
     nombre: 'Agente SHIELD',
@@ -15,7 +18,7 @@ const personajes = {
     imagen: 'imagenes/agenteShield.webp',
     animacion: 'animaciones/agenteShield.webp',
     poderes: poderesFuente.agenteShield,
-    habilidades: { activas: [], pasivas: [] }
+    poderesDeclarados: { activas: [], pasivas: [] }
   },
 
   medicoShield: {
@@ -30,7 +33,7 @@ const personajes = {
     imagen: 'imagenes/medicoShield.webp',
     animacion: 'animaciones/medicoShield.webp',
     poderes: poderesFuente.medicoShield,
-    habilidades: { activas: ['Curar'], pasivas: [] }
+    poderesDeclarados: { activas: ['Curar'], pasivas: [] }
   },
 
   agenteHydra: {
@@ -45,7 +48,7 @@ const personajes = {
     imagen: 'imagenes/agenteHydra.webp',
     animacion: 'animaciones/agenteHydra.webp',
     poderes: poderesFuente.agenteHydra,
-    habilidades: { activas: [], pasivas: [] }
+    poderesDeclarados: { activas: [], pasivas: [] }
   },
 
   medicoHydra: {
@@ -60,7 +63,7 @@ const personajes = {
     imagen: 'imagenes/medicoHydra.webp',
     animacion: 'animaciones/medicoHydra.webp',
     poderes: poderesFuente.medicoHydra,
-    habilidades: { activas: ['Curar'], pasivas: [] }
+    poderesDeclarados: { activas: ['Curar'], pasivas: [] }
   },
 
   maton: {
@@ -75,7 +78,7 @@ const personajes = {
     imagen: 'imagenes/maton.webp',
     animacion: 'animaciones/maton.webp',
     poderes: poderesFuente.maton,
-    habilidades: { activas: [], pasivas: [] }
+    poderesDeclarados: { activas: [], pasivas: [] }
   },
 
   esbirro: {
@@ -90,7 +93,7 @@ const personajes = {
     imagen: 'imagenes/esbirro.webp',
     animacion: 'animaciones/esbirro.webp',
     poderes: poderesFuente.esbirro,
-    habilidades: { activas: [], pasivas: [] }
+    poderesDeclarados: { activas: [], pasivas: [] }
   },
 
   agenteSkrull: {
@@ -105,7 +108,7 @@ const personajes = {
     imagen: 'imagenes/agenteSkrull.webp',
     animacion: 'animaciones/agenteSkrull.webp',
     poderes: poderesFuente.agenteSkrull,
-    habilidades: { activas: [], pasivas: [] }
+    poderesDeclarados: { activas: [], pasivas: [] }
   },
 
   guerreroSkrull: {
@@ -120,7 +123,7 @@ const personajes = {
     imagen: 'imagenes/guerreroSkrull.webp',
     animacion: 'animaciones/guerreroSkrull.webp',
     poderes: poderesFuente.guerreroSkrull,
-    habilidades: { activas: [], pasivas: [] }
+    poderesDeclarados: { activas: [], pasivas: [] }
   },
 
   blade: {
@@ -135,7 +138,7 @@ const personajes = {
     imagen: 'imagenes/blade.webp',
     animacion: 'animaciones/blade.webp',
     poderes: poderesFuente.blade,
-    habilidades: { activas: [], pasivas: ['Sigilo', 'Garras/Comillos/Cuchillos/Espadas', 'Resistencia'] }
+    poderesDeclarados: { activas: [], pasivas: ['Sigilo', 'Garras/Comillos/Cuchillos/Espadas', 'Resistencia'] }
   },
 
   lobaVenenosa: {
@@ -150,7 +153,7 @@ const personajes = {
     imagen: 'imagenes/lobaVenenosa.webp',
     animacion: 'animaciones/lobaVenenosa.webp',
     poderes: poderesFuente.lobaVenenosa,
-    habilidades: { activas: [], pasivas: ['Garras/Comillos/Cuchillos/Espadas'] }
+    poderesDeclarados: { activas: [], pasivas: ['Garras/Comillos/Cuchillos/Espadas'] }
   },
 
   elektra: {
@@ -165,7 +168,7 @@ const personajes = {
     imagen: 'imagenes/elektra.webp',
     animacion: 'animaciones/elektra.webp',
     poderes: poderesFuente.elektra,
-    habilidades: { activas: [], pasivas: ['Sigilo', 'Garras/Comillos/Cuchillos/Espadas'] }
+    poderesDeclarados: { activas: [], pasivas: ['Sigilo', 'Garras/Comillos/Cuchillos/Espadas'] }
   },
 
   avispa: {
@@ -180,7 +183,7 @@ const personajes = {
     imagen: 'imagenes/avispa.webp',
     animacion: 'animaciones/avispa.webp',
     poderes: poderesFuente.avispa,
-    habilidades: { activas: ['Incapacitar', 'Mejora de Agilidad'], pasivas: ['Volar/Saltar/Trepar/Fase'] }
+    poderesDeclarados: { activas: ['Incapacitar', 'Mejora de Agilidad'], pasivas: ['Volar/Saltar/Trepar/Fase'] }
   },
 
   constrictor: {
@@ -192,10 +195,10 @@ const personajes = {
     rango: 2,
     vida: 6,
     agilidad: 10,
-    imagen: 'imagenes/onstrictor.webp',
-    animacion: 'animaciones/aonstrictor.webp',
-    poderes: poderesFuente.onstrictor,
-    habilidades: { activas: ['Incapacitar'], pasivas: [] }
+    imagen: 'imagenes/constrictor.webp',
+    animacion: 'animaciones/constrictor.webp',
+    poderes: poderesFuente.constrictor,
+    poderesDeclarados: { activas: ['Incapacitar'], pasivas: [] }
   },
 
   boomerang: {
@@ -207,10 +210,10 @@ const personajes = {
     rango: 4,
     vida: 5,
     agilidad: 30,
-    imagen: 'imagenes/oomerang.webp',
-    animacion: 'animaciones/oomerang.webp',
-    poderes: poderesFuente.oomerang,
-    habilidades: { activas: ['Incapacitar','Explosión', 'Experto a/d', 'Invulnerable a/d'], pasivas: [] }
+    imagen: 'imagenes/boomerang.webp',
+    animacion: 'animaciones/boomerang.webp',
+    poderes: poderesFuente.boomerang,
+    poderesDeclarados: { activas: ['Incapacitar','Explosión', 'Experto a/d', 'Invulnerable a/d'], pasivas: [] }
   },
 
   kingpin: {
@@ -225,7 +228,7 @@ const personajes = {
     imagen: 'imagenes/kingpin.webp',
     animacion: 'animaciones/kingpin.webp',
     poderes: poderesFuente.kingpin,
-    habilidades: { activas: ['Mejora de Agilidad'], pasivas: ['Resistencia'] }
+    poderesDeclarados: { activas: ['Mejora de Agilidad'], pasivas: ['Resistencia'] }
   },
 
   buitre: {
@@ -240,7 +243,7 @@ const personajes = {
     imagen: 'imagenes/buitre.webp',
     animacion: 'animaciones/buitre.webp',
     poderes: poderesFuente.buitre,
-    habilidades: { activas: [], pasivas: ['Volar/Saltar/Trepar/Fase'] }
+    poderesDeclarados: { activas: [], pasivas: ['Volar/Saltar/Trepar/Fase'] }
   },
 
   jeanGrey: {
@@ -255,7 +258,7 @@ const personajes = {
     imagen: 'imagenes/jeanGrey.webp',
     animacion: 'animaciones/jeanGrey.webp',
     poderes: poderesFuente.jeanGrey,
-    habilidades: { activas: ['Telekinesis', 'Curar'], pasivas: ['Invulnerable a/d'] }
+    poderesDeclarados: { activas: ['Telekinesis', 'Curar'], pasivas: ['Invulnerable a/d'] }
   },
 
   duende: {
@@ -270,7 +273,7 @@ const personajes = {
     imagen: 'imagenes/duende.webp',
     animacion: 'animaciones/duende.webp',
     poderes: poderesFuente.duende,
-    habilidades: { activas: ['Incapacitar'], pasivas: ['Experto a/d', 'Volar/Saltar/Trepar/Fase'] }
+    poderesDeclarados: { activas: ['Incapacitar'], pasivas: ['Experto a/d', 'Volar/Saltar/Trepar/Fase'] }
   },
 
   dientesDeSable: {
@@ -285,7 +288,7 @@ const personajes = {
     imagen: 'imagenes/dientesDeSable.webp',
     animacion: 'animaciones/dientesDeSable.webp',
     poderes: poderesFuente.dientesDeSable,
-    habilidades: { activas: ['incapacitar'], pasivas: ['Sigilo', 'Garras/Comillos/Cuchillos/Espadas', 'Resistencia','Regeneración'] }
+    poderesDeclarados: { activas: ['incapacitar'], pasivas: ['Sigilo', 'Garras/Comillos/Cuchillos/Espadas', 'Resistencia','Regeneración'] }
   },
 
   hulk: {
@@ -300,7 +303,7 @@ const personajes = {
     imagen: 'imagenes/hulk.webp',
     animacion: 'animaciones/hulk.webp',
     poderes: poderesFuente.hulk,
-    habilidades: { activas: [''], pasivas: ['Volar/Saltar/Trepar/Fase', 'Superfuerza', 'Invulnerabilidad','Regeneración'] }
+    poderesDeclarados: { activas: [''], pasivas: ['Volar/Saltar/Trepar/Fase', 'Superfuerza', 'Invulnerabilidad','Regeneración'] }
   },
 
   maestroMarionetas: {
@@ -315,7 +318,7 @@ const personajes = {
     imagen: 'imagenes/maestroMarionetas.webp',
     animacion: 'animaciones/maestroMarionetas.webp',
     poderes: poderesFuente.maestroMarionetas,
-    habilidades: { activas: ['Control Mental'], pasivas: [] }
+    poderesDeclarados: { activas: ['Control Mental'], pasivas: [] }
   },
 
   annihilus: {
@@ -330,7 +333,7 @@ const personajes = {
     imagen: 'imagenes/annihilus.webp',
     animacion: 'animaciones/annihilus.webp',
     poderes: poderesFuente.annihilus,
-    habilidades: { activas: [], pasivas: ['Invulnerable','Volar/Saltar/Trepar/Fase'] }
+    poderesDeclarados: { activas: [], pasivas: ['Invulnerable','Volar/Saltar/Trepar/Fase'] }
   },
 
   capitanAmerica: {
@@ -345,7 +348,7 @@ const personajes = {
     imagen: 'imagenes/capitanAmerica.webp',
     animacion: 'animaciones/capitanAmerica.webp',
     poderes: poderesFuente.capitanAmerica,
-    habilidades: { activas: ['Mejora de Agilidad','Curar'], pasivas: ['Invulnerable a/d','Astucia','Resistencia'] }
+    poderesDeclarados: { activas: ['Mejora de Agilidad','Curar'], pasivas: ['Invulnerable a/d','Astucia','Resistencia'] }
   },
 
   spiderMan: {
@@ -360,7 +363,7 @@ const personajes = {
     imagen: 'imagenes/spiderMan.webp',
     animacion: 'animaciones/spiderMan.webp',
     poderes: poderesFuente.spiderMan,
-    habilidades: { activas: ['Incapacitar'], pasivas: ['Volar/Saltar/Trepar/Fase','Astucia','Doble ataque c/c','Mejora de Defensa'] }
+    poderesDeclarados: { activas: ['Incapacitar'], pasivas: ['Volar/Saltar/Trepar/Fase','Astucia','Doble ataque c/c','Mejora de Defensa'] }
   },
 
   lobezno: {
@@ -375,7 +378,7 @@ const personajes = {
     imagen: 'imagenes/lobezno.webp',
     animacion: 'animaciones/lobezno.webp',
     poderes: poderesFuente.lobezno,
-    habilidades: { activas: ['incapacitar'], pasivas: ['Sigilo','Garras/Comillos/Cuchillos/Espadas','Resistencia','Regeneración' ] }
+    poderesDeclarados: { activas: ['incapacitar'], pasivas: ['Sigilo','Garras/Comillos/Cuchillos/Espadas','Resistencia','Regeneración' ] }
   },
 
   profesorXavier: {
@@ -389,8 +392,8 @@ const personajes = {
     agilidad: 10,
     imagen: 'imagenes/profesorXavier.webp',
     animacion: 'animaciones/profesorXavier.webp',
-    poderes: poderesFuente.aprofesorXavier,
-    habilidades: { activas: ['Control Mental','Mejora de Defensa','Mejora de Agilidad'], pasivas: [] }
+    poderes: poderesFuente.profesorXavier,
+    poderesDeclarados: { activas: ['Control Mental','Mejora de Defensa','Mejora de Agilidad'], pasivas: [] }
   },
 
   juggernaut: {
@@ -405,7 +408,7 @@ const personajes = {
     imagen: 'imagenes/juggernaut.webp',
     animacion: 'animaciones/juggernaut.webp',
     poderes: poderesFuente.juggernaut,
-    habilidades: { activas: [], pasivas: ['Superfuerza','Invulnerable'] }
+    poderesDeclarados: { activas: [], pasivas: ['Superfuerza','Invulnerable'] }
   },
 
   ciclope: {
@@ -420,7 +423,7 @@ const personajes = {
     imagen: 'imagenes/ciclope.webp',
     animacion: 'animaciones/ciclope.webp',
     poderes: poderesFuente.ciclope,
-    habilidades: { activas: [], pasivas: ['Experto a/d','Invulnerable a/d'] }
+    poderesDeclarados: { activas: [], pasivas: ['Experto a/d','Invulnerable a/d'] }
   },
 
   panteraNegra: {
@@ -435,7 +438,7 @@ const personajes = {
     imagen: 'imagenes/panteraNegra.webp',
     animacion: 'animaciones/panteraNegra.webp',
     poderes: poderesFuente.panteraNegra,
-    habilidades: { activas: [], pasivas: ['Volar/Saltar/Trepar/Fase','Astucia','Garras/Comillos/Cuchillos/Espadas'] }
+    poderesDeclarados: { activas: [], pasivas: ['Volar/Saltar/Trepar/Fase','Astucia','Garras/Comillos/Cuchillos/Espadas'] }
   },
 
   ventisca: {
@@ -450,7 +453,7 @@ const personajes = {
     imagen: 'imagenes/ventisca.webp',
     animacion: 'animaciones/ventisca.webp',
     poderes: poderesFuente.ventisca,
-    habilidades: { activas: ['Pulso','Barrera'], pasivas: [] }
+    poderesDeclarados: { activas: ['Pulso','Barrera'], pasivas: [] }
   },
 
   pyro: {
@@ -465,7 +468,7 @@ const personajes = {
     imagen: 'imagenes/pyro.webp',
     animacion: 'animaciones/pyro.webp',
     poderes: poderesFuente.pyro,
-    habilidades: { activas: ['Incapacitar','Explosión'], pasivas: ['Experto a/d'] }
+    poderesDeclarados: { activas: ['Incapacitar','Explosión'], pasivas: ['Experto a/d'] }
   },
 
   torbellino: {
@@ -477,10 +480,10 @@ const personajes = {
     rango: 0,
     vida: 6,
     agilidad: 40,
-    imagen: 'imagenes/atorbellino.webp',
+    imagen: 'imagenes/torbellino.webp',
     animacion: 'animaciones/torbellino.webp',
     poderes: poderesFuente.torbellino,
-    habilidades: { activas: [], pasivas: ['Doble ataque c/c','Invulnerable a/d'] }
+    poderesDeclarados: { activas: [], pasivas: ['Doble ataque c/c','Invulnerable a/d'] }
   },
 
   daredevil: {
@@ -495,7 +498,7 @@ const personajes = {
     imagen: 'imagenes/daredevil.webp',
     animacion: 'animaciones/daredevil.webp',
     poderes: poderesFuente.daredevil,
-    habilidades: { activas: ['Incapacitar'], pasivas: [] }
+    poderesDeclarados: { activas: ['Incapacitar'], pasivas: [] }
   },
 
   bullseye: {
@@ -510,7 +513,7 @@ const personajes = {
     imagen: 'imagenes/bullseye.webp',
     animacion: 'animaciones/bullseye.webp',
     poderes: poderesFuente.bullseye,
-    habilidades: { activas: [], pasivas: ['Experto a/d','Invulnerable a/d'] }
+    poderesDeclarados: { activas: [], pasivas: ['Experto a/d','Invulnerable a/d'] }
   },
 
   brujaEscarlata: {
@@ -525,7 +528,7 @@ const personajes = {
     imagen: 'imagenes/brujaEscarlata.webp',
     animacion: 'animaciones/brujaEscarlata.webp',
     poderes: poderesFuente.brujaEscarlata,
-    habilidades: { activas: ['Incapacitar','Mejora de Crítico'], pasivas: ['Astucia'] }
+    poderesDeclarados: { activas: ['Incapacitar','Mejora de Crítico'], pasivas: ['Astucia'] }
   },
 
   mercurio: {
@@ -540,7 +543,7 @@ const personajes = {
     imagen: 'imagenes/mercurio.webp',
     animacion: 'animaciones/mercurio.webp',
     poderes: poderesFuente.mercurio,
-    habilidades: { activas: [], pasivas: ['Invulnerable a/d','Doble ataque c/c'] }
+    poderesDeclarados: { activas: [], pasivas: ['Invulnerable a/d','Doble ataque c/c'] }
   },
 
   mrHyde: {
@@ -555,7 +558,7 @@ const personajes = {
     imagen: 'imagenes/mrHyde.webp',
     animacion: 'animaciones/mrHyde.webp',
     poderes: poderesFuente.mrHyde,
-    habilidades: { activas: [], pasivas: ['Superfuerza','Resistencia'] }
+    poderesDeclarados: { activas: [], pasivas: ['Superfuerza','Resistencia'] }
   },
 
   klaw: {
@@ -570,7 +573,7 @@ const personajes = {
     imagen: 'imagenes/klaw.webp',
     animacion: 'animaciones/klaw.webp',
     poderes: poderesFuente.klaw,
-    habilidades: { activas: ['Incapacitar'], pasivas: ['Barrera','Experto a/d'] }
+    poderesDeclarados: { activas: ['Incapacitar'], pasivas: ['Barrera','Experto a/d'] }
   },
 
   controller: {
@@ -584,8 +587,8 @@ const personajes = {
     agilidad: 30,
     imagen: 'imagenes/controller.webp',
     animacion: 'animaciones/controller.webp',
-    poderes: poderesFuente.avispa,
-    habilidades: { activas: ['Control Mental'], pasivas: ['Superfuerza','Resistencia','Regeneración'] }
+    poderes: poderesFuente.controller,
+    poderesDeclarados: { activas: ['Control Mental'], pasivas: ['Superfuerza','Resistencia','Regeneración'] }
   },
 
   hercules: {
@@ -600,7 +603,7 @@ const personajes = {
     imagen: 'imagenes/hercules.webp',
     animacion: 'animaciones/hercules.webp',
     poderes: poderesFuente.hercules,
-    habilidades: { activas: [], pasivas: ['Superfuerza','Resistencia'] }
+    poderesDeclarados: { activas: [], pasivas: ['Superfuerza','Resistencia'] }
   },
 
   picara: {
@@ -615,7 +618,7 @@ const personajes = {
     imagen: 'imagenes/picara.webp',
     animacion: 'animaciones/picara.webp',
     poderes: poderesFuente.picara,
-    habilidades: { activas: [], pasivas: ['Robo de Vida','Invulnerable','Volar/Saltar/Trepar/Fase'] }
+    poderesDeclarados: { activas: [], pasivas: ['Robo de Vida','Invulnerable','Volar/Saltar/Trepar/Fase'] }
   },
 
   drExtrano: {
@@ -630,7 +633,7 @@ const personajes = {
     imagen: 'imagenes/drExtrano.webp',
     animacion: 'animaciones/drExtrano.webp',
     poderes: poderesFuente.drExtrano,
-    habilidades: { activas: ['Incapacitar','Telekinesis','Pulso','Barrera','Curar','Mejora de Crítico','Mejora de Ataque'], pasivas: ['Volar/Saltar/Trepar/Fase','Invulnerable a/d','Experto a/d'] }
+    poderesDeclarados: { activas: ['Incapacitar','Telekinesis','Pulso','Barrera','Curar','Mejora de Crítico','Mejora de Ataque'], pasivas: ['Volar/Saltar/Trepar/Fase','Invulnerable a/d','Experto a/d'] }
   },
 
   magneto: {
@@ -645,7 +648,7 @@ const personajes = {
     imagen: 'imagenes/magneto.webp',
     animacion: 'animaciones/magneto.webp',
     poderes: poderesFuente.magneto,
-    habilidades: { activas: ['Telekinesis','Mejora de Agilidad'], pasivas: ['Invulnerable a/d','Volar/Saltar/Trepar/Fase'] }
+    poderesDeclarados: { activas: ['Telekinesis','Mejora de Agilidad'], pasivas: ['Invulnerable a/d','Volar/Saltar/Trepar/Fase'] }
   },
 
   kang: {
@@ -660,7 +663,7 @@ const personajes = {
     imagen: 'imagenes/kang.webp',
     animacion: 'animaciones/kang.webp',
     poderes: poderesFuente.kang,
-    habilidades: { activas: ['Incapacitar','Pulso'], pasivas: ['Invulnerable','Experto a/d','Volar/Saltar/Trepar/Fase'] }
+    poderesDeclarados: { activas: ['Incapacitar','Pulso'], pasivas: ['Invulnerable','Experto a/d','Volar/Saltar/Trepar/Fase'] }
   },
 
   ultron: {
@@ -675,7 +678,7 @@ const personajes = {
     imagen: 'imagenes/ultron.webp',
     animacion: 'animaciones/ultron.webp',
     poderes: poderesFuente.ultron,
-    habilidades: { activas: ['Explosión'], pasivas: ['Invulnerable','Volar/Saltar/Trepar/Fase'] }
+    poderesDeclarados: { activas: ['Explosión'], pasivas: ['Invulnerable','Volar/Saltar/Trepar/Fase'] }
   },
 
   firelord: {
@@ -690,7 +693,7 @@ const personajes = {
     imagen: 'imagenes/firelord.webp',
     animacion: 'animaciones/firelord.webp',
     poderes: poderesFuente.firelord,
-    habilidades: { activas: ['Explosión','Pulso','Barrera'], pasivas: ['Invulnerable a/d','Experto a/d','Volar/Saltar/Trepar/Fase'] }
+    poderesDeclarados: { activas: ['Explosión','Pulso','Barrera'], pasivas: ['Invulnerable a/d','Experto a/d','Volar/Saltar/Trepar/Fase'] }
   },
 
   vision: {
@@ -702,10 +705,10 @@ const personajes = {
     rango: 5,
     vida: 10,
     agilidad: 20,
-    imagen: 'imagenes/avispa.webp',
-    animacion: 'animaciones/avispa.webp',
-    poderes: poderesFuente.avispa,
-    habilidades: { activas: [], pasivas: ['Volar/Saltar/Trepar/Fase','Superfuerza','Invulnerable'] }
+    imagen: 'imagenes/vision.webp',
+    animacion: 'animaciones/vision.webp',
+    poderes: poderesFuente.vision,
+    poderesDeclarados: { activas: [], pasivas: ['Volar/Saltar/Trepar/Fase','Superfuerza','Invulnerable'] }
   },
 
   quasar: {
@@ -720,7 +723,7 @@ const personajes = {
     imagen: 'imagenes/quasar.webp',
     animacion: 'animaciones/quasar.webp',
     poderes: poderesFuente.quasar,
-    habilidades: { activas: ['Incapacitar','Telekinesis','Barrera','Mejora de Defensa'], pasivas: ['Experto a/d','Volar/Saltar/Trepar/Fase'] }
+    poderesDeclarados: { activas: ['Incapacitar','Telekinesis','Barrera','Mejora de Defensa'], pasivas: ['Experto a/d','Volar/Saltar/Trepar/Fase'] }
   },
 
   thanos: {
@@ -735,7 +738,7 @@ const personajes = {
     imagen: 'imagenes/thanos.webp',
     animacion: 'animaciones/thanos.webp',
     poderes: poderesFuente.thanos,
-    habilidades: { activas: [], pasivas: ['Invulnerable','Regeneración','Volar/Saltar/Trepar/Fase'] }
+    poderesDeclarados: { activas: [], pasivas: ['Invulnerable','Regeneración','Volar/Saltar/Trepar/Fase'] }
   },
 
   pesadilla: {
@@ -750,7 +753,7 @@ const personajes = {
     imagen: 'imagenes/pesadilla.webp',
     animacion: 'animaciones/pesadilla.webp',
     poderes: poderesFuente.pesadilla,
-    habilidades: { activas: ['Incapacitar','Mejora de Ataque'], pasivas: ['Robo de Vida','Invulnerable'] }
+    poderesDeclarados: { activas: ['Incapacitar','Mejora de Ataque'], pasivas: ['Robo de Vida','Invulnerable'] }
   },
   centinela: {
     nombre: 'Centinela',
@@ -764,9 +767,19 @@ const personajes = {
     imagen: 'imagenes/centinela.webp',
     animacion: 'animaciones/centinela.webp',
     poderes: poderesFuente.centinela,
-    habilidades: { activas: ['Incapacitar','Explosión'], pasivas: ['Resistencia','Invulnerable a/d'] }
+    poderesDeclarados: { activas: ['Incapacitar','Explosión'], pasivas: ['Resistencia','Invulnerable a/d'] }
   },
 };
+
+Object.entries(personajes).forEach(([clave, personaje]) => {
+  const poderes = { ...obtenerPoderes(clave, personaje.poderesAlias) };
+  const poderesDeclarados = personaje.poderesDeclarados || { activas: [], pasivas: [] };
+
+  const activos = Array.from(new Set([...(poderes.activos || []), ...(poderesDeclarados.activas || [])]));
+  const pasivos = Array.from(new Set([...(poderes.pasivos || []), ...(poderesDeclarados.pasivas || [])]));
+
+  personaje.poderes = { activos, pasivos };
+});
 
 if (typeof window !== 'undefined') {
   window.personajes = personajes;
