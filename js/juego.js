@@ -12,6 +12,21 @@ const villainHistoryList = document.getElementById('villainHistory');
 const powerButtons = document.getElementById('powerButtons');
 
 const pieceStats = personajes;
+
+Object.entries(pieceStats).forEach(([key, stats]) => {
+  if (!stats.name && stats.nombre) {
+    stats.name = stats.nombre;
+  }
+
+  if (!stats.nombre && stats.name) {
+    stats.nombre = stats.name;
+  }
+
+  if (!stats.nombre && !stats.name) {
+    stats.name = key;
+    stats.nombre = key;
+  }
+});
 const HERO_TEAM = 'aliado';
 const VILLAIN_TEAM = 'enemigo';
 const POWER_LABELS = {

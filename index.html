@@ -996,6 +996,21 @@
       const pieceStats =
         (typeof personajes !== 'undefined' && personajes) ||
         (typeof window !== 'undefined' ? window.personajes : {});
+
+      Object.entries(pieceStats).forEach(([key, stats]) => {
+        if (!stats.name && stats.nombre) {
+          stats.name = stats.nombre;
+        }
+
+        if (!stats.nombre && stats.name) {
+          stats.nombre = stats.name;
+        }
+
+        if (!stats.nombre && !stats.name) {
+          stats.name = key;
+          stats.nombre = key;
+        }
+      });
       const SCORE_PER_DAMAGE = 10;
       const SCORE_PER_KILL = 50;
       const punchSound = new Audio('sonidos/efectos/Punch.mp3');
