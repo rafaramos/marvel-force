@@ -1073,7 +1073,7 @@
       if (gameStarted) return;
       setTimeout(() => {
         if (!gameStarted) {
-          startIntroMusic();
+          startIntroMusic(true);
         }
       }, 500);
     });
@@ -1278,13 +1278,26 @@
       clickSound.play().catch(() => {});
     }
 
-    function startIntroMusic() {
-      if (introStarted) return;
+    function startIntroMusic(autoAttempt = false) {
+      if (introStarted && !autoAttempt) return;
       introStarted = true;
+      if (autoAttempt) {
+        introMusic.muted = true;
+      }
       introMusic.currentTime = 0;
-      introMusic.play().catch(() => {
-        introStarted = false;
-      });
+      introMusic
+        .play()
+        .then(() => {
+          if (autoAttempt) {
+            introMusic.muted = false;
+          }
+        })
+        .catch(() => {
+          introStarted = false;
+          if (autoAttempt) {
+            introMusic.muted = false;
+          }
+        });
     }
 
     function stopIntroMusic() {
