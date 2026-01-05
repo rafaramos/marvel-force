@@ -881,7 +881,7 @@
   </style>
 </head>
 <body>
-  <div id="startScreen" class="start-screen">
+  <div id="startScreen" class="start-screen start-screen--hidden" hidden>
     <div>
       <h1 class="start-screen__headline">Marvel Force</h1>
       <p class="start-screen__subtitle">Elige cómo quieres jugar</p>
@@ -1288,8 +1288,6 @@
       recomputeTurnOrder();
       renderLifeCards();
     }
-
-    rebuildGameState();
 
     const ANIMATION_OVERRIDES = {
       antorcha: 'animaciones/antorcha-humana.webp',
@@ -2919,6 +2917,47 @@
       if (!button) return;
       handleModeSelection(button.dataset.mode);
     });
+
+    function prepareDefaultSelections() {
+      const characters = Object.keys(pieceStats);
+      if (characters.length === 0) return false;
+
+      selections.player1 = characters.slice(0, 12);
+      selections.player2 = characters.slice(12, 24);
+
+      if (selections.player2.length < 12) {
+        const remaining = characters.filter((key) => !selections.player1.includes(key));
+        while (selections.player2.length < 12 && remaining.length > 0) {
+          selections.player2.push(remaining.shift());
+        }
+      }
+
+      if (selections.player2.length < 12 && selections.player1.length > 0) {
+        while (selections.player2.length < 12) {
+          const next = selections.player1[selections.player2.length % selections.player1.length];
+          selections.player2.push(next);
+        }
+      }
+
+      initialPositions = buildPositionsFromSelections();
+      return initialPositions.length > 0;
+    }
+
+    function startWithoutMenus() {
+      draftActive = false;
+      hideStartScreen();
+      draftScreen.hidden = true;
+      draftScreen.style.display = 'none';
+      draftScreen.style.opacity = '0';
+      draftScreen.style.visibility = 'hidden';
+
+      if (!prepareDefaultSelections()) return;
+
+      rebuildGameState();
+      startGame();
+    }
+
+    startWithoutMenus();
   </script>
 </body>
 </html>
