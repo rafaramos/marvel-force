@@ -269,7 +269,7 @@ function setActivePiece(piece) {
 function renderPowerButtons(piece) {
   if (!powerButtons) return;
   powerButtons.innerHTML = '';
-  if (!piece || !isHero(piece)) return;
+  if (!piece) return;
   const stats = pieceMap.get(piece);
   const activePowers = stats?.poderes?.activos ?? [];
   activePowers.forEach((powerKey) => {
@@ -615,14 +615,14 @@ function clearTargetSelection(preserveAttack = false) {
   attackButton.classList.remove('button--pulse');
   hideTooltip();
   updateCombatInfo();
-  if (turnOrder.length > 0 && isHero(turnOrder[turnIndex])) {
+  if (turnOrder.length > 0) {
     highlightRange(turnOrder[turnIndex]);
   }
 }
 
 function performAttackAction(ability = null) {
   const attacker = turnOrder[turnIndex];
-  if (!attacker || !isHero(attacker)) return;
+  if (!attacker) return;
   const attackerSquare = getPieceSquare(attacker);
   const targetSquare = selectedTarget ? getPieceSquare(selectedTarget) : null;
   const maxRange = rangeForPiece(attacker);
@@ -699,7 +699,7 @@ board.addEventListener('click', (event) => {
   if (!square) return;
 
   const activePiece = turnOrder[turnIndex];
-  if (!activePiece || !isHero(activePiece)) return;
+  if (!activePiece) return;
   const targetPiece = square.querySelector('.piece');
 
   if (targetPiece && targetPiece !== activePiece) {
@@ -885,13 +885,6 @@ function startTurn(piece) {
   clearTargetSelection(true);
   clearHighlights();
   renderPowerButtons(piece);
-  if (isVillain(piece)) {
-    attackButton.disabled = true;
-    passButton.disabled = true;
-    renderPowerButtons(null);
-    setTimeout(() => finishTurn(piece), 400);
-    return;
-  }
   attackButton.disabled = false;
   passButton.disabled = false;
   highlightMovement(piece);
