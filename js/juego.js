@@ -122,6 +122,7 @@ function attachPieceData(piece, key, team) {
     danoCC: base?.danoCC ?? baseDamage,
     danoAD: base?.danoAD ?? baseDamage,
     resistencia: baseResistencia,
+    baseAtaque: base?.ataque ?? 0,
     currentVida: base?.vida,
     skipTurns: 0,
   };
@@ -182,6 +183,28 @@ const turnOrder = pieces
 let turnIndex = 0;
 let selectedTarget = null;
 let pendingAttackInfo = null;
+let selectedAbility = null;
+
+function normalizeAbilityKey(ability) {
+  if (!ability) return null;
+  return ability
+    .toString()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+}
+
+const SUPPORT_ABILITIES = new Set([
+  'mejora de ataque',
+  'mejora de agilidad',
+  'mejora de defensa',
+  'mejora de critico',
+  'curar',
+]);
+
+function isSupportAbility(ability) {
+  return ability ? SUPPORT_ABILITIES.has(normalizeAbilityKey(ability)) : false;
+}
 
 function getPieceSquare(piece) {
   return piece.closest('.square');
@@ -292,11 +315,13 @@ function renderPowerButtons(piece) {
   const stats = pieceMap.get(piece);
   const activePowers = stats?.poderes?.activos ?? [];
   activePowers.forEach((powerKey) => {
+    const key = normalizeAbilityKey(powerKey?.nombre ?? powerKey);
+    const label = powerKey?.nombre ?? powerLabel(key);
     const btn = document.createElement('button');
     btn.className = 'button';
     btn.type = 'button';
-    btn.textContent = powerLabel(powerKey);
-    btn.addEventListener('click', () => handleActivePower(powerKey));
+    btn.textContent = label;
+    btn.addEventListener('click', () => handleActivePower(key));
     powerButtons.appendChild(btn);
   });
 }
@@ -620,11 +645,67 @@ function resolveAreaAttack(attacker, centerSquare, ability) {
   finishTurn(attacker);
 }
 
+function applyAttackBuff(piece, duration = 2) {
+  const stats = pieceMap.get(piece);
+  if (!stats) return;
+  const baseAttack = stats.baseAtaque ?? stats.ataque ?? 0;
+  const bonus = Math.min(1, 1);
+  const currentBonus = stats.attackBuff?.bonus ?? 0;
+  const refreshed = currentBonus > 0;
+  const totalBonus = Math.min(bonus, 1);
+  stats.attackBuff = { bonus: totalBonus, remaining: duration };
+  stats.ataque = baseAttack + totalBonus;
+  appendStatusHistory(
+    piece,
+    refreshed
+      ? `renueva Mejora de Ataque (+${totalBonus}) por ${duration} turnos.`
+      : `recibe Mejora de Ataque (+${totalBonus}) por ${duration} turnos.`
+  );
+}
+
+function applyAttackBuffAction(attacker, centerTarget) {
+  if (!centerTarget) {
+    alert('Selecciona primero un compañero dentro de tu rango.');
+    return;
+  }
+  const centerSquare = getPieceSquare(centerTarget);
+  if (!centerSquare) return;
+  const allies = Array.from(
+    new Set(
+      squaresInRange1(centerSquare)
+        .map((square) => square.querySelector('.piece'))
+        .filter(
+          (piece) =>
+            piece &&
+            piece.dataset.team === attacker.dataset.team &&
+            isAlive(piece)
+        )
+    )
+  );
+
+  if (!allies.includes(centerTarget)) {
+    allies.unshift(centerTarget);
+  }
+
+  if (allies.length === 0) {
+    alert('No hay compañeros en el área para aplicar la mejora.');
+    return;
+  }
+
+  allies.forEach((piece) => applyAttackBuff(piece));
+  clearRangeHighlights();
+  selectedTarget = null;
+  selectedAbility = null;
+  attackButton.classList.remove('button--pulse');
+  finishTurn(attacker);
+}
+
 function clearTargetSelection(preserveAttack = false) {
   squares.forEach((square) => square.classList.remove('square--target'));
   selectedTarget = null;
   if (!preserveAttack) {
     pendingAttackInfo = null;
+    selectedAbility = null;
   }
   attackButton.classList.remove('button--pulse');
   hideTooltip();
@@ -637,17 +718,22 @@ function clearTargetSelection(preserveAttack = false) {
 function performAttackAction(ability = null) {
   const attacker = turnOrder[turnIndex];
   if (!attacker) return;
+  const normalizedAbility = normalizeAbilityKey(ability);
+  if (normalizedAbility) {
+    selectedAbility = normalizedAbility;
+  }
   const attackerSquare = getPieceSquare(attacker);
   const targetSquare = selectedTarget ? getPieceSquare(selectedTarget) : null;
   const maxRange = rangeForPiece(attacker);
 
-  if (ability === 'pulso' && !selectedTarget) {
-    resolveAreaAttack(attacker, attackerSquare, ability);
+  if (normalizedAbility === 'pulso' && !selectedTarget) {
+    resolveAreaAttack(attacker, attackerSquare, normalizedAbility);
     return;
   }
 
   if (!targetSquare) {
-    alert('Selecciona primero un enemigo dentro de tu rango.');
+    const needsAlly = isSupportAbility(normalizedAbility);
+    alert(needsAlly ? 'Selecciona primero un compañero dentro de tu rango.' : 'Selecciona primero un enemigo dentro de tu rango.');
     return;
   }
 
@@ -656,12 +742,17 @@ function performAttackAction(ability = null) {
     return;
   }
 
-  if (ability === 'explosion' || ability === 'pulso') {
-    resolveAreaAttack(attacker, targetSquare, ability);
+  if (normalizedAbility === 'mejora de ataque') {
+    applyAttackBuffAction(attacker, selectedTarget);
     return;
   }
-  prepareAttackInfo(attacker, selectedTarget, ability);
-  resolveAttack(attacker, selectedTarget, { ability });
+
+  if (normalizedAbility === 'explosion' || normalizedAbility === 'pulso') {
+    resolveAreaAttack(attacker, targetSquare, normalizedAbility);
+    return;
+  }
+  prepareAttackInfo(attacker, selectedTarget, normalizedAbility);
+  resolveAttack(attacker, selectedTarget, { ability: normalizedAbility });
 }
 
 function handleActivePower(powerKey) {
@@ -669,6 +760,7 @@ function handleActivePower(powerKey) {
 }
 
 attackButton.addEventListener('click', () => {
+  selectedAbility = null;
   performAttackAction();
 });
 
@@ -690,12 +782,26 @@ function spendMovement(piece, amount) {
 function applyEndOfTurnEffects(piece) {
   const stats = pieceMap.get(piece);
   if (!stats) return;
+  tickSupportEffects(piece);
   if (hasPassive(stats, 'regeneracion') && stats.currentVida < stats.vida) {
     const before = stats.currentVida;
     stats.currentVida = Math.min(stats.currentVida + 1, stats.vida);
     const healed = stats.currentVida - before;
     if (healed > 0) {
       appendStatusHistory(piece, `se regenera +${healed} (Vida: ${stats.currentVida}/${stats.vida})`);
+    }
+  }
+}
+
+function tickSupportEffects(piece) {
+  const stats = pieceMap.get(piece);
+  if (!stats) return;
+  if (stats.attackBuff) {
+    stats.attackBuff.remaining -= 1;
+    if (stats.attackBuff.remaining <= 0) {
+      stats.attackBuff = null;
+      stats.ataque = stats.baseAtaque ?? stats.ataque;
+      appendStatusHistory(piece, 'pierde la Mejora de Ataque.');
     }
   }
 }
@@ -717,7 +823,8 @@ board.addEventListener('click', (event) => {
   const targetPiece = square.querySelector('.piece');
 
   if (targetPiece && targetPiece !== activePiece) {
-    if (targetPiece.dataset.team === activePiece.dataset.team) return;
+    const allowAllyTarget = isSupportAbility(selectedAbility);
+    if (targetPiece.dataset.team === activePiece.dataset.team && !allowAllyTarget) return;
     const attackerSquare = getPieceSquare(activePiece);
     const maxRange = rangeForPiece(activePiece);
     if (!isWithinAttackRange(attackerSquare, square, maxRange)) {
@@ -728,7 +835,7 @@ board.addEventListener('click', (event) => {
     clearTargetSelection();
     square.classList.add('square--target');
     selectedTarget = targetPiece;
-    prepareAttackInfo(activePiece, targetPiece);
+    prepareAttackInfo(activePiece, targetPiece, selectedAbility);
     return;
   }
 
