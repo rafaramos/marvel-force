@@ -1026,6 +1026,8 @@
       const introMusic = new Audio('sonido/introduccion.wav');
       introMusic.loop = true;
       introMusic.volume = 0.35;
+      const clickSound = new Audio('sonido/click.wav');
+      clickSound.volume = 0.45;
       const punchSound = new Audio('sonido/Punch.mp3');
       const failureSound = new Audio('sonido/Failure.mp3');
       const incapacitarSound = new Audio('sonido/incapacitar.wav');
@@ -1074,9 +1076,21 @@
       });
     });
 
+    document.addEventListener('click', (event) => {
+      const button = event.target.closest('button');
+      if (!button || button.disabled) return;
+      playClickSound();
+    });
+
       playButton.addEventListener('click', () => {
         startIntroMusic();
         revealModes();
+      });
+
+      modeSelection.addEventListener('click', (event) => {
+        if (event.target.closest('[data-mode]')) {
+          startIntroMusic();
+        }
       });
 
       const allySlots = [
@@ -1245,6 +1259,12 @@
       if (!sound) return;
       sound.currentTime = 0;
       sound.play().catch(() => {});
+    }
+
+    function playClickSound() {
+      if (!clickSound) return;
+      clickSound.currentTime = 0;
+      clickSound.play().catch(() => {});
     }
 
     function startIntroMusic() {
@@ -2963,6 +2983,7 @@
 
     function handleModeSelection(mode) {
       if (draftActive || gameStarted) return;
+      startIntroMusic();
       showDraftScreen();
       beginDraft(mode);
     }
