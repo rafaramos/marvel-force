@@ -3,9 +3,6 @@ const poderesFuente =
   (typeof poderes !== 'undefined' ? poderes : {});
 
 const personajes = {
-  {
-
-{
   agenteShield: {
     nombre: 'Agente SHIELD',
     movimiento: 3,
@@ -725,7 +722,6 @@ const personajes = {
     poderes: poderesFuente.avispa,
     habilidades: { activas: ['incapacitar'], pasivas: [] }
   },
-
   centinela: {
     nombre: 'Centinela',
     movimiento: 12,
@@ -739,15 +735,7 @@ const personajes = {
     animacion: 'animaciones/avispa.webp',
     poderes: poderesFuente.avispa,
     habilidades: { activas: ['incapacitar'], pasivas: [] }
-  }
-}
-
-
-
-
-}
-
-
+  },
 };
 
 if (typeof window !== 'undefined') {

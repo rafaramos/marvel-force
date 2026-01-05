@@ -85,6 +85,10 @@ function pieceColor(element) {
   return element.dataset.team === 'aliado' ? '#2ecc71' : '#e74c3c';
 }
 
+function displayName(stats) {
+  return stats?.nombre ?? stats?.name ?? 'Desconocido';
+}
+
 function attachPieceData(piece, key, team) {
   const stats = { ...pieceStats[key], currentVida: pieceStats[key].vida, skipTurns: 0 };
   piece.dataset.key = key;
@@ -120,7 +124,7 @@ function renderLifeCards() {
     card.innerHTML = `
       <span class="life-card__name"><span class="life-dot" style="background:${pieceColor(
         element
-      )}"></span>${stats.name}</span>
+      )}"></span>${displayName(stats)}</span>
       <span class="life-value">Vida: ${Math.max(stats.currentVida, 0)}</span>
     `;
     container.appendChild(card);
@@ -266,7 +270,7 @@ function renderPowerButtons(piece) {
 function updateStatusBar(piece) {
   const stats = pieceMap.get(piece);
   if (!stats) return;
-  turnInfo.textContent = `Turno: ${stats.name}`;
+  turnInfo.textContent = `Turno: ${displayName(stats)}`;
   movementInfo.textContent = `Movimiento restante: ${remainingMovement(piece)}`;
 }
 
@@ -350,7 +354,7 @@ function showTooltip(piece) {
   const stats = pieceMap.get(piece);
   if (!stats) return;
   tooltip.innerHTML = `
-    <h3>${stats.name}</h3>
+    <h3>${displayName(stats)}</h3>
     <ul>
       <li>Mov: ${stats.movimiento}</li>
       <li>Atk: ${stats.ataque}</li>
