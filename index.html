@@ -1039,6 +1039,14 @@
       let isPlayerVsAI = false;
       let gameStarted = false;
       const PROBABILIDAD_DURATION = 2;
+      const SUPPORT_POWERS = new Set([
+        'probabilidad',
+        'mejora de ataque',
+        'mejora de defensa',
+        'mejora de agilidad',
+        'mejora de critico',
+        'curar',
+      ]);
       let draftOrder = [];
       let draftIndex = 0;
       let firstPicker = 'player1';
@@ -1173,12 +1181,24 @@
       turnIndex = 0;
     }
 
+    function normalizePowerKey(power) {
+      return power
+        ?.toString()
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '');
+    }
+
     function hasPassive(stats, key) {
-      return Boolean(stats?.habilidades?.pasivas?.includes(key));
+      const search = normalizePowerKey(key);
+      const list = stats?.poderes?.pasivos || [];
+      return list.map((entry) => normalizePowerKey(entry?.nombre ?? entry)).includes(search);
     }
 
     function hasActive(stats, key) {
-      return Boolean(stats?.habilidades?.activas?.includes(key));
+      const search = normalizePowerKey(key);
+      const list = stats?.poderes?.activos || [];
+      return list.map((entry) => normalizePowerKey(entry?.nombre ?? entry)).includes(search);
     }
 
     function pieceColor(element) {
@@ -1237,7 +1257,7 @@
     function attachPieceData(piece, key, team) {
       const stats = pieceStats[key];
       if (!stats) return;
-      const abilities = stats.habilidades || { activas: [], pasivas: [] };
+      const powers = stats.poderes || { activos: [], pasivos: [] };
       const baseDamage = stats.dano ?? stats.danoCC ?? stats.danoAD ?? 0;
       const baseResistencia = stats.resistencia ?? 0;
       const computedStats = {
@@ -1246,7 +1266,11 @@
         danoCC: stats.danoCC ?? baseDamage,
         danoAD: stats.danoAD ?? baseDamage,
         resistencia: baseResistencia,
-        habilidades: abilities,
+        poderes: powers,
+        baseAtaque: stats.ataque,
+        baseDefensa: stats.defensa,
+        baseAgilidad: stats.agilidad,
+        statBuffs: {},
         currentVida: stats.vida,
         maxVida: stats.vida,
         incapacitatedTurns: 0,
@@ -1508,12 +1532,17 @@
       });
     });
 
+    function isSupportPower(actionKey) {
+      return SUPPORT_POWERS.has(normalizePowerKey(actionKey));
+    }
+
     function renderPowerButtons(piece) {
       powerControls.innerHTML = '';
       const stats = pieceMap.get(piece);
       if (!stats) return;
-      const actives = stats.habilidades?.activas || [];
+      const actives = stats.poderes?.activos || [];
       actives.forEach((ability) => {
+        const key = normalizePowerKey(ability?.nombre ?? ability);
         const btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'button';
@@ -1522,10 +1551,15 @@
           explosion: 'Explosión',
           pulso: 'Pulso',
           probabilidad: 'Probabilidad',
+          'mejora de ataque': 'Mejora de Ataque',
+          'mejora de defensa': 'Mejora de Defensa',
+          'mejora de agilidad': 'Mejora de Agilidad',
+          'mejora de critico': 'Mejora de Crítico',
+          curar: 'Curar',
         };
-        btn.textContent = labels[ability] || ability;
+        btn.textContent = labels[key] || ability?.nombre || ability;
         btn.disabled = false;
-        btn.addEventListener('click', () => handleActionClick(ability));
+        btn.addEventListener('click', () => handleActionClick(key));
         powerControls.appendChild(btn);
       });
     }
@@ -1728,8 +1762,9 @@
       if (!roll) return false;
       const hasAstucia = hasPassive(attackerStats, 'astucia');
       const empowered = hasProbabilidad(attackerStats);
-      if (empowered && hasAstucia) return roll >= 10;
-      if (empowered || hasAstucia) return roll >= 11;
+      const critBuff = Boolean(attackerStats?.critBuff);
+      if ((empowered && hasAstucia) || (critBuff && (empowered || hasAstucia))) return roll >= 10;
+      if (empowered || hasAstucia || critBuff) return roll >= 11;
       return roll === 12;
     }
 
@@ -1819,6 +1854,11 @@
       if (actionKey === 'explosion') return 'Explosión';
       if (actionKey === 'pulso') return 'Pulso';
       if (actionKey === 'probabilidad') return 'Probabilidad';
+      if (actionKey === 'mejora de ataque') return 'Mejora de Ataque';
+      if (actionKey === 'mejora de defensa') return 'Mejora de Defensa';
+      if (actionKey === 'mejora de agilidad') return 'Mejora de Agilidad';
+      if (actionKey === 'mejora de critico') return 'Mejora de Crítico';
+      if (actionKey === 'curar') return 'Curar';
       return 'Ataque';
     }
 
@@ -2328,6 +2368,100 @@
       finishTurn(attacker);
     }
 
+    function applyStatBuff(attacker, target, { stat, label }) {
+      const attackerStats = pieceMap.get(attacker);
+      const centerSquare = getPieceSquare(target);
+      if (!attackerStats || !centerSquare) return;
+
+      const affected = alliedPiecesInRange1(centerSquare, attacker.dataset.team).map((piece) => {
+        const stats = pieceMap.get(piece);
+        if (!stats) return null;
+        if (stat === 'critico') {
+          stats.critBuff = { remaining: 2, label };
+          return { piece, stats };
+        }
+        const baseKey = stat === 'ataque' ? 'baseAtaque' : stat === 'defensa' ? 'baseDefensa' : 'baseAgilidad';
+        const baseValue = stats[baseKey] ?? stats[stat] ?? 0;
+        const nextValue = Math.min(baseValue + 1, baseValue + 1);
+        stats[stat] = nextValue;
+        stats.statBuffs = stats.statBuffs || {};
+        stats.statBuffs[stat] = { remaining: 2, baseValue, label };
+        return { piece, stats };
+      });
+
+      const validAffected = affected.filter(Boolean);
+      const recipientNames = validAffected.map(({ stats }) => stats.name).join(', ');
+      const message = validAffected.length
+        ? `${attackerStats.name} aplica ${label} sobre ${recipientNames}.`
+        : `${attackerStats.name} intenta aplicar ${label}, pero nadie se beneficia.`;
+
+      addHistoryEntry(attacker.dataset.team, message, {
+        attacker,
+        defenders: validAffected.map(({ piece }) => piece),
+      });
+
+      pendingAttackInfo = {
+        action: label,
+        attackerName: attackerStats.name,
+        roll: '-',
+        targets: validAffected.map(({ stats }) => ({
+          name: stats.name,
+          success: true,
+          damage: 0,
+          vida: stats.currentVida,
+        })),
+      };
+
+      hideTooltip();
+      clearRangeHighlights();
+      clearTargetSelection(true);
+      attackButton.classList.remove('button--pulse');
+      updateCombatInfo();
+      finishTurn(attacker);
+    }
+
+    function applyHeal(attacker, target) {
+      const attackerStats = pieceMap.get(attacker);
+      const targetStats = pieceMap.get(target);
+      if (!attackerStats || !targetStats) return;
+
+      const missing = Math.max(targetStats.maxVida - targetStats.currentVida, 0);
+      const healRoll = Math.floor(Math.random() * 6) + 1;
+      const healed = Math.min(healRoll, missing);
+      if (healed > 0) {
+        targetStats.currentVida += healed;
+        addPoints(attacker, healed * 5);
+        renderLifeCards();
+      }
+
+      const message = healed
+        ? `${attackerStats.name} cura ${healed} a ${targetStats.name} (vida ${targetStats.currentVida}).`
+        : `${attackerStats.name} intenta curar a ${targetStats.name}, pero no hay vida que recuperar.`;
+
+      addHistoryEntry(attacker.dataset.team, message, { attacker, defenders: [target] });
+
+      pendingAttackInfo = {
+        action: 'Curar',
+        attackerName: attackerStats.name,
+        roll: '-',
+        targets: [
+          {
+            name: targetStats.name,
+            success: true,
+            damage: -healed,
+            vida: targetStats.currentVida,
+          },
+        ],
+      };
+
+      hideTooltip();
+      clearRangeHighlights();
+      clearTargetSelection(true);
+      attackButton.classList.remove('button--pulse');
+      updateCombatInfo();
+      finishTurn(attacker);
+    }
+
     function clearTargetSelection(preserveAttack = false) {
       squares.forEach((square) => square.classList.remove('square--target'));
       selectedTarget = null;
@@ -2350,20 +2484,42 @@
         return;
       }
       if (!selectedTarget) {
-        alert(actionKey === 'probabilidad' ? 'Selecciona primero un aliado dentro de tu rango.' : 'Selecciona primero un enemigo dentro de tu rango.');
+        const supportAction = isSupportPower(actionKey);
+        alert(supportAction ? 'Selecciona primero un aliado dentro de tu rango.' : 'Selecciona primero un enemigo dentro de tu rango.');
         return;
       }
       const attackerSquare = getPieceSquare(attacker);
       const targetSquare = getPieceSquare(selectedTarget);
       const maxRange = rangeForPiece(attacker);
-      const includeOrigin = actionKey === 'probabilidad';
+      const includeOrigin = isSupportPower(actionKey);
       if (!isWithinAttackRange(attackerSquare, targetSquare, maxRange, { includeOrigin })) {
         alert('El objetivo está fuera de rango.');
         clearTargetSelection();
         return;
       }
-      if (actionKey === 'probabilidad') {
+      const supportAction = normalizePowerKey(actionKey);
+      if (supportAction === 'probabilidad') {
         applyProbabilidad(attacker, selectedTarget);
+        return;
+      }
+      if (supportAction === 'mejora de ataque') {
+        applyStatBuff(attacker, selectedTarget, { stat: 'ataque', label: 'Mejora de Ataque' });
+        return;
+      }
+      if (supportAction === 'mejora de defensa') {
+        applyStatBuff(attacker, selectedTarget, { stat: 'defensa', label: 'Mejora de Defensa' });
+        return;
+      }
+      if (supportAction === 'mejora de agilidad') {
+        applyStatBuff(attacker, selectedTarget, { stat: 'agilidad', label: 'Mejora de Agilidad' });
+        return;
+      }
+      if (supportAction === 'mejora de critico') {
+        applyStatBuff(attacker, selectedTarget, { stat: 'critico', label: 'Mejora de Crítico' });
+        return;
+      }
+      if (supportAction === 'curar') {
+        applyHeal(attacker, selectedTarget);
         return;
       }
       prepareAttackInfo(attacker, selectedTarget, actionKey);
@@ -2401,7 +2557,9 @@
         const isSamePiece = targetPiece === activePiece;
         const isAllyTarget = targetPiece.dataset.team === activePiece.dataset.team;
 
-        if (currentAction === 'probabilidad') {
+        const supportAction = isSupportPower(currentAction);
+
+        if (supportAction) {
           if (!isAllyTarget) return;
         } else {
           if (isAllyTarget || isSamePiece) return;
@@ -2409,7 +2567,7 @@
 
         const attackerSquare = getPieceSquare(activePiece);
         const maxRange = rangeForPiece(activePiece);
-        const includeOrigin = currentAction === 'probabilidad';
+        const includeOrigin = supportAction;
         if (!isWithinAttackRange(attackerSquare, square, maxRange, { includeOrigin })) {
           alert('Objetivo fuera de rango.');
           clearTargetSelection();
@@ -2418,14 +2576,14 @@
         clearTargetSelection();
         square.classList.add('square--target');
         selectedTarget = targetPiece;
-        if (currentAction === 'probabilidad') {
+        if (supportAction) {
           const attackerStats = pieceMap.get(activePiece);
           const targetStats = pieceMap.get(targetPiece);
           pendingAttackInfo = {
-            action: actionLabel('probabilidad'),
+            action: actionLabel(currentAction),
             attackerName: attackerStats?.name,
             defenderName: targetStats?.name,
-            note: 'Preparado para otorgar Probabilidad.',
+            note: 'Preparado para aplicar un poder de apoyo.',
           };
         } else {
           prepareAttackInfo(activePiece, targetPiece, currentAction);
@@ -2559,7 +2717,7 @@
 
     function selectBestEnemyAction(piece, targetPiece) {
       const stats = pieceMap.get(piece);
-      const abilities = stats?.habilidades?.activas || [];
+      const abilities = (stats?.poderes?.activos || []).map((entry) => normalizePowerKey(entry?.nombre ?? entry));
       const targetStats = pieceMap.get(targetPiece);
       const targetSquare = getPieceSquare(targetPiece);
       const origin = getPieceSquare(piece);
@@ -2659,6 +2817,31 @@
       return { expired: false, message: '' };
     }
 
+    function consumeStatBuffs(piece) {
+      const stats = pieceMap.get(piece);
+      if (!stats) return [];
+      const messages = [];
+      if (stats.statBuffs) {
+        Object.entries(stats.statBuffs).forEach(([stat, buff]) => {
+          buff.remaining -= 1;
+          if (buff.remaining <= 0) {
+            const baseKey = stat === 'ataque' ? 'baseAtaque' : stat === 'defensa' ? 'baseDefensa' : 'baseAgilidad';
+            stats[stat] = stats[baseKey] ?? stats[stat];
+            messages.push(`${stats.name} pierde ${buff.label?.toLowerCase?.() || stat}.`);
+            delete stats.statBuffs[stat];
+          }
+        });
+      }
+      if (stats.critBuff) {
+        stats.critBuff.remaining -= 1;
+        if (stats.critBuff.remaining <= 0) {
+          messages.push(`${stats.name} pierde ${stats.critBuff.label?.toLowerCase?.() || 'mejora de crítico'}.`);
+          delete stats.critBuff;
+        }
+      }
+      return messages;
+    }
+
     function advanceTurn() {
       if (turnOrder.length === 0) return;
       turnIndex = (turnIndex + 1) % turnOrder.length;
@@ -2672,11 +2855,13 @@
       const regenResult = skipRegeneration ? { regenerated: false, message: '' } : applyRegeneration(piece);
       const stats = pieceMap.get(piece);
       const probabilityResult = consumeProbabilidadTurn(piece);
+      const buffMessages = consumeStatBuffs(piece);
       const summaryParts = [
         summaryOverride || latestActionMessage || (stats ? `${stats.name} finaliza su turno.` : 'Turno completado.'),
       ];
       if (regenResult?.regenerated) summaryParts.push(regenResult.message);
       if (probabilityResult?.expired) summaryParts.push(probabilityResult.message);
+      buffMessages.forEach((msg) => summaryParts.push(msg));
       const summary = summaryParts.join(' ').trim();
       latestActionMessage = null;
       if (latestPopupContext) {
