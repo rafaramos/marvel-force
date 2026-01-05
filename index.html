@@ -1059,37 +1059,27 @@
         revealModes();
       });
 
-      const allySlots = [
-        { row: 1, col: 1, className: 'piece--white' },
-        { row: 2, col: 1, className: 'piece--red' },
-        { row: 3, col: 1, className: 'piece--violet' },
-        { row: 4, col: 1, className: 'piece--blue' },
-        { row: 5, col: 1, className: 'piece--gold' },
-        { row: 6, col: 1, className: 'piece--white' },
-        { row: 7, col: 1, className: 'piece--red' },
-        { row: 8, col: 1, className: 'piece--gold' },
-        { row: 9, col: 1, className: 'piece--violet' },
-        { row: 10, col: 1, className: 'piece--gold' },
-        { row: 1, col: 2, className: 'piece--red' },
-        { row: 2, col: 2, className: 'piece--violet' },
-      ];
-
-      const enemySlots = [
-        { row: 1, col: 16, className: 'piece--black' },
-        { row: 2, col: 16, className: 'piece--black' },
-        { row: 3, col: 16, className: 'piece--black' },
-        { row: 4, col: 16, className: 'piece--black' },
-        { row: 5, col: 16, className: 'piece--black' },
-        { row: 6, col: 16, className: 'piece--black' },
-        { row: 7, col: 16, className: 'piece--black' },
-        { row: 8, col: 16, className: 'piece--black' },
-        { row: 9, col: 16, className: 'piece--black' },
-        { row: 10, col: 16, className: 'piece--black' },
-        { row: 1, col: 15, className: 'piece--black' },
-        { row: 2, col: 15, className: 'piece--black' },
-      ];
-
       let initialPositions = [];
+
+      const ALLY_COLORS = ['piece--white', 'piece--red', 'piece--violet', 'piece--blue', 'piece--gold'];
+      const ENEMY_COLORS = ['piece--black', 'piece--violet', 'piece--red', 'piece--blue', 'piece--gold'];
+
+    function generateSlots(count, { startCol, direction, palette }) {
+      const slots = [];
+      let col = startCol;
+      let colorIndex = 0;
+
+      while (slots.length < count && col >= 1 && col <= BOARD_COLS) {
+        for (let row = 1; row <= BOARD_ROWS && slots.length < count; row += 1) {
+          const className = palette[colorIndex % palette.length];
+          slots.push({ row, col, className });
+          colorIndex += 1;
+        }
+        col += direction;
+      }
+
+      return slots;
+    }
 
     function createPieceElement({ key, team, className }) {
       const stats = pieceStats[key];
@@ -2718,7 +2708,9 @@
       highlightMovement(piece);
       highlightRange(piece);
       if (isPlayerVsAI && piece.dataset.team === 'enemigo') {
-        performEnemyTurn(piece);
+        attackButton.disabled = true;
+        passButton.disabled = true;
+        setTimeout(() => finishTurn(piece, { showPopup: false }), 350);
       }
     }
 
@@ -2856,6 +2848,18 @@
     }
 
     function buildPositionsFromSelections() {
+      const allySlots = generateSlots(selections.player1.length, {
+        startCol: 1,
+        direction: 1,
+        palette: ALLY_COLORS,
+      });
+
+      const enemySlots = generateSlots(selections.player2.length, {
+        startCol: BOARD_COLS,
+        direction: -1,
+        palette: ENEMY_COLORS,
+      });
+
       const positions = [];
       selections.player1.forEach((key, idx) => {
         const slot = allySlots[idx];
@@ -2939,22 +2943,9 @@
       const characters = Object.keys(pieceStats);
       if (characters.length === 0) return false;
 
-      selections.player1 = characters.slice(0, 12);
-      selections.player2 = characters.slice(12, 24);
-
-      if (selections.player2.length < 12) {
-        const remaining = characters.filter((key) => !selections.player1.includes(key));
-        while (selections.player2.length < 12 && remaining.length > 0) {
-          selections.player2.push(remaining.shift());
-        }
-      }
-
-      if (selections.player2.length < 12 && selections.player1.length > 0) {
-        while (selections.player2.length < 12) {
-          const next = selections.player1[selections.player2.length % selections.player1.length];
-          selections.player2.push(next);
-        }
-      }
+      const midpoint = Math.ceil(characters.length / 2);
+      selections.player1 = characters.slice(0, midpoint);
+      selections.player2 = characters.slice(midpoint);
 
       initialPositions = buildPositionsFromSelections();
       return initialPositions.length > 0;
