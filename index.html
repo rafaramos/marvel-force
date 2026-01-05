@@ -1042,6 +1042,7 @@
       backgroundMusic.volume = 0.35;
       let introStarted = false;
       let backgroundStarted = false;
+      let introAutoplayInterval = null;
       let isPlayerVsAI = true;
       let gameStarted = false;
       const PROBABILIDAD_DURATION = 2;
@@ -1073,7 +1074,7 @@
       if (gameStarted) return;
       setTimeout(() => {
         if (!gameStarted) {
-          startIntroMusic(true);
+          scheduleIntroAutoplay();
         }
       }, 500);
     });
@@ -1278,9 +1279,27 @@
       clickSound.play().catch(() => {});
     }
 
+    function scheduleIntroAutoplay() {
+      if (introAutoplayInterval || introStarted || gameStarted) return;
+      attemptIntroAutoplay();
+      introAutoplayInterval = setInterval(() => {
+        if (introStarted || gameStarted) {
+          clearInterval(introAutoplayInterval);
+          introAutoplayInterval = null;
+          return;
+        }
+        attemptIntroAutoplay();
+      }, 1200);
+    }
+
+    function attemptIntroAutoplay() {
+      if (introStarted || gameStarted) return;
+      startIntroMusic(true);
+    }
+
     function startIntroMusic(autoAttempt = false) {
       if (introStarted && !autoAttempt) return;
-      introStarted = true;
+      if (autoAttempt && introStarted && !introMusic.paused) return;
       if (autoAttempt) {
         introMusic.muted = true;
       }
@@ -1288,12 +1307,19 @@
       introMusic
         .play()
         .then(() => {
+          introStarted = true;
+          if (introAutoplayInterval && !gameStarted) {
+            clearInterval(introAutoplayInterval);
+            introAutoplayInterval = null;
+          }
           if (autoAttempt) {
             introMusic.muted = false;
           }
         })
         .catch(() => {
-          introStarted = false;
+          if (!autoAttempt) {
+            introStarted = false;
+          }
           if (autoAttempt) {
             introMusic.muted = false;
           }
