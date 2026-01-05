@@ -71,6 +71,28 @@
       font-weight: 600;
     }
 
+    .start-screen__content {
+      display: grid;
+      gap: 18px;
+      justify-items: center;
+      padding: clamp(12px, 3vw, 24px);
+      background: rgba(0, 0, 0, 0.18);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 24px;
+      box-shadow: 0 18px 30px rgba(0, 0, 0, 0.35);
+      max-width: min(640px, 96vw);
+      width: min(640px, 96vw);
+    }
+
+    .start-screen__cover {
+      width: min(520px, 100%);
+      border-radius: 18px;
+      border: 2px solid rgba(255, 209, 102, 0.5);
+      box-shadow:
+        0 18px 28px rgba(0, 0, 0, 0.45),
+        0 0 0 6px rgba(0, 0, 0, 0.4);
+    }
+
     .draft-screen {
       position: fixed;
       inset: 0;
@@ -882,16 +904,19 @@
 </head>
 <body>
   <div id="startScreen" class="start-screen">
-    <div>
-      <h1 class="start-screen__headline">Marvel Force</h1>
-      <p class="start-screen__subtitle">Elige cómo quieres jugar</p>
-    </div>
-    <button id="playButton" class="button button--primary button--pulse start-screen__play" type="button">Jugar</button>
-    <div id="modeSelection" class="start-screen__modes" hidden>
-      <p class="start-screen__subtitle">Selecciona el modo</p>
-      <div class="start-screen__buttons">
-        <button class="button" type="button" data-mode="pvp" onclick="handleModeSelection('pvp')">1 vs 1</button>
-        <button class="button button--primary" type="button" data-mode="ai" onclick="handleModeSelection('ai')">1 vs IA</button>
+    <div class="start-screen__content">
+      <img class="start-screen__cover" src="marvel-force-portada.webp" alt="Portada de Marvel Force" />
+      <div>
+        <h1 class="start-screen__headline">Marvel Force</h1>
+        <p class="start-screen__subtitle">Elige cómo quieres jugar</p>
+      </div>
+      <button id="playButton" class="button button--primary button--pulse start-screen__play" type="button">Jugar</button>
+      <div id="modeSelection" class="start-screen__modes" hidden>
+        <p class="start-screen__subtitle">Selecciona el modo</p>
+        <div class="start-screen__buttons">
+          <button class="button" type="button" data-mode="pvp" onclick="handleModeSelection('pvp')">1 vs 1</button>
+          <button class="button button--primary" type="button" data-mode="ai" onclick="handleModeSelection('ai')">1 vs IA</button>
+        </div>
       </div>
     </div>
   </div>
@@ -998,6 +1023,9 @@
         (typeof window !== 'undefined' ? window.personajes : {});
       const SCORE_PER_DAMAGE = 10;
       const SCORE_PER_KILL = 50;
+      const introMusic = new Audio('sonido/introduccion.wav');
+      introMusic.loop = true;
+      introMusic.volume = 0.35;
       const punchSound = new Audio('sonido/Punch.mp3');
       const failureSound = new Audio('sonido/Failure.mp3');
       const incapacitarSound = new Audio('sonido/incapacitar.wav');
@@ -1010,6 +1038,7 @@
       const backgroundMusic = new Audio('sonido/Endgame.mp3');
       backgroundMusic.loop = true;
       backgroundMusic.volume = 0.35;
+      let introStarted = false;
       let backgroundStarted = false;
       let isPlayerVsAI = true;
       let gameStarted = false;
@@ -1038,7 +1067,15 @@
       startScreen.style.display = 'none';
     }
 
+    ['pointerdown', 'keydown'].forEach((eventName) => {
+      document.addEventListener(eventName, () => {
+        if (gameStarted) return;
+        startIntroMusic();
+      });
+    });
+
       playButton.addEventListener('click', () => {
+        startIntroMusic();
         revealModes();
       });
 
@@ -1208,6 +1245,21 @@
       if (!sound) return;
       sound.currentTime = 0;
       sound.play().catch(() => {});
+    }
+
+    function startIntroMusic() {
+      if (introStarted) return;
+      introStarted = true;
+      introMusic.currentTime = 0;
+      introMusic.play().catch(() => {
+        introStarted = false;
+      });
+    }
+
+    function stopIntroMusic() {
+      introStarted = false;
+      introMusic.pause();
+      introMusic.currentTime = 0;
     }
 
     function startBackgroundMusic() {
@@ -2898,6 +2950,7 @@
     function startGame() {
       if (gameStarted) return;
       gameStarted = true;
+      stopIntroMusic();
       hideStartScreen();
       draftScreen.hidden = true;
       gameContainer.hidden = false;
