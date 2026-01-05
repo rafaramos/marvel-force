@@ -327,7 +327,7 @@ const activosGenerales = [
   {
     nombre: 'Mejora de Ataque',
     descripcion:
-      'Aplica a un aliado (o a sí mismo) y a los aliados adyacentes una mejora de +1 al ataque durante 2 turnos. El bono máximo sobre el ataque base es 1; aplicar de nuevo solo renueva la duración.',
+      'Elige a un compañero (o a sí mismo) y afecta también a los aliados de las casillas adyacentes. Todos obtienen +1 al ataque durante 2 turnos; el bono máximo sobre el ataque base es 1, y aplicaciones consecutivas solo renuevan la duración.',
   },
   {
     nombre: 'Mejora de Agilidad',
