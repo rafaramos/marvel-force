@@ -90,6 +90,25 @@ const poderes = {
     ],
     pasivos: [],
   },
+  blade: {
+    activos: [],
+    pasivos: [
+      {
+        nombre: 'Sigilo',
+        descripcion:
+          'Obtiene +2 a la defensa cuando está detrás de un objeto o arbusto al sufrir una tirada de ataque.',
+      },
+      {
+        nombre: 'Garras/Comillos/Cuchillos/Espadas',
+        descripcion:
+          'Si logra impactar en ataque, lanza 1d6 para actualizar su daño base ese turno (nunca inferior al daño base).',
+      },
+      {
+        nombre: 'Resistencia',
+        descripcion: 'Reduce en 1 todo el daño recibido tanto de ataques cuerpo a cuerpo como a distancia.',
+      },
+    ],
+  },
   hulk: {
     activos: [
     ],
@@ -177,6 +196,26 @@ const poderes = {
         descripcion: 'Recupera 1 punto de vida al final de su turno si no está al máximo.',
       },
     ],
+  },
+  medicoShield: {
+    activos: [
+      {
+        nombre: 'Curar',
+        descripcion:
+          'Elige a un aliado y realiza una tirada de ataque cuerpo a cuerpo usando ataque + daño recibido del objetivo + 2d6. Si iguala o supera la defensa, cura 1d6 (sin exceder el daño sufrido).',
+      },
+    ],
+    pasivos: [],
+  },
+  medicoHydra: {
+    activos: [
+      {
+        nombre: 'Curar',
+        descripcion:
+          'Elige a un aliado y realiza una tirada de ataque cuerpo a cuerpo usando ataque + daño recibido del objetivo + 2d6. Si iguala o supera la defensa, cura 1d6 (sin exceder el daño sufrido).',
+      },
+    ],
+    pasivos: [],
   },
   boomerang: {
     activos: [
