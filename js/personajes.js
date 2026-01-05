@@ -12,10 +12,10 @@ const personajes = {
     rango: 3,
     vida: 4,
     agilidad: 0,
-    imagen: 'imagenes/avispa.webp',
-    animacion: 'animaciones/avispa.webp',
-    poderes: poderesFuente.avispa,
-    habilidades: { activas: ['incapacitar'], pasivas: [] }
+    imagen: 'imagenes/agenteShield.webp',
+    animacion: 'animaciones/agenteShield.webp',
+    poderes: poderesFuente.agenteShield,
+    habilidades: { activas: [], pasivas: [] }
   },
 
   medicoShield: {
@@ -27,10 +27,10 @@ const personajes = {
     rango: 2,
     vida: 4,
     agilidad: 0,
-    imagen: 'imagenes/avispa.webp',
-    animacion: 'animaciones/avispa.webp',
-    poderes: poderesFuente.avispa,
-    habilidades: { activas: ['incapacitar'], pasivas: [] }
+    imagen: 'imagenes/medicoShield.webp',
+    animacion: 'animaciones/medicoShield.webp',
+    poderes: poderesFuente.medicoShield,
+    habilidades: { activas: ['curar'], pasivas: [] }
   },
 
   agenteHydra: {
@@ -42,10 +42,10 @@ const personajes = {
     rango: 3,
     vida: 4,
     agilidad: 0,
-    imagen: 'imagenes/avispa.webp',
-    animacion: 'animaciones/avispa.webp',
-    poderes: poderesFuente.avispa,
-    habilidades: { activas: ['incapacitar'], pasivas: [] }
+    imagen: 'imagenes/agenteHydra.webp',
+    animacion: 'animaciones/agenteHydra.webp',
+    poderes: poderesFuente.agenteHydra,
+    habilidades: { activas: [], pasivas: [] }
   },
 
   medicoHydra: {
@@ -57,10 +57,10 @@ const personajes = {
     rango: 2,
     vida: 4,
     agilidad: 0,
-    imagen: 'imagenes/avispa.webp',
-    animacion: 'animaciones/avispa.webp',
-    poderes: poderesFuente.avispa,
-    habilidades: { activas: ['incapacitar'], pasivas: [] }
+    imagen: 'imagenes/medicoHydra.webp',
+    animacion: 'animaciones/medicoHydra.webp',
+    poderes: poderesFuente.medicoHydra,
+    habilidades: { activas: ['curar'], pasivas: [] }
   },
 
   maton: {
@@ -72,10 +72,10 @@ const personajes = {
     rango: 0,
     vida: 4,
     agilidad: 0,
-    imagen: 'imagenes/avispa.webp',
-    animacion: 'animaciones/avispa.webp',
-    poderes: poderesFuente.avispa,
-    habilidades: { activas: ['incapacitar'], pasivas: [] }
+    imagen: 'imagenes/maton.webp',
+    animacion: 'animaciones/maton.webp',
+    poderes: poderesFuente.maton,
+    habilidades: { activas: [], pasivas: [] }
   },
 
   esbirro: {
@@ -87,10 +87,10 @@ const personajes = {
     rango: 2,
     vida: 5,
     agilidad: 0,
-    imagen: 'imagenes/avispa.webp',
-    animacion: 'animaciones/avispa.webp',
-    poderes: poderesFuente.avispa,
-    habilidades: { activas: ['incapacitar'], pasivas: [] }
+    imagen: 'imagenes/esbirro.webp',
+    animacion: 'animaciones/esbirro.webp',
+    poderes: poderesFuente.esbirro,
+    habilidades: { activas: [], pasivas: [] }
   },
 
   agenteSkrull: {
@@ -102,10 +102,10 @@ const personajes = {
     rango: 3,
     vida: 4,
     agilidad: 0,
-    imagen: 'imagenes/avispa.webp',
-    animacion: 'animaciones/avispa.webp',
-    poderes: poderesFuente.avispa,
-    habilidades: { activas: ['incapacitar'], pasivas: [] }
+    imagen: 'imagenes/agenteSkrull.webp',
+    animacion: 'animaciones/agenteSkrull.webp',
+    poderes: poderesFuente.agenteSkrull,
+    habilidades: { activas: [], pasivas: [] }
   },
 
   guerreroSkrull: {
@@ -117,10 +117,10 @@ const personajes = {
     rango: 4,
     vida: 4,
     agilidad: 0,
-    imagen: 'imagenes/avispa.webp',
-    animacion: 'animaciones/avispa.webp',
-    poderes: poderesFuente.avispa,
-    habilidades: { activas: ['incapacitar'], pasivas: [] }
+    imagen: 'imagenes/guerreroSkrull.webp',
+    animacion: 'animaciones/guerreroSkrull.webp',
+    poderes: poderesFuente.guerreroSkrull,
+    habilidades: { activas: [], pasivas: [] }
   },
 
   blade: {
@@ -132,10 +132,10 @@ const personajes = {
     rango: 0,
     vida: 6,
     agilidad: 30,
-    imagen: 'imagenes/avispa.webp',
-    animacion: 'animaciones/avispa.webp',
-    poderes: poderesFuente.avispa,
-    habilidades: { activas: ['incapacitar'], pasivas: [] }
+    imagen: 'imagenes/blade.webp',
+    animacion: 'animaciones/blade.webp',
+    poderes: poderesFuente.blade,
+    habilidades: { activas: [], pasivas: ['Sigilo', 'Garras/Comillos/Cuchillos/Espadas', 'Resistencia'] }
   },
 
   avispa: {
