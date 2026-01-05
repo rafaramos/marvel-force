@@ -1071,10 +1071,12 @@
 
     window.addEventListener('load', () => {
       if (gameStarted) return;
-      startIntroMusic();
+      setTimeout(() => {
+        if (!gameStarted) {
+          startIntroMusic();
+        }
+      }, 500);
     });
-
-    startIntroMusic();
 
     ['pointerdown', 'keydown'].forEach((eventName) => {
       document.addEventListener(eventName, () => {
