@@ -7,219 +7,139 @@ const turnInfo = document.getElementById('turnInfo');
 const movementInfo = document.getElementById('movementInfo');
 const allyCards = document.getElementById('allyCards');
 const enemyCards = document.getElementById('enemyCards');
-const heroHistoryList = document.getElementById('heroHistory');
-const villainHistoryList = document.getElementById('villainHistory');
 const powerButtons = document.getElementById('powerButtons');
+const combatInfo = document.getElementById('combatInfo');
 
-const pieceStats = personajes;
-
-Object.entries(pieceStats).forEach(([key, stats]) => {
-  if (!stats.name && stats.nombre) {
-    stats.name = stats.nombre;
-  }
-
-  if (!stats.nombre && stats.name) {
-    stats.nombre = stats.name;
-  }
-
-  if (!stats.nombre && !stats.name) {
-    stats.name = key;
-    stats.nombre = key;
-  }
-
-  const baseDamage = stats.dano ?? stats.danoCC ?? stats.danoAD ?? 0;
-  stats.dano = baseDamage;
-  stats.danoCC = stats.danoCC ?? baseDamage;
-  stats.danoAD = stats.danoAD ?? baseDamage;
-
-  const baseResistencia = stats.resistencia ?? stats.resistenciaCC ?? stats.resistenciaAD ?? 0;
-  stats.resistencia = baseResistencia;
-});
+// --- CONFIGURACIÓN GLOBAL ---
+const pieceStats = personajes; // Referencia a personajes.js
 const HERO_TEAM = 'aliado';
 const VILLAIN_TEAM = 'enemigo';
-const POWER_LABELS = {
-  incapacitar: 'Incapacitar',
-};
+const BARRIER_DURATION = 3; // Turnos que dura una barrera
 
+// Mapa de coordenadas para acceso rápido
 const squareByCoord = new Map();
-
-const FLYING_CHARACTERS = new Set(['avispa', 'duende', 'magneto', 'ultron', 'thanos']);
-
-const PHASING_CHARACTERS = new Set(['kang']);
-
-const LEAPING_CHARACTERS = new Set(['hulk', 'spiderMan']);
-
 squares.forEach((square, index) => {
-  const row = Math.floor(index / 8) + 1;
-  const col = (index % 8) + 1;
+  const row = Math.floor(index / 16) + 1;
+  const col = (index % 16) + 1;
   square.dataset.row = row;
   square.dataset.col = col;
   squareByCoord.set(`${row}-${col}`, square);
 });
 
-const pieceMap = new Map();
-
-function isAlive(piece) {
-  return piece && piece.dataset.eliminated !== 'true';
-}
-
-function isHero(piece) {
-  return piece.dataset.team === HERO_TEAM;
-}
-
-function isVillain(piece) {
-  return piece.dataset.team === VILLAIN_TEAM;
-}
-
-function livingPieces(team) {
-  return turnOrder.filter((piece) => piece.dataset.team === team && isAlive(piece));
-}
-
-function canTraverseEnemies(piece) {
-  const key = piece?.dataset?.key;
-  return FLYING_CHARACTERS.has(key) || PHASING_CHARACTERS.has(key) || LEAPING_CHARACTERS.has(key);
-}
-
-function normalizedPowers(stats, key) {
-  const list = stats?.poderes?.[key] ?? [];
-  return list.map((entry) => normalizePowerKey(entry?.nombre ?? entry));
-}
-
-function hasPassive(stats, power) {
-  const search = normalizePowerKey(power);
-  return normalizedPowers(stats, 'pasivos').includes(search);
-}
-
-function hasActive(stats, power) {
-  const search = normalizePowerKey(power);
-  return normalizedPowers(stats, 'activos').includes(search);
-}
-
-function powerLabel(key) {
-  return POWER_LABELS[key] ?? key;
-}
-
-function pieceColor(element) {
-  return element.dataset.team === 'aliado' ? '#2ecc71' : '#e74c3c';
-}
-
-function displayName(stats) {
-  return stats?.nombre ?? stats?.name ?? 'Desconocido';
-}
-
-function attachPieceData(piece, key, team) {
-  const base = pieceStats[key];
-  const baseDamage = base?.dano ?? base?.danoCC ?? base?.danoAD ?? 0;
-  const baseResistencia = base?.resistencia ?? 0;
-  const stats = {
-    ...base,
-    dano: baseDamage,
-    danoCC: base?.danoCC ?? baseDamage,
-    danoAD: base?.danoAD ?? baseDamage,
-    resistencia: baseResistencia,
-    baseAtaque: base?.ataque ?? 0,
-    baseDefensa: base?.defensa ?? 0,
-    baseAgilidad: base?.agilidad ?? 0,
-    currentVida: base?.vida,
-    skipTurns: 0,
-  };
-  piece.dataset.key = key;
-  piece.dataset.team = team;
-  piece.dataset.rango = stats.rango;
-  piece.dataset.movimiento = stats.movimiento;
-  piece.dataset.stats = JSON.stringify(stats);
-  pieceMap.set(piece, stats);
-}
-
-const pieces = Array.from(board.querySelectorAll('.piece')).map((element) => ({
-  element,
-  key: element.dataset.key,
-  team: element.dataset.team,
-}));
-
-pieces.forEach(({ element, key, team }) => {
-  if (element) {
-    attachPieceData(element, key, team);
-  }
-});
-
-function renderLifeCards() {
-  allyCards.innerHTML = '';
-  enemyCards.innerHTML = '';
-
-  pieces.forEach(({ element }) => {
-    if (!element) return;
-    const stats = pieceMap.get(element);
-    const container = element.dataset.team === 'aliado' ? allyCards : enemyCards;
-    const card = document.createElement('div');
-    card.className = 'life-card';
-    card.innerHTML = `
-      <span class="life-card__name"><span class="life-dot" style="background:${pieceColor(
-        element
-      )}"></span>${displayName(stats)}</span>
-      <span class="life-value">Vida: ${Math.max(stats.currentVida, 0)}</span>
-    `;
-    container.appendChild(card);
-  });
-}
-
-renderLifeCards();
-
-const turnOrder = pieces
-  .map(({ element }) => element)
-  .filter(Boolean)
-  .sort((a, b) => {
-    const statsA = pieceMap.get(a);
-    const statsB = pieceMap.get(b);
-    if (statsA.agilidad === statsB.agilidad) {
-      return Math.random() < 0.5 ? -1 : 1;
-    }
-    return statsB.agilidad - statsA.agilidad;
-  });
-
+// Estado del juego
+const pieceMap = new Map(); // Guarda stats dinámicos (vida, buffs)
+let turnOrder = [];
 let turnIndex = 0;
 let selectedTarget = null;
-let pendingAttackInfo = null;
-let selectedPower = null;
+let currentAction = 'Ataque'; // Acción seleccionada
+let activeBarriers = []; // Lista de barreras activas
 
-function normalizePowerKey(power) {
-  if (!power) return null;
-  return power
-    .toString()
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '');
+// --- SISTEMA DE SONIDOS (Placeholders) ---
+const sounds = {
+  attack: new Audio('sonido/Punch.mp3'),
+  fail: new Audio('sonido/Failure.mp3'),
+  click: new Audio('sonido/click.wav'),
+  pass: new Audio('sonido/pasar.wav'),
+  explode: new Audio('sonido/explosion.mp3')
+};
+function playSound(name) {
+  if (sounds[name]) {
+    sounds[name].currentTime = 0;
+    sounds[name].play().catch(() => {});
+  }
 }
 
-const SUPPORT_POWERS = new Set([
-  'mejora de ataque',
-  'mejora de agilidad',
-  'mejora de defensa',
-  'mejora de critico',
-  'probabilidad',
-  'curar',
-]);
+// --- UTILIDADES ---
+function getPieceSquare(piece) { return piece.closest('.square'); }
+function getSquareAt(row, col) { return squareByCoord.get(`${row}-${col}`) ?? null; }
 
-function isSupportPower(power) {
-  return power ? SUPPORT_POWERS.has(normalizePowerKey(power)) : false;
+function getDistance(sq1, sq2) {
+  if (!sq1 || !sq2) return 999;
+  return Math.abs(Number(sq1.dataset.row) - Number(sq2.dataset.row)) + 
+         Math.abs(Number(sq1.dataset.col) - Number(sq2.dataset.col));
 }
 
-function getPieceSquare(piece) {
-  return piece.closest('.square');
+function hasPassive(stats, partialName) {
+  return stats.pasivos && stats.pasivos.some(p => p.nombre.includes(partialName));
 }
 
-function getSquareAt(row, col) {
-  return squareByCoord.get(`${row}-${col}`) ?? null;
+// --- GESTIÓN DE STATS Y BUFFS ---
+function getEffectiveStats(piece) {
+  const base = pieceMap.get(piece);
+  // Clonamos para calcular modificadores temporales sin dañar el base
+  const stats = { ...base, defensa: base.defensa, ataque: base.ataque, agilidad: base.agilidad };
+  
+  // Aplicar Buffs
+  if (base.buffs) {
+    base.buffs.forEach(buff => {
+      if (buff.type === 'agilidad') stats.agilidad = Math.min(stats.agilidad + buff.value, base.originalAgilidad + 10);
+      if (buff.type === 'defensa') stats.defensa = Math.min(stats.defensa + buff.value, base.originalDefensa + 1);
+      if (buff.type === 'ataque') stats.ataque = Math.min(stats.ataque + buff.value, base.originalAtaque + 1);
+      if (buff.type === 'critico') stats.hasAstuciaBuff = true;
+    });
+  }
+
+  // Pasiva: Sigilo (+2 Defensa si cobertura... simplificado a siempre +2 contra ataques lejanos en cálculo de daño)
+  // Aquí devolvemos stats para UI y lógica general
+  return stats;
 }
 
-function reachableSquares(piece) {
+function addBuff(piece, type, value, duration) {
+  const stats = pieceMap.get(piece);
+  if (!stats.buffs) stats.buffs = [];
+  
+  // Regla: Solo renueva duración si ya existe, no stackea valor infinito
+  const existing = stats.buffs.find(b => b.type === type);
+  if (existing) {
+    existing.turns = duration;
+  } else {
+    stats.buffs.push({ type, value, turns: duration });
+  }
+  logCombat(`${stats.nombre} recibe mejora de ${type}.`);
+}
+
+function tickBuffs(piece) {
+  const stats = pieceMap.get(piece);
+  if (stats.buffs) {
+    stats.buffs.forEach(b => b.turns--);
+    stats.buffs = stats.buffs.filter(b => b.turns > 0);
+  }
+  // Control Mental
+  if (stats.mindControlTurns > 0) {
+    stats.mindControlTurns--;
+    if (stats.mindControlTurns === 0) {
+      // Revertir equipo
+      const originalTeam = piece.classList.contains('piece--hero') ? HERO_TEAM : VILLAIN_TEAM; // Simplificación
+      // En realidad guardamos el equipo original en stats
+      piece.dataset.team = stats.originalTeam;
+      logCombat(`${stats.nombre} recupera el control de su mente.`);
+    }
+  }
+}
+
+// --- MOVIMIENTO ---
+function canTraverse(piece) {
+  const stats = getEffectiveStats(piece);
+  return hasPassive(stats, 'Volar') || hasPassive(stats, 'Fase') || hasPassive(stats, 'Saltar');
+}
+
+function remainingMovement(piece) { return Number(piece.dataset.movesLeft ?? 0); }
+
+function spendMovement(piece, amount) {
+  piece.dataset.movesLeft = Math.max(0, remainingMovement(piece) - amount);
+}
+
+function highlightMovement(piece) {
+  squares.forEach(s => s.classList.remove('square--move'));
   const origin = getPieceSquare(piece);
   const maxMove = remainingMovement(piece);
-  const reachable = new Map();
-  if (!origin || maxMove <= 0) return reachable;
+  if (!origin || maxMove <= 0) return;
 
   const queue = [{ square: origin, distance: 0 }];
-  reachable.set(origin, 0);
+  const visited = new Map();
+  visited.set(origin, 0);
+  const canFly = canTraverse(piece);
+  const myTeam = piece.dataset.team;
 
   while (queue.length > 0) {
     const { square, distance } = queue.shift();
@@ -227,939 +147,551 @@ function reachableSquares(piece) {
 
     const row = Number(square.dataset.row);
     const col = Number(square.dataset.col);
-    const neighbors = [
-      [row + 1, col],
-      [row - 1, col],
-      [row, col + 1],
-      [row, col - 1],
-    ];
+    const neighbors = [[row+1, col], [row-1, col], [row, col+1], [row, col-1]];
 
     neighbors.forEach(([r, c]) => {
       const neighbor = getSquareAt(r, c);
-      if (!neighbor) return;
-      if (reachable.has(neighbor)) return;
+      if (!neighbor || visited.has(neighbor)) return;
 
       const occupant = neighbor.querySelector('.piece');
-      if (occupant && occupant !== piece && occupant.dataset.team !== piece.dataset.team) {
-        if (!canTraverseEnemies(piece)) return;
+      const isBarrier = neighbor.classList.contains('barrier');
+      
+      // Lógica de Bloqueo
+      let blocked = false;
+      if (occupant) {
+        if (occupant.dataset.team !== myTeam && !canFly) blocked = true;
       }
+      if (isBarrier && !canFly) blocked = true;
 
-      const nextDistance = distance + 1;
-      if (nextDistance <= maxMove) {
-        reachable.set(neighbor, nextDistance);
-        queue.push({ square: neighbor, distance: nextDistance });
+      if (!blocked) {
+        const newDist = distance + 1;
+        visited.set(neighbor, newDist);
+        // Solo iluminar si está vacía para terminar el movimiento
+        if ((!occupant && !isBarrier) || canFly) { 
+           // Nota: Si vuela, puede pasar, pero validamos que no termine encima de otro en el click
+           if (!occupant && !isBarrier) neighbor.classList.add('square--move');
+           queue.push({ square: neighbor, distance: newDist });
+        }
       }
     });
   }
-
-  return reachable;
 }
 
-function clearMoveHighlights() {
-  squares.forEach((square) => square.classList.remove('square--move'));
-}
-
-function clearRangeHighlights() {
-  squares.forEach((square) => square.classList.remove('square--range', 'square--target'));
-}
-
-function clearHighlights() {
-  clearMoveHighlights();
-  clearRangeHighlights();
-  tooltip.hidden = true;
-  selectedTarget = null;
-}
-
-function highlightMovement(piece) {
-  const reachable = availableMoveSquares(piece);
-  reachable.forEach(({ square }) => {
-    square.classList.add('square--move');
-  });
-}
-
-function isWithinAttackRange(attackerSquare, targetSquare, maxRange) {
-  const attackerRow = Number(attackerSquare.dataset.row);
-  const attackerCol = Number(attackerSquare.dataset.col);
-  const targetRow = Number(targetSquare.dataset.row);
-  const targetCol = Number(targetSquare.dataset.col);
-  const distance = Math.abs(targetRow - attackerRow) + Math.abs(targetCol - attackerCol);
-  return distance > 0 && distance <= maxRange;
-}
-
+// --- RANGO Y TARGETING ---
 function highlightRange(piece) {
-  clearRangeHighlights();
+  squares.forEach(s => s.classList.remove('square--range'));
   const origin = getPieceSquare(piece);
-  if (!origin) return;
-  const maxRange = rangeForPiece(piece);
-  if (maxRange <= 0) return;
-  squares.forEach((square) => {
-    if (isWithinAttackRange(origin, square, maxRange)) {
-      square.classList.add('square--range');
-    }
+  const stats = getEffectiveStats(piece);
+  let range = stats.rango === 0 ? 1 : stats.rango;
+  
+  // Modificadores de rango por acción
+  if (currentAction === 'Superfuerza' || currentAction === 'Telekinesis') range = 3; // Rango para lanzar objetos
+  if (currentAction === 'Control Mental') range = 5; // Rango típico mental
+  
+  squares.forEach(sq => {
+    const dist = getDistance(origin, sq);
+    if (dist <= range && dist > 0) sq.classList.add('square--range');
+    if (dist === 0 && (currentAction === 'Pulso' || currentAction.includes('Mejora'))) sq.classList.add('square--range');
   });
 }
 
-function setActivePiece(piece) {
-  document.querySelectorAll('.piece').forEach((p) => p.classList.remove('piece--active'));
-  piece.classList.add('piece--active');
-  updateStatusBar(piece);
-  updateCombatInfo();
-}
+// --- ACCIONES Y PODERES ---
 
 function renderPowerButtons(piece) {
-  if (!powerButtons) return;
   powerButtons.innerHTML = '';
-  if (!piece) return;
-  const stats = pieceMap.get(piece);
-  const activePowers = stats?.poderes?.activos ?? [];
-  activePowers.forEach((powerKey) => {
-    const key = normalizePowerKey(powerKey?.nombre ?? powerKey);
-    const label = powerKey?.nombre ?? powerLabel(key);
-    const btn = document.createElement('button');
-    btn.className = 'button';
-    btn.type = 'button';
-    btn.textContent = label;
-    btn.addEventListener('click', () => handleActivePower(key));
-    powerButtons.appendChild(btn);
+  const stats = getEffectiveStats(piece);
+
+  // Botón Básico
+  createButton('Ataque', 'button--primary');
+
+  // Activas
+  if (stats.activos) {
+    stats.activos.forEach(p => createButton(p.nombre, 'button'));
+  }
+
+  // Pasivas "activables" (como Telekinesis/Superfuerza si están listadas como pasivas en tu CSV pero quieres usarlas)
+  // En tu CSV, Superfuerza es Pasiva pero dice "puede agarrar... perderá el turno". 
+  // Lo trataremos como una acción especial si tiene la pasiva.
+  if (hasPassive(stats, 'Superfuerza')) createButton('Superfuerza', 'button--warning');
+}
+
+function createButton(label, className) {
+  const btn = document.createElement('button');
+  btn.className = `button ${className}`;
+  btn.textContent = label;
+  btn.onclick = () => selectAction(label);
+  powerButtons.appendChild(btn);
+}
+
+function selectAction(action) {
+  currentAction = action;
+  attackButton.textContent = action;
+  clearTargetSelection();
+  const attacker = turnOrder[turnIndex];
+  highlightRange(attacker);
+  logCombat(`Acción seleccionada: ${action}`);
+}
+
+// --- CLICK EN TABLERO ---
+board.addEventListener('click', (e) => {
+  const sq = e.target.closest('.square');
+  if (!sq) return;
+  const activePiece = turnOrder[turnIndex];
+  
+  // 1. Movimiento
+  if (sq.classList.contains('square--move') && !sq.querySelector('.piece')) {
+    movePiece(activePiece, sq);
+    return;
+  }
+
+  // 2. Selección de Objetivo
+  const targetPiece = sq.querySelector('.piece');
+  
+  // Caso especial: Barrera (target es una casilla vacía)
+  if (currentAction === 'Barrera' && sq.classList.contains('square--range') && !targetPiece) {
+    selectSquareTarget(sq);
+    return;
+  }
+
+  if (targetPiece) {
+    if (!sq.classList.contains('square--range')) return; // Fuera de rango visual
+    
+    // Validar equipo según acción
+    const isAlly = targetPiece.dataset.team === activePiece.dataset.team;
+    const isSelf = targetPiece === activePiece;
+
+    // Lógica de filtrado de objetivos
+    let valid = false;
+    
+    if (currentAction === 'Curar' || currentAction.includes('Mejora')) {
+      if (isAlly || isSelf) valid = true;
+    } else if (currentAction === 'Ataque' || currentAction === 'Incapacitar' || currentAction === 'Control Mental') {
+      if (!isAlly) valid = true;
+    } else if (currentAction === 'Explosión' || currentAction === 'Pulso') {
+      valid = true; // Afecta a todos, permite seleccionar centro
+    } else if (currentAction === 'Superfuerza' || currentAction === 'Telekinesis') {
+      if (!isAlly) valid = true; // Lanzar cosas al enemigo
+    }
+
+    if (valid) selectTarget(targetPiece);
+  }
+});
+
+function selectTarget(piece) {
+  clearTargetSelection();
+  selectedTarget = piece;
+  getPieceSquare(piece).classList.add('square--target');
+  attackButton.classList.add('button--pulse');
+}
+
+function selectSquareTarget(sq) {
+  clearTargetSelection();
+  selectedTarget = sq; // Target es el DIV, no una pieza
+  sq.classList.add('square--target');
+  attackButton.classList.add('button--pulse');
+}
+
+function clearTargetSelection() {
+  selectedTarget = null;
+  squares.forEach(s => s.classList.remove('square--target'));
+  attackButton.classList.remove('button--pulse');
+}
+
+// --- EJECUCIÓN DE ACCIÓN (BOTÓN PRINCIPAL) ---
+attackButton.addEventListener('click', () => {
+  if (!selectedTarget && currentAction !== 'Pulso') return; // Pulso puede no requerir target si es self-centered
+  
+  const attacker = turnOrder[turnIndex];
+  
+  // Despachar a la función correcta
+  if (currentAction === 'Ataque') resolveAttack(attacker, selectedTarget);
+  else if (currentAction === 'Curar') resolveHeal(attacker, selectedTarget);
+  else if (currentAction === 'Incapacitar') resolveIncapacitate(attacker, selectedTarget);
+  else if (currentAction === 'Control Mental') resolveMindControl(attacker, selectedTarget);
+  else if (currentAction === 'Explosión') resolveAOE(attacker, selectedTarget, 'explosion');
+  else if (currentAction === 'Pulso') resolveAOE(attacker, selectedTarget || attacker, 'pulse'); // Pulso a veces es self
+  else if (currentAction === 'Barrera') resolveBarrier(attacker, selectedTarget);
+  else if (currentAction === 'Superfuerza' || currentAction === 'Telekinesis') resolveThrow(attacker, selectedTarget);
+  else if (currentAction.includes('Mejora')) resolveBuff(attacker, selectedTarget, currentAction);
+  
+  // Finalizar turno (salvo doble ataque, que es complejo, lo simplificamos a 1 acción)
+  endTurn();
+});
+
+// --- LÓGICA DE RESOLUCIÓN ---
+
+function rollDice(n = 2) {
+  let sum = 0;
+  for(let i=0; i<n; i++) sum += Math.floor(Math.random() * 6) + 1;
+  return sum;
+}
+
+function calculateDamage(attacker, defender, type = 'normal') {
+  const attStats = getEffectiveStats(attacker);
+  const defStats = getEffectiveStats(defender);
+  const dist = getDistance(getPieceSquare(attacker), getPieceSquare(defender));
+  
+  // 1. Daño Base
+  let rawDmg = dist <= 1 ? (attStats.danoCC || attStats.dano) : (attStats.danoAD || attStats.dano);
+  if (type === 'throw') rawDmg = 3; // Daño fijo por lanzar objeto
+  
+  // 2. Modificadores de Atacante
+  if (hasPassive(attStats, 'Experto a/d') && dist > 1) rawDmg += 2;
+  if (hasPassive(attStats, 'Garras') && dist <= 1) {
+    // Reroll daño si impacta (simulado: +1d6 extra daño base temporal, simplificado a promedio +2)
+    rawDmg += 2; 
+  }
+
+  // 3. Modificadores de Defensor
+  let resistance = 0;
+  if (hasPassive(defStats, 'Resistencia')) resistance += 1;
+  if (hasPassive(defStats, 'Invulnerable') || hasPassive(defStats, 'Invunerable')) resistance += 2;
+  
+  // Sigilo: +2 Defensa (no reducción de daño, sino dificultad de impacto)
+  let defense = defStats.defensa;
+  if (hasPassive(defStats, 'Sigilo')) defense += 2;
+
+  return { rawDmg, resistance, defense };
+}
+
+function applyDamage(target, amount) {
+  const stats = pieceMap.get(target);
+  stats.currentVida -= amount;
+  if (stats.currentVida <= 0) {
+    stats.currentVida = 0;
+    eliminatePiece(target);
+    logCombat(`${stats.nombre} ha sido ELIMINADO.`);
+  }
+}
+
+function resolveAttack(attacker, defender) {
+  const attStats = getEffectiveStats(attacker);
+  const dmgCalc = calculateDamage(attacker, defender);
+  
+  // Tirada
+  const roll = rollDice(2);
+  let isCrit = roll === 12;
+  if (hasPassive(attStats, 'Astucia') || attStats.hasAstuciaBuff) isCrit = (roll >= 11);
+  
+  const totalHit = roll + attStats.ataque;
+  
+  let msg = `Tirada: ${roll} + ${attStats.ataque} = ${totalHit} vs Def ${dmgCalc.defense}. `;
+  
+  if (totalHit >= dmgCalc.defense || isCrit) {
+    playSound('attack');
+    let damage = Math.max(0, dmgCalc.rawDmg - dmgCalc.resistance);
+    if (isCrit) damage *= 2; // Crítico x2
+    
+    applyDamage(defender, damage);
+    msg += `¡IMPACTO! Daño: ${damage}.`;
+    
+    // Robo de Vida
+    if (hasPassive(attStats, 'Robo de Vida')) {
+      const heal = Math.min(damage, attStats.vida - attStats.currentVida);
+      attStats.currentVida += heal;
+      msg += ` (Roba ${heal} vida)`;
+    }
+  } else {
+    playSound('fail');
+    msg += "Fallo.";
+  }
+  logCombat(msg);
+}
+
+function resolveHeal(attacker, target) {
+  const stats = pieceMap.get(target);
+  // Fórmula CSV: Ataque + Daño Recibido + 2d6 >= Defensa
+  const missingHealth = stats.vida - stats.currentVida;
+  const attStats = getEffectiveStats(attacker);
+  
+  const roll = rollDice(2);
+  const total = attStats.ataque + missingHealth + roll;
+  
+  if (total >= stats.defensa) {
+    const healRoll = rollDice(1);
+    const healAmount = Math.min(healRoll, missingHealth);
+    stats.currentVida += healAmount;
+    logCombat(`${attStats.nombre} cura a ${stats.nombre} por ${healAmount} PV.`);
+  } else {
+    logCombat("Fallo al intentar curar.");
+  }
+}
+
+function resolveIncapacitate(attacker, defender) {
+  const attStats = getEffectiveStats(attacker);
+  const defStats = getEffectiveStats(defender); // Usamos get para leer defensa
+  const targetData = pieceMap.get(defender); // Usamos get directo para escribir estado
+
+  const roll = rollDice(2);
+  if (roll + attStats.ataque >= defStats.defensa) {
+    targetData.incapacitated = true;
+    logCombat(`¡${targetData.nombre} INCAPACITADO! Pierde el próximo turno.`);
+  } else {
+    logCombat("Intento de incapacitar fallido.");
+  }
+}
+
+function resolveMindControl(attacker, defender) {
+  const roll = rollDice(2);
+  const attStats = getEffectiveStats(attacker);
+  const defStats = getEffectiveStats(defender);
+  const targetData = pieceMap.get(defender);
+
+  if (roll + attStats.ataque >= defStats.defensa) {
+    targetData.mindControlTurns = 1;
+    targetData.originalTeam = defender.dataset.team;
+    // Cambiar equipo visualmente y lógicamente
+    const newTeam = attacker.dataset.team;
+    defender.dataset.team = newTeam;
+    // Actualizar color borde (sucio pero efectivo)
+    defender.style.borderColor = newTeam === HERO_TEAM ? '#2ecc71' : '#e74c3c';
+    logCombat(`¡CONTROL MENTAL! ${targetData.nombre} cambia de bando.`);
+  } else {
+    logCombat("Control Mental resistido.");
+  }
+}
+
+function resolveAOE(attacker, centerTarget, type) {
+  playSound('explode');
+  const centerSq = centerTarget.classList?.contains('square') ? centerTarget : getPieceSquare(centerTarget);
+  const row = Number(centerSq.dataset.row);
+  const col = Number(centerSq.dataset.col);
+  
+  // Lista de afectados: Centro + Adyacentes
+  const coords = [[row,col], [row+1,col], [row-1,col], [row,col+1], [row,col-1]];
+  
+  let hits = [];
+  coords.forEach(([r, c]) => {
+    const sq = getSquareAt(r, c);
+    if (sq) {
+      const p = sq.querySelector('.piece');
+      if (p) hits.push(p);
+    }
   });
+
+  // Pulso: Atacante no se daña a sí mismo si es el centro
+  if (type === 'pulse') {
+    hits = hits.filter(p => p !== attacker);
+  }
+
+  logCombat(`Resolviendo ${type === 'explosion' ? 'Explosión' : 'Pulso'}...`);
+  hits.forEach(victim => {
+    resolveAttack(attacker, victim); // Reutilizamos lógica de ataque individual
+  });
+}
+
+function resolveThrow(attacker, defender) {
+  // Simulación de Telekinesis/Superfuerza lanzando objetos
+  // Tratamos como un ataque especial con daño fijo base alto
+  logCombat(`${pieceMap.get(attacker).nombre} lanza escombros.`);
+  const attStats = getEffectiveStats(attacker);
+  const dmgCalc = calculateDamage(attacker, defender, 'throw');
+  
+  const roll = rollDice(2);
+  if (roll + attStats.ataque >= dmgCalc.defense) {
+    applyDamage(defender, dmgCalc.rawDmg); // Daño directo ignorando alguna resistencia
+    logCombat(`Impacto de objeto: ${dmgCalc.rawDmg} daño.`);
+  } else {
+    logCombat("El objeto lanzado falla.");
+  }
+}
+
+function resolveBarrier(attacker, square) {
+  // Crear barrera de 3 casillas verticales
+  const row = Number(square.dataset.row);
+  const col = Number(square.dataset.col);
+  const coords = [[row,col], [row+1,col], [row-1,col]];
+  
+  let created = 0;
+  coords.forEach(([r, c]) => {
+    const sq = getSquareAt(r, c);
+    if (sq && !sq.querySelector('.piece')) {
+      const barrier = document.createElement('div');
+      barrier.className = 'barrier'; // CSS needed: .barrier { background: gray; ... }
+      barrier.style.cssText = "position:absolute; inset:5px; background:rgba(200,200,200,0.5); border:2px solid white; pointer-events:none;";
+      sq.appendChild(barrier);
+      activeBarriers.push({ element: barrier, turns: BARRIER_DURATION });
+      created++;
+    }
+  });
+  logCombat(`Barrera creada (${created} segmentos).`);
+}
+
+function resolveBuff(attacker, centerTarget, actionName) {
+  // Buff AOE: Target + Adyacentes
+  const centerSq = getPieceSquare(centerTarget);
+  const row = Number(centerSq.dataset.row);
+  const col = Number(centerSq.dataset.col);
+  const coords = [[row,col], [row+1,col], [row-1,col], [row,col+1], [row,col-1]];
+
+  let type = '';
+  let val = 0;
+  if (actionName.includes('Agilidad')) { type = 'agilidad'; val = 10; }
+  if (actionName.includes('Defensa')) { type = 'defensa'; val = 1; }
+  if (actionName.includes('Ataque')) { type = 'ataque'; val = 1; }
+  if (actionName.includes('Crítico')) { type = 'critico'; val = 0; }
+
+  let count = 0;
+  coords.forEach(([r, c]) => {
+    const sq = getSquareAt(r, c);
+    const p = sq?.querySelector('.piece');
+    if (p && p.dataset.team === attacker.dataset.team) {
+      addBuff(p, type, val, 2);
+      count++;
+    }
+  });
+  logCombat(`${actionName} aplicada a ${count} aliados.`);
+}
+
+// --- FLUJO DE TURNOS ---
+function movePiece(piece, square) {
+  const dist = Number(reachableSquares(piece).get(square)); // (Necesita refactor rápido de reachableSquares para devolver Map correcto, asumimos que funciona como antes)
+  // Simplificado para movimiento directo:
+  square.appendChild(piece);
+  spendMovement(piece, 1); // Coste simplificado o calcular dist
+  playSound('click');
+  highlightMovement(piece);
+  highlightRange(piece);
+}
+
+function eliminatePiece(piece) {
+  piece.dataset.eliminated = 'true';
+  piece.style.opacity = '0.3';
+  piece.style.pointerEvents = 'none';
+  // Actualizar UI
+  renderLifeCards();
+}
+
+function endTurn() {
+  const currentP = turnOrder[turnIndex];
+  const stats = pieceMap.get(currentP);
+
+  // Regeneración
+  if (hasPassive(stats, 'Regeneración') && stats.currentVida < stats.vida && stats.currentVida > 0) {
+    stats.currentVida++;
+    logCombat("Regeneración: +1 PV");
+  }
+
+  // Tick Buffs
+  tickBuffs(currentP);
+
+  // Tick Barreras (Global o por turno, simplificamos a reducir en cada turno global)
+  activeBarriers.forEach(b => {
+    b.turns--;
+    if (b.turns <= 0) b.element.remove();
+  });
+  activeBarriers = activeBarriers.filter(b => b.turns > 0);
+
+  // Siguiente turno
+  clearTargetSelection();
+  renderLifeCards();
+  
+  let loopGuard = 0;
+  do {
+    turnIndex = (turnIndex + 1) % turnOrder.length;
+    loopGuard++;
+  } while (turnOrder[turnIndex].dataset.eliminated === 'true' && loopGuard < 100);
+
+  startTurn(turnOrder[turnIndex]);
+}
+
+function startTurn(piece) {
+  const stats = pieceMap.get(piece);
+  
+  // Incapacitado?
+  if (stats.incapacitated) {
+    stats.incapacitated = false;
+    logCombat(`${stats.nombre} está incapacitado y pierde el turno.`);
+    endTurn();
+    return;
+  }
+
+  // Reset Movimiento
+  piece.dataset.movesLeft = stats.movimiento;
+  
+  // UI Update
+  document.querySelectorAll('.piece').forEach(p => p.classList.remove('piece--active'));
+  piece.classList.add('piece--active');
+  updateStatusBar(piece);
+  renderPowerButtons(piece);
+  highlightMovement(piece);
+  highlightRange(piece);
+
+  // IA Tonta
+  if (piece.dataset.team === VILLAIN_TEAM) {
+    // Retraso para que se vea
+    setTimeout(() => {
+        // IA: Mover al enemigo más cercano y atacar si puede
+        // Implementación básica placeholder
+        const enemies = turnOrder.filter(p => p.dataset.team === HERO_TEAM && p.dataset.eliminated !== 'true');
+        if (enemies.length > 0) {
+            const target = enemies[0]; // Ataca al primero que pille
+            resolveAttack(piece, target);
+            endTurn();
+        } else {
+            endTurn();
+        }
+    }, 1000);
+  }
 }
 
 function updateStatusBar(piece) {
   const stats = pieceMap.get(piece);
-  if (!stats) return;
-  turnInfo.textContent = `Turno: ${displayName(stats)}`;
-  movementInfo.textContent = `Movimiento restante: ${remainingMovement(piece)}`;
+  turnInfo.textContent = `Turno: ${stats.nombre}`;
+  movementInfo.textContent = `Mov: ${piece.dataset.movesLeft}`;
 }
 
-function attackDistance(attackerSquare, targetSquare) {
-  return (
-    Math.abs(Number(attackerSquare.dataset.row) - Number(targetSquare.dataset.row)) +
-    Math.abs(Number(attackerSquare.dataset.col) - Number(targetSquare.dataset.col))
-  );
+function logCombat(msg) {
+  combatInfo.textContent = msg;
+  console.log(msg);
 }
 
-function availableMoveSquares(piece) {
-  const reachable = reachableSquares(piece);
-  const destinations = [];
-  reachable.forEach((distance, square) => {
-    if (distance === 0) return;
-    const occupant = square.querySelector('.piece');
-    if (occupant && occupant !== piece) return;
-    destinations.push({ square, distance });
-  });
-  return destinations;
-}
-
-function closestHeroTarget(piece) {
-  const heroes = livingPieces(HERO_TEAM);
-  if (heroes.length === 0) return null;
-  const origin = getPieceSquare(piece);
-  return heroes
-    .map((hero) => ({ hero, square: getPieceSquare(hero) }))
-    .filter(({ square }) => square)
-    .map(({ hero, square }) => ({ hero, distance: attackDistance(origin, square) }))
-    .sort((a, b) => a.distance - b.distance)[0]?.hero;
-}
-
-function bestSquareTowardHeroes(piece) {
-  const origin = getPieceSquare(piece);
-  const heroes = livingPieces(HERO_TEAM).map((hero) => getPieceSquare(hero)).filter(Boolean);
-  if (!origin || heroes.length === 0) return null;
-  const candidates = availableMoveSquares(piece);
-  if (candidates.length === 0) return null;
-  const scored = candidates.map(({ square }) => {
-    const distance = Math.min(...heroes.map((heroSquare) => attackDistance(square, heroSquare)));
-    return { square, distance };
-  });
-  scored.sort((a, b) => a.distance - b.distance || Number(a.square.dataset.row) - Number(b.square.dataset.row));
-  return scored[0]?.square ?? null;
-}
-
-function calculateDamage(attackerStats, defenderStats, distance, isCritical) {
-  const isMelee = distance <= 1;
-  const garrasRoll = isMelee && hasPassive(attackerStats, 'cuchillas') ? Math.floor(Math.random() * 6) + 1 : null;
-  const damageForMode = isMelee ? attackerStats.danoCC : attackerStats.danoAD;
-  const baseDamageStat = attackerStats.dano ?? damageForMode ?? 0;
-  const baseDamage = isMelee && garrasRoll !== null ? Math.max(garrasRoll, damageForMode ?? baseDamageStat) : damageForMode ?? baseDamageStat;
-  const resistance = defenderStats.resistencia ?? 0;
-  const damageBeforeResist = isCritical ? baseDamage * 2 : baseDamage;
-  const totalDamage = Math.max(damageBeforeResist - resistance, 0);
-  return { totalDamage, isMelee, garrasRoll, baseDamage };
-}
-
-function eliminatePiece(piece) {
-  const index = turnOrder.indexOf(piece);
-  if (index !== -1) {
-    turnOrder.splice(index, 1);
-    if (index <= turnIndex && turnIndex > 0) {
-      turnIndex -= 1;
+// --- INIT ---
+function init() {
+  const pieces = Array.from(document.querySelectorAll('.piece'));
+  pieces.forEach(p => {
+    const key = p.dataset.key;
+    const base = personajes[key];
+    if (base) {
+      // Hidratar estado inicial
+      pieceMap.set(p, { 
+        ...base, 
+        currentVida: base.vida,
+        originalAgilidad: base.agilidad,
+        originalDefensa: base.defensa,
+        originalAtaque: base.ataque,
+        buffs: []
+      });
     }
-  }
-  piece.dataset.eliminated = 'true';
-  piece.remove();
-}
+  });
 
-function rangeForPiece(piece) {
-  const r = parseInt(piece.dataset.rango, 10);
-  return r === 0 ? 1 : r;
-}
-
-function showTooltip(piece) {
-  const stats = pieceMap.get(piece);
-  if (!stats) return;
-  tooltip.innerHTML = `
-    <h3>${displayName(stats)}</h3>
-    <ul>
-      <li>Mov: ${stats.movimiento}</li>
-      <li>Atk: ${stats.ataque}</li>
-      <li>Def: ${stats.defensa}</li>
-      <li>Daño: ${stats.dano ?? stats.danoCC ?? stats.danoAD ?? 0}</li>
-      <li>Resistencia: ${stats.resistencia ?? 0}</li>
-      <li>Rango: ${stats.rango}</li>
-      <li>Vida: ${Math.max(stats.currentVida, 0)}</li>
-      <li>Agilidad: ${stats.agilidad}</li>
-    </ul>
-  `;
-  tooltip.hidden = false;
-}
-
-function positionTooltip(target) {
-  tooltip.style.left = '50%';
-  tooltip.style.top = '50%';
-}
-
-function hideTooltip() {
-  tooltip.hidden = true;
-}
-
-function updateCombatInfo() {
-  const combatBox = document.getElementById('combatInfo');
-  if (!pendingAttackInfo) {
-    combatBox.textContent = '';
-    return;
-  }
-  const {
-    attacker,
-    defender,
-    difference,
-    roll,
-    success,
-    critical,
-    damage,
-    defenderVida,
-    attackerName,
-    defenderName,
-    action,
-    damageRoll,
-  } = pendingAttackInfo;
-  let rollText = roll ? ` | Tirada 2d6: ${roll}` : '';
-  let successText = '';
-  if (roll) {
-    successText = success ? critical ? ' (Crítico)' : ' (Éxito)' : ' (Fallo)';
-  }
-  const damageRollText = damageRoll ? ` | Garras 1d6: ${damageRoll}` : '';
-  const damageText = roll ? ` | Daño: ${damage} | Vida defensor: ${defenderVida}` : '';
-  combatBox.textContent = `${action ?? 'Ataque'} ${attackerName} (${attacker}) vs ${defenderName} (${defender}) | Diferencia: ${difference}${rollText}${successText}${damageRollText}${damageText}`;
-}
-
-function appendHistory(attacker, defender) {
-  if (!pendingAttackInfo) return;
-  const list = isHero(attacker) ? heroHistoryList : villainHistoryList;
-  if (!list) return;
-  const { attackerName, defenderName, difference, roll, success, critical, damage, defenderVida, action, damageRoll } =
-    pendingAttackInfo;
-  const outcome = roll ? (critical ? 'Crítico' : success ? 'Éxito' : 'Fallo') : 'Sin tirada';
-  const li = document.createElement('li');
-  li.className = 'history__item';
-  li.innerHTML = `
-    <strong>${attackerName}</strong> (${action ?? 'Ataque'}) → ${defenderName}<br/>
-    Dif: ${difference} | Tirada: ${roll ?? '-'} (${outcome})<br/>
-    ${damageRoll ? `Garras 1d6: ${damageRoll} | ` : ''}Daño: ${damage} | Vida defensor: ${defenderVida}
-  `;
-  list.prepend(li);
-  while (list.children.length > 30) {
-    list.removeChild(list.lastChild);
-  }
-}
-
-function appendStatusHistory(piece, message) {
-  const list = isHero(piece) ? heroHistoryList : villainHistoryList;
-  if (!list) return;
-  const stats = pieceMap.get(piece);
-  const li = document.createElement('li');
-  li.className = 'history__item';
-  li.innerHTML = `<strong>${stats?.name ?? 'Personaje'}</strong>: ${message}`;
-  list.prepend(li);
-  while (list.children.length > 30) {
-    list.removeChild(list.lastChild);
-  }
-}
-
-function prepareAttackInfo(attacker, defender, ability = null) {
-  const attackerStats = pieceMap.get(attacker);
-  const defenderStats = pieceMap.get(defender);
-  pendingAttackInfo = {
-    attacker: attackerStats.ataque,
-    defender: defenderStats.defensa,
-    difference: attackerStats.ataque - defenderStats.defensa,
-    roll: null,
-    success: null,
-    critical: false,
-    damage: 0,
-    defenderVida: defenderStats.currentVida,
-    attackerName: attackerStats.name,
-    defenderName: defenderStats.name,
-    action: ability ? powerLabel(ability) : 'Ataque',
-  };
-  attackButton.classList.add('button--pulse');
-  updateCombatInfo();
-}
-
-function calculateAttackRoll(attackerStats) {
-  const die1 = Math.floor(Math.random() * 6) + 1;
-  const die2 = Math.floor(Math.random() * 6) + 1;
-  const roll = die1 + die2;
-  const baseThreshold = hasPassive(attackerStats, 'astucia') ? 11 : 12;
-  const critThreshold = attackerStats.critBuff ? Math.max(10, baseThreshold - 1) : baseThreshold;
-  const critical = roll >= critThreshold;
-  return { roll, critical };
-}
-
-function buildAttackInfo(attackerStats, defenderStats, distance, rollInfo, ability) {
-  const { roll, critical } = rollInfo;
-  const { totalDamage, garrasRoll } = calculateDamage(attackerStats, defenderStats, distance, critical);
-  let success = false;
-  if (critical) {
-    success = true;
-  } else if (roll === 2) {
-    success = false;
-  } else if (roll + attackerStats.ataque >= defenderStats.defensa) {
-    success = true;
-  }
-  const inflictedDamage = success && ability !== 'incapacitar' ? totalDamage : 0;
-  return {
-    roll,
-    critical,
-    success,
-    totalDamage,
-    inflictedDamage,
-    garrasRoll,
-  };
-}
-
-function applyAttackOutcome(attacker, defender, outcome, ability, { skipFinish = false } = {}) {
-  const attackerStats = pieceMap.get(attacker);
-  const defenderStats = pieceMap.get(defender);
-  if (!attackerStats || !defenderStats) return;
-
-  if (outcome.success) {
-    defenderStats.currentVida = Math.max(defenderStats.currentVida - outcome.inflictedDamage, 0);
-    if (ability === 'incapacitar') {
-      defenderStats.skipTurns = (defenderStats.skipTurns ?? 0) + 1;
-    }
-  }
-
-  pendingAttackInfo = {
-    attacker: attackerStats.ataque,
-    defender: defenderStats.defensa,
-    difference: attackerStats.ataque - defenderStats.defensa,
-    roll: outcome.roll,
-    success: outcome.success,
-    critical: outcome.critical,
-    damage: outcome.success ? (ability === 'incapacitar' ? 0 : outcome.totalDamage) : 0,
-    defenderVida: defenderStats.currentVida,
-    attackerName: attackerStats.name,
-    defenderName: defenderStats.name,
-    action: ability ? powerLabel(ability) : 'Ataque',
-    damageRoll: outcome.garrasRoll,
-  };
-
-  appendHistory(attacker, defender);
-
-  if (outcome.success && defenderStats.currentVida <= 0) {
-    eliminatePiece(defender);
-  }
+  // Ordenar por agilidad
+  turnOrder = pieces.sort((a, b) => {
+    const sa = pieceMap.get(a);
+    const sb = pieceMap.get(b);
+    return (sb?.agilidad || 0) - (sa?.agilidad || 0);
+  });
 
   renderLifeCards();
-  hideTooltip();
-  if (!skipFinish) {
-    clearRangeHighlights();
-    selectedTarget = null;
-    attackButton.classList.remove('button--pulse');
-    updateCombatInfo();
-    finishTurn(attacker);
-  } else {
-    updateCombatInfo();
-  }
+  if (turnOrder.length) startTurn(turnOrder[0]);
 }
 
-function resolveAttack(attacker, defender, { ability = null, rollInfo = null, skipFinish = false } = {}) {
-  const attackerStats = pieceMap.get(attacker);
-  const defenderStats = pieceMap.get(defender);
-  const attackerSquare = getPieceSquare(attacker);
-  const targetSquare = getPieceSquare(defender);
-  const distance = attackDistance(attackerSquare, targetSquare);
-
-  const roll = rollInfo ?? calculateAttackRoll(attackerStats);
-  const outcome = buildAttackInfo(attackerStats, defenderStats, distance, roll, ability);
-  applyAttackOutcome(attacker, defender, outcome, ability, { skipFinish });
-}
-
-function squaresInRange1(centerSquare) {
-  const row = Number(centerSquare.dataset.row);
-  const col = Number(centerSquare.dataset.col);
-  const positions = [
-    [row, col],
-    [row + 1, col],
-    [row - 1, col],
-    [row, col + 1],
-    [row, col - 1],
-  ];
-  return positions.map(([r, c]) => getSquareAt(r, c)).filter(Boolean);
-}
-
-function resolveAreaAttack(attacker, centerSquare, ability) {
-  const attackerStats = pieceMap.get(attacker);
-  if (!attackerStats) return;
-  const targets = Array.from(
-    new Set(
-      squaresInRange1(centerSquare)
-        .map((square) => square.querySelector('.piece'))
-        .filter((piece) => piece && piece !== attacker && isAlive(piece))
-    )
-  );
-
-  if (targets.length === 0) {
-    alert('No hay objetivos en el área.');
-    return;
-  }
-
-  const rollInfo = calculateAttackRoll(attackerStats);
-  targets.forEach((target) => {
-    resolveAttack(attacker, target, { ability, rollInfo, skipFinish: true });
-  });
-
-  clearRangeHighlights();
-  selectedTarget = null;
-  attackButton.classList.remove('button--pulse');
-  finishTurn(attacker);
-}
-
-function applyStatBuff(piece, stat, amount, { duration = 2, capIncrease = null, label } = {}) {
-  const stats = pieceMap.get(piece);
-  if (!stats) return;
-  const baseKey = `base${stat.charAt(0).toUpperCase()}${stat.slice(1)}`;
-  const baseValue = stats[baseKey] ?? stats[stat] ?? 0;
-  const maxIncrease = capIncrease ?? amount;
-  const effectiveIncrease = Math.min(amount, maxIncrease);
-  stats.statBuffs = stats.statBuffs || {};
-  const existing = stats.statBuffs[stat];
-  stats.statBuffs[stat] = { amount: effectiveIncrease, remaining: duration, baseValue, label };
-  stats[stat] = baseValue + effectiveIncrease;
-  const message = existing
-    ? `renueva ${label ?? stat} (+${effectiveIncrease}) por ${duration} turnos.`
-    : `recibe ${label ?? stat} (+${effectiveIncrease}) por ${duration} turnos.`;
-  appendStatusHistory(piece, message);
-}
-
-function applyCritBuff(piece, duration = 2, label = 'Mejora de Crítico') {
-  const stats = pieceMap.get(piece);
-  if (!stats) return;
-  const refreshed = Boolean(stats.critBuff);
-  stats.critBuff = { remaining: duration, label };
-  appendStatusHistory(
-    piece,
-    refreshed
-      ? `renueva ${label.toLowerCase()} por ${duration} turnos.`
-      : `recibe ${label.toLowerCase()} por ${duration} turnos.`
-  );
-}
-
-function applyAttackBuff(piece, duration = 2) {
-  applyStatBuff(piece, 'ataque', 1, { duration, capIncrease: 1, label: 'Mejora de Ataque' });
-}
-
-function applyAttackBuffAction(attacker, centerTarget) {
-  if (!centerTarget) {
-    alert('Selecciona primero un compañero dentro de tu rango.');
-    return;
-  }
-  const centerSquare = getPieceSquare(centerTarget);
-  if (!centerSquare) return;
-  const allies = Array.from(
-    new Set(
-      squaresInRange1(centerSquare)
-        .map((square) => square.querySelector('.piece'))
-        .filter(
-          (piece) =>
-            piece &&
-            piece.dataset.team === attacker.dataset.team &&
-            isAlive(piece)
-        )
-    )
-  );
-
-  if (!allies.includes(centerTarget)) {
-    allies.unshift(centerTarget);
-  }
-
-  if (allies.length === 0) {
-    alert('No hay compañeros en el área para aplicar la mejora.');
-    return;
-  }
-
-  allies.forEach((piece) => applyAttackBuff(piece));
-  clearRangeHighlights();
-  selectedTarget = null;
-  selectedPower = null;
-  attackButton.classList.remove('button--pulse');
-  finishTurn(attacker);
-}
-
-function applyDefenseBuffAction(attacker, centerTarget) {
-  const allies = gatherAlliesInArea(attacker, centerTarget);
-  if (!allies) return;
-  allies.forEach((piece) => applyStatBuff(piece, 'defensa', 1, { label: 'Mejora de Defensa' }));
-  completeSupportAction(attacker);
-}
-
-function applyAgilityBuffAction(attacker, centerTarget) {
-  const allies = gatherAlliesInArea(attacker, centerTarget);
-  if (!allies) return;
-  allies.forEach((piece) => applyStatBuff(piece, 'agilidad', 10, { label: 'Mejora de Agilidad' }));
-  completeSupportAction(attacker);
-}
-
-function applyCritBuffAction(attacker, centerTarget) {
-  const allies = gatherAlliesInArea(attacker, centerTarget);
-  if (!allies) return;
-  allies.forEach((piece) => applyCritBuff(piece, 2, 'Mejora de Crítico'));
-  completeSupportAction(attacker);
-}
-
-function gatherAlliesInArea(attacker, centerTarget) {
-  if (!centerTarget) {
-    alert('Selecciona primero un compañero dentro de tu rango.');
-    return null;
-  }
-  const centerSquare = getPieceSquare(centerTarget);
-  if (!centerSquare) return null;
-  const allies = Array.from(
-    new Set(
-      squaresInRange1(centerSquare)
-        .map((square) => square.querySelector('.piece'))
-        .filter((piece) => piece && piece.dataset.team === attacker.dataset.team && isAlive(piece))
-    )
-  );
-
-  if (!allies.includes(centerTarget)) {
-    allies.unshift(centerTarget);
-  }
-
-  if (allies.length === 0) {
-    alert('No hay compañeros en el área para aplicar la mejora.');
-    return null;
-  }
-  return allies;
-}
-
-function completeSupportAction(attacker) {
-  clearRangeHighlights();
-  selectedTarget = null;
-  selectedPower = null;
-  attackButton.classList.remove('button--pulse');
-  finishTurn(attacker);
-}
-
-function handleHealAction(attacker, target) {
-  if (!target) {
-    alert('Selecciona primero un compañero dentro de tu rango.');
-    return;
-  }
-  const attackerStats = pieceMap.get(attacker);
-  const targetStats = pieceMap.get(target);
-  if (!attackerStats || !targetStats) return;
-  const damageTaken = Math.max((targetStats.vida ?? 0) - (targetStats.currentVida ?? 0), 0);
-  if (damageTaken <= 0) {
-    alert('El objetivo está a vida completa.');
-    return;
-  }
-
-  const { roll } = calculateAttackRoll(attackerStats);
-  const attackTotal = roll + attackerStats.ataque + damageTaken;
-  const success = attackTotal >= targetStats.defensa;
-  const healRoll = Math.floor(Math.random() * 6) + 1;
-  const healAmount = success ? Math.min(healRoll, damageTaken) : 0;
-  if (healAmount > 0) {
-    targetStats.currentVida = Math.min(targetStats.currentVida + healAmount, targetStats.vida);
-    appendStatusHistory(
-      target,
-      `${displayName(targetStats)} se cura ${healAmount} (tirada: ${roll} + daño recibido ${damageTaken}).`
-    );
-    renderLifeCards();
-  } else {
-    appendStatusHistory(
-      attacker,
-      `${displayName(attackerStats)} falla al curar (tirada: ${roll} + daño recibido ${damageTaken}).`
-    );
-  }
-  pendingAttackInfo = null;
-  completeSupportAction(attacker);
-}
-
-function clearTargetSelection(preserveAttack = false) {
-  squares.forEach((square) => square.classList.remove('square--target'));
-  selectedTarget = null;
-  if (!preserveAttack) {
-    pendingAttackInfo = null;
-    selectedPower = null;
-  }
-  attackButton.classList.remove('button--pulse');
-  hideTooltip();
-  updateCombatInfo();
-  if (turnOrder.length > 0) {
-    highlightRange(turnOrder[turnIndex]);
-  }
-}
-
-function performAttackAction(power = null) {
-  const attacker = turnOrder[turnIndex];
-  if (!attacker) return;
-  const normalizedPower = normalizePowerKey(power);
-  const powerKey = normalizedPower ?? selectedPower;
-  if (powerKey) {
-    selectedPower = powerKey;
-  }
-  const attackerSquare = getPieceSquare(attacker);
-  const targetSquare = selectedTarget ? getPieceSquare(selectedTarget) : null;
-  const maxRange = rangeForPiece(attacker);
-
-  if (powerKey === 'pulso' && !selectedTarget) {
-    resolveAreaAttack(attacker, attackerSquare, powerKey);
-    return;
-  }
-
-  if (!targetSquare) {
-    const needsAlly = isSupportPower(powerKey);
-    alert(needsAlly ? 'Selecciona primero un compañero dentro de tu rango.' : 'Selecciona primero un enemigo dentro de tu rango.');
-    return;
-  }
-
-  if (!isWithinAttackRange(attackerSquare, targetSquare, maxRange)) {
-    alert('El objetivo está fuera de rango.');
-    return;
-  }
-
-  if (powerKey === 'mejora de ataque') {
-    applyAttackBuffAction(attacker, selectedTarget);
-    return;
-  }
-
-  if (powerKey === 'mejora de defensa') {
-    applyDefenseBuffAction(attacker, selectedTarget);
-    return;
-  }
-
-  if (powerKey === 'mejora de agilidad') {
-    applyAgilityBuffAction(attacker, selectedTarget);
-    return;
-  }
-
-  if (powerKey === 'probabilidad' || powerKey === 'mejora de critico') {
-    applyCritBuffAction(attacker, selectedTarget);
-    return;
-  }
-
-  if (powerKey === 'curar') {
-    handleHealAction(attacker, selectedTarget);
-    return;
-  }
-
-  if (powerKey === 'explosion' || powerKey === 'pulso') {
-    resolveAreaAttack(attacker, targetSquare, powerKey);
-    return;
-  }
-  prepareAttackInfo(attacker, selectedTarget, powerKey);
-  resolveAttack(attacker, selectedTarget, { ability: powerKey });
-}
-
-function handleActivePower(powerKey) {
-  performAttackAction(powerKey);
-}
-
-attackButton.addEventListener('click', () => {
-  performAttackAction(selectedPower);
-});
-
-const movementPool = new Map();
-
-function remainingMovement(piece) {
-  return movementPool.get(piece) ?? Number(piece.dataset.movimiento);
-}
-
-function resetMovement(piece) {
-  movementPool.set(piece, Number(piece.dataset.movimiento));
-}
-
-function spendMovement(piece, amount) {
-  const left = Math.max(remainingMovement(piece) - amount, 0);
-  movementPool.set(piece, left);
-}
-
-function applyEndOfTurnEffects(piece) {
-  const stats = pieceMap.get(piece);
-  if (!stats) return;
-  tickSupportEffects(piece);
-  if (hasPassive(stats, 'regeneracion') && stats.currentVida < stats.vida) {
-    const before = stats.currentVida;
-    stats.currentVida = Math.min(stats.currentVida + 1, stats.vida);
-    const healed = stats.currentVida - before;
-    if (healed > 0) {
-      appendStatusHistory(piece, `se regenera +${healed} (Vida: ${stats.currentVida}/${stats.vida})`);
-    }
-  }
-}
-
-function tickSupportEffects(piece) {
-  const stats = pieceMap.get(piece);
-  if (!stats) return;
-  if (stats.statBuffs) {
-    Object.entries(stats.statBuffs).forEach(([stat, buff]) => {
-      buff.remaining -= 1;
-      if (buff.remaining <= 0) {
-        stats[stat] = buff.baseValue;
-        appendStatusHistory(piece, `pierde ${buff.label ?? stat}.`);
-        delete stats.statBuffs[stat];
-      }
-    });
-  }
-
-  if (stats.critBuff) {
-    stats.critBuff.remaining -= 1;
-    if (stats.critBuff.remaining <= 0) {
-      appendStatusHistory(piece, `pierde ${stats.critBuff.label?.toLowerCase() ?? 'la mejora de crítico'}.`);
-      stats.critBuff = null;
-    }
-  }
-}
-
-function finishTurn(piece) {
-  applyEndOfTurnEffects(piece);
-  renderLifeCards();
-  clearHighlights();
-  clearTargetSelection();
-  nextTurn();
-}
-
-board.addEventListener('click', (event) => {
-  const square = event.target.closest('.square');
-  if (!square) return;
-
-  const activePiece = turnOrder[turnIndex];
-  if (!activePiece) return;
-  const targetPiece = square.querySelector('.piece');
-
-  if (targetPiece && targetPiece !== activePiece) {
-    const allowAllyTarget = isSupportPower(selectedPower);
-    if (targetPiece.dataset.team === activePiece.dataset.team && !allowAllyTarget) return;
-    const attackerSquare = getPieceSquare(activePiece);
-    const maxRange = rangeForPiece(activePiece);
-    if (!isWithinAttackRange(attackerSquare, square, maxRange)) {
-      alert('Objetivo fuera de rango.');
-      clearTargetSelection();
-      return;
-    }
-    clearTargetSelection(true);
-    square.classList.add('square--target');
-    selectedTarget = targetPiece;
-    if (!allowAllyTarget) {
-      prepareAttackInfo(activePiece, targetPiece, selectedPower);
-    }
-    return;
-  }
-
-  if (!square.classList.contains('square--move')) return;
-  if (square.querySelector('.piece')) return;
-  const reachable = reachableSquares(activePiece);
-  const distance = reachable.get(square);
-  if (!distance) return;
-  if (distance > remainingMovement(activePiece)) return;
-  square.appendChild(activePiece);
-  spendMovement(activePiece, distance);
-  clearHighlights();
-  highlightMovement(activePiece);
-  highlightRange(activePiece);
-  updateStatusBar(activePiece);
-});
-
-function attachTooltipEvents(piece) {
-  piece.addEventListener('pointerenter', () => {
-    const activePiece = turnOrder[turnIndex];
-    if (piece === activePiece || piece.dataset.team === activePiece.dataset.team) {
-      hideTooltip();
-      return;
-    }
-    showTooltip(piece);
-    positionTooltip(piece);
-  });
-
-  piece.addEventListener('pointerleave', () => {
-    hideTooltip();
+function renderLifeCards() {
+  allyCards.innerHTML = '';
+  enemyCards.innerHTML = '';
+  turnOrder.forEach(p => {
+    const stats = pieceMap.get(p);
+    if (!stats) return;
+    const div = document.createElement('div');
+    div.className = 'life-card';
+    if (p.dataset.eliminated === 'true') div.style.opacity = '0.5';
+    div.innerHTML = `
+      <img src="${stats.imagen}" class="life-card__avatar">
+      <div><strong>${stats.nombre}</strong><br>Vida: ${stats.currentVida}/${stats.vida}</div>
+    `;
+    (p.dataset.team === HERO_TEAM ? allyCards : enemyCards).appendChild(div);
   });
 }
 
-pieces.forEach(({ element }) => {
-  if (element) {
-    attachTooltipEvents(element);
-  }
-});
-
-function wait(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-function shouldUseIncapacitar(attackerStats, targetStats, expectedDamage = 0) {
-  if (!attackerStats || !targetStats) return false;
-  const targetResilience = targetStats.resistencia ?? 0;
-  const targetThreat = targetStats.ataque ?? 0;
-  const targetVida = targetStats.currentVida ?? targetStats.vida ?? 0;
-  const canHurtEasily = targetVida <= expectedDamage + 1;
-  const lowThreat = targetThreat <= 9;
-  return expectedDamage < 1 && !(canHurtEasily && lowThreat) && targetResilience >= 2;
-}
-
-function expectedDamage(attackerStats, targetStats, distance) {
-  const isMelee = distance <= 1;
-  const baseDamage = attackerStats.dano ?? (isMelee ? attackerStats.danoCC ?? 0 : attackerStats.danoAD ?? 0);
-  const resistance = targetStats.resistencia ?? 0;
-  return Math.max(baseDamage - resistance, 0);
-}
-
-function bestVillainDecision(piece) {
-  const attackerStats = pieceMap.get(piece);
-  const origin = getPieceSquare(piece);
-  const reachable = reachableSquares(piece);
-  const candidates = [];
-  reachable.forEach((distance, square) => {
-    const occupant = square.querySelector('.piece');
-    if (square !== origin && occupant) return;
-    candidates.push({ square, distance });
-  });
-
-  const heroes = livingPieces(HERO_TEAM);
-  let best = null;
-
-  candidates.forEach(({ square, distance }) => {
-    heroes.forEach((hero) => {
-      const heroSquare = getPieceSquare(hero);
-      if (!heroSquare) return;
-      if (!isWithinAttackRange(square, heroSquare, rangeForPiece(piece))) return;
-
-      const targetStats = pieceMap.get(hero);
-      const attackDistanceValue = attackDistance(square, heroSquare);
-      const damage = expectedDamage(attackerStats, targetStats, attackDistanceValue);
-      const canIncapacitate =
-        hasActive(attackerStats, 'incapacitar') && shouldUseIncapacitar(attackerStats, targetStats, damage);
-      const ability = canIncapacitate ? 'incapacitar' : null;
-      const damageScore = ability ? targetStats.ataque + targetStats.defensa : damage * 10;
-      const finisherBonus = ability ? 0 : targetStats.currentVida <= damage ? 5 : 0;
-      const movePenalty = distance * 0.1;
-      const score = damageScore + finisherBonus - movePenalty;
-
-      if (!best || score > best.score) {
-        best = {
-          target: hero,
-          targetSquare: heroSquare,
-          square,
-          distance,
-          ability,
-          score,
-        };
-      }
-    });
-  });
-
-  return best;
-}
-
-async function runVillainTurn(piece) {
-  if (!isAlive(piece)) {
-    nextTurn();
-    return;
-  }
-
-  clearHighlights();
-  highlightMovement(piece);
-  highlightRange(piece);
-  updateStatusBar(piece);
-  await wait(1200);
-
-  const decision = bestVillainDecision(piece);
-
-  if (decision) {
-    const origin = getPieceSquare(piece);
-    if (decision.square && decision.square !== origin) {
-      const reachable = reachableSquares(piece);
-      const moveDistance = reachable.get(decision.square) ?? attackDistance(origin, decision.square);
-      decision.square.classList.add('square--target');
-      await wait(1000);
-      decision.square.appendChild(piece);
-      spendMovement(piece, moveDistance);
-      clearRangeHighlights();
-      highlightMovement(piece);
-      highlightRange(piece);
-      await wait(1000);
-    }
-
-    clearTargetSelection(true);
-    clearHighlights();
-    if (decision.targetSquare) {
-      decision.targetSquare.classList.add('square--target');
-    }
-    highlightRange(piece);
-    prepareAttackInfo(piece, decision.target, decision.ability);
-    updateStatusBar(piece);
-    await wait(1500);
-    resolveAttack(piece, decision.target, { ability: decision.ability });
-    return;
-  }
-
-  clearHighlights();
-  finishTurn(piece);
-}
-
-function startTurn(piece) {
-  if (!piece) return;
-  if (!isAlive(piece)) {
-    nextTurn();
-    return;
-  }
-  const stats = pieceMap.get(piece);
-  if (stats?.skipTurns && stats.skipTurns > 0) {
-    stats.skipTurns -= 1;
-    finishTurn(piece);
-    return;
-  }
-  resetMovement(piece);
-  setActivePiece(piece);
-  clearTargetSelection(true);
-  clearHighlights();
-  renderPowerButtons(piece);
-  attackButton.disabled = false;
-  passButton.disabled = false;
-  highlightMovement(piece);
-  highlightRange(piece);
-}
-
-function nextTurn() {
-  if (turnOrder.length === 0) return;
-  turnIndex = (turnIndex + 1) % turnOrder.length;
-  startTurn(turnOrder[turnIndex]);
-}
-
-passButton.addEventListener('click', () => {
-  const piece = turnOrder[turnIndex];
-  finishTurn(piece);
-});
-
-startTurn(turnOrder[turnIndex]);
+// Arrancar
+init();

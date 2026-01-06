@@ -2,9 +2,6 @@ const poderesFuente =
   (typeof window !== 'undefined' && window.poderes) ||
   (typeof poderes !== 'undefined' ? poderes : {});
 
-const obtenerPoderes = (clave, alias) =>
-  poderesFuente[clave] || (alias ? poderesFuente[alias] : undefined) || { activos: [], pasivos: [] };
-
 const personajes = {
   agenteShield: {
     nombre: 'Agente SHIELD',
@@ -12,748 +9,899 @@ const personajes = {
     ataque: 7,
     defensa: 15,
     dano: 2,
+    danoCC: 2,
+    danoAD: 2,
+    resistenciaCC: 0,
+    resistenciaAD: 0,
     rango: 3,
     vida: 4,
     agilidad: 0,
     imagen: 'imagenes/agenteShield.webp',
     animacion: 'animaciones/agenteShield.webp',
     poderes: poderesFuente.agenteShield,
-    poderesDeclarados: { activas: [], pasivas: [] }
+    habilidades: { activas: [], pasivas: [] }
   },
-
   medicoShield: {
     nombre: 'Médico SHIELD',
     movimiento: 3,
     ataque: 6,
     defensa: 14,
     dano: 1,
+    danoCC: 1,
+    danoAD: 1,
+    resistenciaCC: 0,
+    resistenciaAD: 0,
     rango: 2,
     vida: 4,
     agilidad: 0,
     imagen: 'imagenes/medicoShield.webp',
     animacion: 'animaciones/medicoShield.webp',
     poderes: poderesFuente.medicoShield,
-    poderesDeclarados: { activas: ['Curar'], pasivas: [] }
+    habilidades: { activas: ['Curar'], pasivas: [] }
   },
-
   agenteHydra: {
     nombre: 'Agente HYDRA',
     movimiento: 3,
     ataque: 7,
     defensa: 14,
     dano: 2,
+    danoCC: 2,
+    danoAD: 2,
+    resistenciaCC: 0,
+    resistenciaAD: 0,
     rango: 3,
     vida: 4,
     agilidad: 0,
     imagen: 'imagenes/agenteHydra.webp',
     animacion: 'animaciones/agenteHydra.webp',
     poderes: poderesFuente.agenteHydra,
-    poderesDeclarados: { activas: [], pasivas: [] }
+    habilidades: { activas: [], pasivas: [] }
   },
-
   medicoHydra: {
     nombre: 'Médico HYDRA',
     movimiento: 3,
     ataque: 7,
     defensa: 14,
     dano: 1,
+    danoCC: 1,
+    danoAD: 1,
+    resistenciaCC: 0,
+    resistenciaAD: 0,
     rango: 2,
     vida: 4,
     agilidad: 0,
     imagen: 'imagenes/medicoHydra.webp',
     animacion: 'animaciones/medicoHydra.webp',
     poderes: poderesFuente.medicoHydra,
-    poderesDeclarados: { activas: ['Curar'], pasivas: [] }
+    habilidades: { activas: ['Curar'], pasivas: [] }
   },
-
   maton: {
     nombre: 'Matón',
     movimiento: 3,
     ataque: 7,
     defensa: 14,
     dano: 2,
+    danoCC: 2,
+    danoAD: 0,
+    resistenciaCC: 0,
+    resistenciaAD: 0,
     rango: 0,
     vida: 4,
     agilidad: 0,
     imagen: 'imagenes/maton.webp',
     animacion: 'animaciones/maton.webp',
     poderes: poderesFuente.maton,
-    poderesDeclarados: { activas: [], pasivas: [] }
+    habilidades: { activas: [], pasivas: [] }
   },
-
   esbirro: {
     nombre: 'Esbirro',
     movimiento: 3,
     ataque: 7,
     defensa: 13,
     dano: 2,
+    danoCC: 2,
+    danoAD: 2,
+    resistenciaCC: 0,
+    resistenciaAD: 0,
     rango: 2,
     vida: 5,
     agilidad: 0,
     imagen: 'imagenes/esbirro.webp',
     animacion: 'animaciones/esbirro.webp',
     poderes: poderesFuente.esbirro,
-    poderesDeclarados: { activas: [], pasivas: [] }
+    habilidades: { activas: [], pasivas: [] }
   },
-
   agenteSkrull: {
     nombre: 'Agente Skrull',
     movimiento: 4,
     ataque: 7,
     defensa: 15,
     dano: 2,
+    danoCC: 2,
+    danoAD: 2,
+    resistenciaCC: 0,
+    resistenciaAD: 0,
     rango: 3,
     vida: 4,
     agilidad: 0,
     imagen: 'imagenes/agenteSkrull.webp',
     animacion: 'animaciones/agenteSkrull.webp',
     poderes: poderesFuente.agenteSkrull,
-    poderesDeclarados: { activas: [], pasivas: [] }
+    habilidades: { activas: [], pasivas: [] }
   },
-
   guerreroSkrull: {
     nombre: 'Guerrero Skrull',
     movimiento: 4,
     ataque: 8,
     defensa: 16,
     dano: 2,
+    danoCC: 2,
+    danoAD: 2,
+    resistenciaCC: 0,
+    resistenciaAD: 0,
     rango: 4,
     vida: 4,
     agilidad: 0,
     imagen: 'imagenes/guerreroSkrull.webp',
     animacion: 'animaciones/guerreroSkrull.webp',
     poderes: poderesFuente.guerreroSkrull,
-    poderesDeclarados: { activas: [], pasivas: [] }
+    habilidades: { activas: [], pasivas: [] }
   },
-
   blade: {
     nombre: 'Blade',
     movimiento: 4,
     ataque: 8,
     defensa: 15,
     dano: 2,
+    danoCC: 2,
+    danoAD: 0,
+    resistenciaCC: 0,
+    resistenciaAD: 0,
     rango: 0,
     vida: 6,
     agilidad: 30,
     imagen: 'imagenes/blade.webp',
     animacion: 'animaciones/blade.webp',
     poderes: poderesFuente.blade,
-    poderesDeclarados: { activas: [], pasivas: ['Sigilo', 'Garras/Comillos/Cuchillos/Espadas', 'Resistencia'] }
+    habilidades: { activas: [], pasivas: ['Sigilo', 'Garras/Comillos/Cuchillos/Espadas', 'Resistencia'] }
   },
-
   lobaVenenosa: {
     nombre: 'Loba Venenosa',
     movimiento: 5,
     ataque: 10,
     defensa: 15,
     dano: 2,
+    danoCC: 2,
+    danoAD: 0,
+    resistenciaCC: 0,
+    resistenciaAD: 0,
     rango: 0,
     vida: 7,
     agilidad: 10,
     imagen: 'imagenes/lobaVenenosa.webp',
     animacion: 'animaciones/lobaVenenosa.webp',
     poderes: poderesFuente.lobaVenenosa,
-    poderesDeclarados: { activas: [], pasivas: ['Garras/Comillos/Cuchillos/Espadas'] }
+    habilidades: { activas: [], pasivas: ['Garras/Comillos/Cuchillos/Espadas'] }
   },
-
   elektra: {
     nombre: 'Elektra',
     movimiento: 4,
     ataque: 9,
     defensa: 16,
     dano: 2,
+    danoCC: 2,
+    danoAD: 2,
+    resistenciaCC: 0,
+    resistenciaAD: 0,
     rango: 2,
     vida: 6,
     agilidad: 30,
     imagen: 'imagenes/elektra.webp',
     animacion: 'animaciones/elektra.webp',
     poderes: poderesFuente.elektra,
-    poderesDeclarados: { activas: [], pasivas: ['Sigilo', 'Garras/Comillos/Cuchillos/Espadas'] }
+    habilidades: { activas: [], pasivas: ['Sigilo', 'Garras/Comillos/Cuchillos/Espadas'] }
   },
-
   avispa: {
     nombre: 'Avispa',
     movimiento: 4,
     ataque: 8,
     defensa: 19,
     dano: 2,
+    danoCC: 2,
+    danoAD: 2,
+    resistenciaCC: 0,
+    resistenciaAD: 0,
     rango: 3,
     vida: 5,
     agilidad: 20,
     imagen: 'imagenes/avispa.webp',
     animacion: 'animaciones/avispa.webp',
     poderes: poderesFuente.avispa,
-    poderesDeclarados: { activas: ['Incapacitar', 'Mejora de Agilidad'], pasivas: ['Volar/Saltar/Trepar/Fase'] }
+    habilidades: { activas: ['Incapacitar', 'Mejora de Agilidad'], pasivas: ['Volar/Saltar/Trepar/Fase'] }
   },
-
   constrictor: {
     nombre: 'Constrictor',
     movimiento: 3,
     ataque: 10,
     defensa: 15,
     dano: 2,
+    danoCC: 2,
+    danoAD: 2,
+    resistenciaCC: 0,
+    resistenciaAD: 0,
     rango: 2,
     vida: 6,
     agilidad: 10,
     imagen: 'imagenes/constrictor.webp',
     animacion: 'animaciones/constrictor.webp',
     poderes: poderesFuente.constrictor,
-    poderesDeclarados: { activas: ['Incapacitar'], pasivas: [] }
+    habilidades: { activas: ['Incapacitar'], pasivas: [] }
   },
-
   boomerang: {
     nombre: 'Boomerang',
     movimiento: 3,
     ataque: 9,
     defensa: 15,
     dano: 1,
+    danoCC: 1,
+    danoAD: 1,
+    resistenciaCC: 0,
+    resistenciaAD: 0,
     rango: 4,
     vida: 5,
     agilidad: 30,
     imagen: 'imagenes/boomerang.webp',
     animacion: 'animaciones/boomerang.webp',
     poderes: poderesFuente.boomerang,
-    poderesDeclarados: { activas: ['Incapacitar','Explosión', 'Experto a/d', 'Invulnerable a/d'], pasivas: [] }
+    habilidades: { activas: ['Incapacitar','Explosión', 'Experto a/d', 'Invulnerable a/d'], pasivas: [] }
   },
-
   kingpin: {
     nombre: 'Kingpin',
     movimiento: 3,
     ataque: 8,
     defensa: 16,
     dano: 2,
+    danoCC: 2,
+    danoAD: 0,
+    resistenciaCC: 0,
+    resistenciaAD: 0,
     rango: 0,
     vida: 7,
     agilidad: 10,
     imagen: 'imagenes/kingpin.webp',
     animacion: 'animaciones/kingpin.webp',
     poderes: poderesFuente.kingpin,
-    poderesDeclarados: { activas: ['Mejora de Agilidad'], pasivas: ['Resistencia'] }
+    habilidades: { activas: ['Mejora de Agilidad'], pasivas: ['Resistencia'] }
   },
-
   buitre: {
     nombre: 'Buitre',
     movimiento: 4,
     ataque: 8,
     defensa: 16,
     dano: 2,
+    danoCC: 2,
+    danoAD: 0,
+    resistenciaCC: 0,
+    resistenciaAD: 0,
     rango: 0,
     vida: 5,
     agilidad: 30,
     imagen: 'imagenes/buitre.webp',
     animacion: 'animaciones/buitre.webp',
     poderes: poderesFuente.buitre,
-    poderesDeclarados: { activas: [], pasivas: ['Volar/Saltar/Trepar/Fase'] }
+    habilidades: { activas: [], pasivas: ['Volar/Saltar/Trepar/Fase'] }
   },
-
   jeanGrey: {
     nombre: 'Jean Grey',
     movimiento: 3,
     ataque: 7,
     defensa: 16,
     dano: 1,
+    danoCC: 1,
+    danoAD: 1,
+    resistenciaCC: 0,
+    resistenciaAD: 0,
     rango: 0,
     vida: 6,
     agilidad: 10,
     imagen: 'imagenes/jeanGrey.webp',
     animacion: 'animaciones/jeanGrey.webp',
     poderes: poderesFuente.jeanGrey,
-    poderesDeclarados: { activas: ['Telekinesis', 'Curar'], pasivas: ['Invulnerable a/d'] }
+    habilidades: { activas: ['Telekinesis', 'Curar'], pasivas: ['Invulnerable a/d'] }
   },
-
   duende: {
     nombre: 'Duende',
     movimiento: 4,
     ataque: 9,
     defensa: 16,
     dano: 2,
+    danoCC: 2,
+    danoAD: 2,
+    resistenciaCC: 0,
+    resistenciaAD: 0,
     rango: 3,
     vida: 7,
     agilidad: 30,
     imagen: 'imagenes/duende.webp',
     animacion: 'animaciones/duende.webp',
     poderes: poderesFuente.duende,
-    poderesDeclarados: { activas: ['Incapacitar'], pasivas: ['Experto a/d', 'Volar/Saltar/Trepar/Fase'] }
+    habilidades: { activas: ['Incapacitar'], pasivas: ['Experto a/d', 'Volar/Saltar/Trepar/Fase'] }
   },
-
   dientesDeSable: {
     nombre: 'Dientes de Sable',
     movimiento: 4,
     ataque: 10,
     defensa: 16,
     dano: 3,
+    danoCC: 3,
+    danoAD: 0,
+    resistenciaCC: 0,
+    resistenciaAD: 0,
     rango: 0,
     vida: 8,
     agilidad: 30,
     imagen: 'imagenes/dientesDeSable.webp',
     animacion: 'animaciones/dientesDeSable.webp',
     poderes: poderesFuente.dientesDeSable,
-    poderesDeclarados: { activas: ['incapacitar'], pasivas: ['Sigilo', 'Garras/Comillos/Cuchillos/Espadas', 'Resistencia','Regeneración'] }
+    habilidades: { activas: ['incapacitar'], pasivas: ['Sigilo', 'Garras/Comillos/Cuchillos/Espadas', 'Resistencia','Regeneración'] }
   },
-
   hulk: {
     nombre: 'Hulk',
     movimiento: 5,
     ataque: 12,
     defensa: 17,
     dano: 5,
+    danoCC: 5,
+    danoAD: 0,
+    resistenciaCC: 0,
+    resistenciaAD: 0,
     rango: 0,
     vida: 10,
     agilidad: 10,
     imagen: 'imagenes/hulk.webp',
     animacion: 'animaciones/hulk.webp',
     poderes: poderesFuente.hulk,
-    poderesDeclarados: { activas: [''], pasivas: ['Volar/Saltar/Trepar/Fase', 'Superfuerza', 'Invulnerabilidad','Regeneración'] }
+    habilidades: { activas: [''], pasivas: ['Volar/Saltar/Trepar/Fase', 'Superfuerza', 'Invulnerabilidad','Regeneración'] }
   },
-
   maestroMarionetas: {
     nombre: 'Maestro Marionetas',
     movimiento: 3,
     ataque: 7,
     defensa: 15,
     dano: 1,
+    danoCC: 1,
+    danoAD: 1,
+    resistenciaCC: 0,
+    resistenciaAD: 0,
     rango: 2,
     vida: 5,
     agilidad: 10,
     imagen: 'imagenes/maestroMarionetas.webp',
     animacion: 'animaciones/maestroMarionetas.webp',
     poderes: poderesFuente.maestroMarionetas,
-    poderesDeclarados: { activas: ['Control Mental'], pasivas: [] }
+    habilidades: { activas: ['Control Mental'], pasivas: [] }
   },
-
   annihilus: {
     nombre: 'Annihilus',
     movimiento: 4,
     ataque: 11,
     defensa: 16,
     dano: 3,
+    danoCC: 3,
+    danoAD: 3,
+    resistenciaCC: 0,
+    resistenciaAD: 0,
     rango: 5,
     vida: 9,
     agilidad: 40,
     imagen: 'imagenes/annihilus.webp',
     animacion: 'animaciones/annihilus.webp',
     poderes: poderesFuente.annihilus,
-    poderesDeclarados: { activas: [], pasivas: ['Invulnerable','Volar/Saltar/Trepar/Fase'] }
+    habilidades: { activas: [], pasivas: ['Invulnerable','Volar/Saltar/Trepar/Fase'] }
   },
-
   capitanAmerica: {
     nombre: 'Capitán América',
     movimiento: 4,
     ataque: 10,
     defensa: 17,
     dano: 2,
+    danoCC: 2,
+    danoAD: 2,
+    resistenciaCC: 0,
+    resistenciaAD: 0,
     rango: 3,
     vida: 8,
     agilidad: 40,
     imagen: 'imagenes/capitanAmerica.webp',
     animacion: 'animaciones/capitanAmerica.webp',
     poderes: poderesFuente.capitanAmerica,
-    poderesDeclarados: { activas: ['Mejora de Agilidad','Curar'], pasivas: ['Invulnerable a/d','Astucia','Resistencia'] }
+    habilidades: { activas: ['Mejora de Agilidad','Curar'], pasivas: ['Invulnerable a/d','Astucia','Resistencia'] }
   },
-
   spiderMan: {
     nombre: 'Spider-Man',
     movimiento: 5,
     ataque: 12,
     defensa: 18,
     dano: 2,
+    danoCC: 2,
+    danoAD: 2,
+    resistenciaCC: 0,
+    resistenciaAD: 0,
     rango: 3,
     vida: 9,
     agilidad: 50,
     imagen: 'imagenes/spiderMan.webp',
     animacion: 'animaciones/spiderMan.webp',
     poderes: poderesFuente.spiderMan,
-    poderesDeclarados: { activas: ['Incapacitar'], pasivas: ['Volar/Saltar/Trepar/Fase','Astucia','Doble ataque c/c','Mejora de Defensa'] }
+    habilidades: { activas: ['Incapacitar'], pasivas: ['Volar/Saltar/Trepar/Fase','Astucia','Doble ataque c/c','Mejora de Defensa'] }
   },
-
   lobezno: {
     nombre: 'Lobezno',
     movimiento: 4,
     ataque: 12,
     defensa: 16,
     dano: 2,
+    danoCC: 2,
+    danoAD: 0,
+    resistenciaCC: 0,
+    resistenciaAD: 0,
     rango: 0,
     vida: 8,
     agilidad: 30,
     imagen: 'imagenes/lobezno.webp',
     animacion: 'animaciones/lobezno.webp',
     poderes: poderesFuente.lobezno,
-    poderesDeclarados: { activas: ['incapacitar'], pasivas: ['Sigilo','Garras/Comillos/Cuchillos/Espadas','Resistencia','Regeneración' ] }
+    habilidades: { activas: ['incapacitar'], pasivas: ['Sigilo','Garras/Comillos/Cuchillos/Espadas','Resistencia','Regeneración' ] }
   },
-
   profesorXavier: {
     nombre: 'Profesor Xavier',
     movimiento: 6,
     ataque: 11,
     defensa: 16,
     dano: 0,
+    danoCC: 0,
+    danoAD: 0,
+    resistenciaCC: 0,
+    resistenciaAD: 0,
     rango: 10,
     vida: 7,
     agilidad: 10,
     imagen: 'imagenes/profesorXavier.webp',
     animacion: 'animaciones/profesorXavier.webp',
     poderes: poderesFuente.profesorXavier,
-    poderesDeclarados: { activas: ['Control Mental','Mejora de Defensa','Mejora de Agilidad'], pasivas: [] }
+    habilidades: { activas: ['Control Mental','Mejora de Defensa','Mejora de Agilidad'], pasivas: [] }
   },
-
   juggernaut: {
     nombre: 'Juggernaut',
     movimiento: 4,
     ataque: 13,
     defensa: 18,
     dano: 4,
+    danoCC: 4,
+    danoAD: 0,
+    resistenciaCC: 0,
+    resistenciaAD: 0,
     rango: 0,
     vida: 10,
     agilidad: 0,
     imagen: 'imagenes/juggernaut.webp',
     animacion: 'animaciones/juggernaut.webp',
     poderes: poderesFuente.juggernaut,
-    poderesDeclarados: { activas: [], pasivas: ['Superfuerza','Invulnerable'] }
+    habilidades: { activas: [], pasivas: ['Superfuerza','Invulnerable'] }
   },
-
   ciclope: {
     nombre: 'Cíclope',
     movimiento: 3,
     ataque: 11,
     defensa: 15,
     dano: 2,
+    danoCC: 2,
+    danoAD: 2,
+    resistenciaCC: 0,
+    resistenciaAD: 0,
     rango: 5,
     vida: 6,
     agilidad: 20,
     imagen: 'imagenes/ciclope.webp',
     animacion: 'animaciones/ciclope.webp',
     poderes: poderesFuente.ciclope,
-    poderesDeclarados: { activas: [], pasivas: ['Experto a/d','Invulnerable a/d'] }
+    habilidades: { activas: [], pasivas: ['Experto a/d','Invulnerable a/d'] }
   },
-
   panteraNegra: {
     nombre: 'Pantera Negra',
     movimiento: 5,
     ataque: 9,
     defensa: 16,
     dano: 2,
+    danoCC: 2,
+    danoAD: 2,
+    resistenciaCC: 0,
+    resistenciaAD: 0,
     rango: 2,
     vida: 6,
     agilidad: 40,
     imagen: 'imagenes/panteraNegra.webp',
     animacion: 'animaciones/panteraNegra.webp',
     poderes: poderesFuente.panteraNegra,
-    poderesDeclarados: { activas: [], pasivas: ['Volar/Saltar/Trepar/Fase','Astucia','Garras/Comillos/Cuchillos/Espadas'] }
+    habilidades: { activas: [], pasivas: ['Volar/Saltar/Trepar/Fase','Astucia','Garras/Comillos/Cuchillos/Espadas'] }
   },
-
   ventisca: {
     nombre: 'Ventisca',
     movimiento: 4,
     ataque: 11,
     defensa: 16,
     dano: 1,
+    danoCC: 1,
+    danoAD: 1,
+    resistenciaCC: 0,
+    resistenciaAD: 0,
     rango: 4,
     vida: 6,
     agilidad: 10,
     imagen: 'imagenes/ventisca.webp',
     animacion: 'animaciones/ventisca.webp',
     poderes: poderesFuente.ventisca,
-    poderesDeclarados: { activas: ['Pulso','Barrera'], pasivas: [] }
+    habilidades: { activas: ['Pulso','Barrera'], pasivas: [] }
   },
-
   pyro: {
     nombre: 'Pyro',
     movimiento: 4,
     ataque: 9,
     defensa: 17,
     dano: 1,
+    danoCC: 1,
+    danoAD: 1,
+    resistenciaCC: 0,
+    resistenciaAD: 0,
     rango: 4,
     vida: 6,
     agilidad: 10,
     imagen: 'imagenes/pyro.webp',
     animacion: 'animaciones/pyro.webp',
     poderes: poderesFuente.pyro,
-    poderesDeclarados: { activas: ['Incapacitar','Explosión'], pasivas: ['Experto a/d'] }
+    habilidades: { activas: ['Incapacitar','Explosión'], pasivas: ['Experto a/d'] }
   },
-
   torbellino: {
     nombre: 'Torbellino',
     movimiento: 6,
     ataque: 8,
     defensa: 16,
     dano: 3,
+    danoCC: 3,
+    danoAD: 0,
+    resistenciaCC: 0,
+    resistenciaAD: 0,
     rango: 0,
     vida: 6,
     agilidad: 40,
     imagen: 'imagenes/torbellino.webp',
     animacion: 'animaciones/torbellino.webp',
     poderes: poderesFuente.torbellino,
-    poderesDeclarados: { activas: [], pasivas: ['Doble ataque c/c','Invulnerable a/d'] }
+    habilidades: { activas: [], pasivas: ['Doble ataque c/c','Invulnerable a/d'] }
   },
-
   daredevil: {
     nombre: 'Daredevil',
     movimiento: 4,
     ataque: 9,
     defensa: 17,
     dano: 2,
+    danoCC: 2,
+    danoAD: 2,
+    resistenciaCC: 0,
+    resistenciaAD: 0,
     rango: 2,
     vida: 6,
     agilidad: 40,
     imagen: 'imagenes/daredevil.webp',
     animacion: 'animaciones/daredevil.webp',
     poderes: poderesFuente.daredevil,
-    poderesDeclarados: { activas: ['Incapacitar'], pasivas: [] }
+    habilidades: { activas: ['Incapacitar'], pasivas: [] }
   },
-
   bullseye: {
     nombre: 'Bullseye',
     movimiento: 3,
     ataque: 11,
     defensa: 16,
     dano: 1,
+    danoCC: 1,
+    danoAD: 1,
+    resistenciaCC: 0,
+    resistenciaAD: 0,
     rango: 5,
     vida: 6,
     agilidad: 50,
     imagen: 'imagenes/bullseye.webp',
     animacion: 'animaciones/bullseye.webp',
     poderes: poderesFuente.bullseye,
-    poderesDeclarados: { activas: [], pasivas: ['Experto a/d','Invulnerable a/d'] }
+    habilidades: { activas: [], pasivas: ['Experto a/d','Invulnerable a/d'] }
   },
-
   brujaEscarlata: {
     nombre: 'Bruja Escarlata',
     movimiento: 3,
     ataque: 8,
     defensa: 16,
     dano: 1,
+    danoCC: 1,
+    danoAD: 1,
+    resistenciaCC: 0,
+    resistenciaAD: 0,
     rango: 4,
     vida: 5,
     agilidad: 10,
     imagen: 'imagenes/brujaEscarlata.webp',
     animacion: 'animaciones/brujaEscarlata.webp',
     poderes: poderesFuente.brujaEscarlata,
-    poderesDeclarados: { activas: ['Incapacitar','Mejora de Crítico'], pasivas: ['Astucia'] }
+    habilidades: { activas: ['Incapacitar','Mejora de Crítico'], pasivas: ['Astucia'] }
   },
-
   mercurio: {
     nombre: 'Mercurio',
     movimiento: 7,
     ataque: 9,
     defensa: 16,
     dano: 2,
+    danoCC: 2,
+    danoAD: 0,
+    resistenciaCC: 0,
+    resistenciaAD: 0,
     rango: 0,
     vida: 6,
     agilidad: 70,
     imagen: 'imagenes/mercurio.webp',
     animacion: 'animaciones/mercurio.webp',
     poderes: poderesFuente.mercurio,
-    poderesDeclarados: { activas: [], pasivas: ['Invulnerable a/d','Doble ataque c/c'] }
+    habilidades: { activas: [], pasivas: ['Invulnerable a/d','Doble ataque c/c'] }
   },
-
   mrHyde: {
     nombre: 'Mr Hyde',
     movimiento: 4,
     ataque: 11,
     defensa: 15,
     dano: 3,
+    danoCC: 3,
+    danoAD: 0,
+    resistenciaCC: 0,
+    resistenciaAD: 0,
     rango: 0,
     vida: 7,
     agilidad: 10,
     imagen: 'imagenes/mrHyde.webp',
     animacion: 'animaciones/mrHyde.webp',
     poderes: poderesFuente.mrHyde,
-    poderesDeclarados: { activas: [], pasivas: ['Superfuerza','Resistencia'] }
+    habilidades: { activas: [], pasivas: ['Superfuerza','Resistencia'] }
   },
-
   klaw: {
     nombre: 'Klaw',
     movimiento: 4,
     ataque: 11,
     defensa: 16,
     dano: 2,
+    danoCC: 2,
+    danoAD: 2,
+    resistenciaCC: 0,
+    resistenciaAD: 0,
     rango: 5,
     vida: 8,
     agilidad: 20,
     imagen: 'imagenes/klaw.webp',
     animacion: 'animaciones/klaw.webp',
     poderes: poderesFuente.klaw,
-    poderesDeclarados: { activas: ['Incapacitar'], pasivas: ['Barrera','Experto a/d'] }
+    habilidades: { activas: ['Incapacitar'], pasivas: ['Barrera','Experto a/d'] }
   },
-
   controller: {
     nombre: 'Controller',
     movimiento: 3,
     ataque: 12,
     defensa: 17,
     dano: 3,
+    danoCC: 3,
+    danoAD: 0,
+    resistenciaCC: 0,
+    resistenciaAD: 0,
     rango: 0,
     vida: 7,
     agilidad: 30,
     imagen: 'imagenes/controller.webp',
     animacion: 'animaciones/controller.webp',
     poderes: poderesFuente.controller,
-    poderesDeclarados: { activas: ['Control Mental'], pasivas: ['Superfuerza','Resistencia','Regeneración'] }
+    habilidades: { activas: ['Control Mental'], pasivas: ['Superfuerza','Resistencia','Regeneración'] }
   },
-
   hercules: {
     nombre: 'Hércules',
     movimiento: 4,
     ataque: 11,
     defensa: 15,
     dano: 4,
+    danoCC: 4,
+    danoAD: 0,
+    resistenciaCC: 0,
+    resistenciaAD: 0,
     rango: 0,
     vida: 9,
     agilidad: 20,
     imagen: 'imagenes/hercules.webp',
     animacion: 'animaciones/hercules.webp',
     poderes: poderesFuente.hercules,
-    poderesDeclarados: { activas: [], pasivas: ['Superfuerza','Resistencia'] }
+    habilidades: { activas: [], pasivas: ['Superfuerza','Resistencia'] }
   },
-
   picara: {
     nombre: 'Pícara',
     movimiento: 5,
     ataque: 10,
     defensa: 15,
     dano: 3,
+    danoCC: 3,
+    danoAD: 0,
+    resistenciaCC: 0,
+    resistenciaAD: 0,
     rango: 0,
     vida: 8,
     agilidad: 20,
     imagen: 'imagenes/picara.webp',
     animacion: 'animaciones/picara.webp',
     poderes: poderesFuente.picara,
-    poderesDeclarados: { activas: [], pasivas: ['Robo de Vida','Invulnerable','Volar/Saltar/Trepar/Fase'] }
+    habilidades: { activas: [], pasivas: ['Robo de Vida','Invulnerable','Volar/Saltar/Trepar/Fase'] }
   },
-
   drExtrano: {
     nombre: 'Dr Extraño',
     movimiento: 3,
     ataque: 11,
     defensa: 17,
     dano: 2,
+    danoCC: 2,
+    danoAD: 2,
+    resistenciaCC: 0,
+    resistenciaAD: 0,
     rango: 5,
     vida: 8,
     agilidad: 20,
     imagen: 'imagenes/drExtrano.webp',
     animacion: 'animaciones/drExtrano.webp',
     poderes: poderesFuente.drExtrano,
-    poderesDeclarados: { activas: ['Incapacitar','Telekinesis','Pulso','Barrera','Curar','Mejora de Crítico','Mejora de Ataque'], pasivas: ['Volar/Saltar/Trepar/Fase','Invulnerable a/d','Experto a/d'] }
+    habilidades: { activas: ['Incapacitar','Telekinesis','Pulso','Barrera','Curar','Mejora de Crítico','Mejora de Ataque'], pasivas: ['Volar/Saltar/Trepar/Fase','Invulnerable a/d','Experto a/d'] }
   },
-
   magneto: {
     nombre: 'Magneto',
     movimiento: 5,
     ataque: 10,
     defensa: 17,
     dano: 4,
+    danoCC: 4,
+    danoAD: 4,
+    resistenciaCC: 0,
+    resistenciaAD: 0,
     rango: 4,
     vida: 8,
     agilidad: 30,
     imagen: 'imagenes/magneto.webp',
     animacion: 'animaciones/magneto.webp',
     poderes: poderesFuente.magneto,
-    poderesDeclarados: { activas: ['Telekinesis','Mejora de Agilidad'], pasivas: ['Invulnerable a/d','Volar/Saltar/Trepar/Fase'] }
+    habilidades: { activas: ['Telekinesis','Mejora de Agilidad'], pasivas: ['Invulnerable a/d','Volar/Saltar/Trepar/Fase'] }
   },
-
   kang: {
     nombre: 'Kang',
     movimiento: 5,
     ataque: 13,
     defensa: 18,
     dano: 2,
+    danoCC: 2,
+    danoAD: 2,
+    resistenciaCC: 0,
+    resistenciaAD: 0,
     rango: 5,
     vida: 9,
     agilidad: 10,
     imagen: 'imagenes/kang.webp',
     animacion: 'animaciones/kang.webp',
     poderes: poderesFuente.kang,
-    poderesDeclarados: { activas: ['Incapacitar','Pulso'], pasivas: ['Invulnerable','Experto a/d','Volar/Saltar/Trepar/Fase'] }
+    habilidades: { activas: ['Incapacitar','Pulso'], pasivas: ['Invulnerable','Experto a/d','Volar/Saltar/Trepar/Fase'] }
   },
-
   ultron: {
     nombre: 'Ultrón',
     movimiento: 6,
     ataque: 14,
     defensa: 18,
     dano: 3,
+    danoCC: 3,
+    danoAD: 3,
+    resistenciaCC: 0,
+    resistenciaAD: 0,
     rango: 5,
     vida: 10,
     agilidad: 30,
     imagen: 'imagenes/ultron.webp',
     animacion: 'animaciones/ultron.webp',
     poderes: poderesFuente.ultron,
-    poderesDeclarados: { activas: ['Explosión'], pasivas: ['Invulnerable','Volar/Saltar/Trepar/Fase'] }
+    habilidades: { activas: ['Explosión'], pasivas: ['Invulnerable','Volar/Saltar/Trepar/Fase'] }
   },
-
   firelord: {
     nombre: 'Firelord',
     movimiento: 6,
     ataque: 13,
     defensa: 18,
     dano: 2,
+    danoCC: 2,
+    danoAD: 2,
+    resistenciaCC: 0,
+    resistenciaAD: 0,
     rango: 4,
     vida: 10,
     agilidad: 60,
     imagen: 'imagenes/firelord.webp',
     animacion: 'animaciones/firelord.webp',
     poderes: poderesFuente.firelord,
-    poderesDeclarados: { activas: ['Explosión','Pulso','Barrera'], pasivas: ['Invulnerable a/d','Experto a/d','Volar/Saltar/Trepar/Fase'] }
+    habilidades: { activas: ['Explosión','Pulso','Barrera'], pasivas: ['Invulnerable a/d','Experto a/d','Volar/Saltar/Trepar/Fase'] }
   },
-
   vision: {
     nombre: 'Vision',
     movimiento: 5,
     ataque: 11,
     defensa: 17,
     dano: 3,
+    danoCC: 3,
+    danoAD: 3,
+    resistenciaCC: 0,
+    resistenciaAD: 0,
     rango: 5,
     vida: 10,
     agilidad: 20,
     imagen: 'imagenes/vision.webp',
     animacion: 'animaciones/vision.webp',
     poderes: poderesFuente.vision,
-    poderesDeclarados: { activas: [], pasivas: ['Volar/Saltar/Trepar/Fase','Superfuerza','Invulnerable'] }
+    habilidades: { activas: [], pasivas: ['Volar/Saltar/Trepar/Fase','Superfuerza','Invulnerable'] }
   },
-
   quasar: {
     nombre: 'Quasar',
     movimiento: 5,
     ataque: 11,
     defensa: 18,
     dano: 1,
+    danoCC: 1,
+    danoAD: 1,
+    resistenciaCC: 0,
+    resistenciaAD: 0,
     rango: 5,
     vida: 8,
     agilidad: 20,
     imagen: 'imagenes/quasar.webp',
     animacion: 'animaciones/quasar.webp',
     poderes: poderesFuente.quasar,
-    poderesDeclarados: { activas: ['Incapacitar','Telekinesis','Barrera','Mejora de Defensa'], pasivas: ['Experto a/d','Volar/Saltar/Trepar/Fase'] }
+    habilidades: { activas: ['Incapacitar','Telekinesis','Barrera','Mejora de Defensa'], pasivas: ['Experto a/d','Volar/Saltar/Trepar/Fase'] }
   },
-
   thanos: {
     nombre: 'Thanos',
     movimiento: 6,
     ataque: 15,
     defensa: 18,
     dano: 4,
+    danoCC: 4,
+    danoAD: 4,
+    resistenciaCC: 0,
+    resistenciaAD: 0,
     rango: 5,
     vida: 11,
     agilidad: 30,
     imagen: 'imagenes/thanos.webp',
     animacion: 'animaciones/thanos.webp',
     poderes: poderesFuente.thanos,
-    poderesDeclarados: { activas: [], pasivas: ['Invulnerable','Regeneración','Volar/Saltar/Trepar/Fase'] }
+    habilidades: { activas: [], pasivas: ['Invulnerable','Regeneración','Volar/Saltar/Trepar/Fase'] }
   },
-
   pesadilla: {
     nombre: 'Pesadilla',
     movimiento: 5,
     ataque: 14,
     defensa: 18,
     dano: 3,
+    danoCC: 3,
+    danoAD: 0,
+    resistenciaCC: 0,
+    resistenciaAD: 0,
     rango: 0,
     vida: 10,
     agilidad: 80,
     imagen: 'imagenes/pesadilla.webp',
     animacion: 'animaciones/pesadilla.webp',
     poderes: poderesFuente.pesadilla,
-    poderesDeclarados: { activas: ['Incapacitar','Mejora de Ataque'], pasivas: ['Robo de Vida','Invulnerable'] }
+    habilidades: { activas: ['Incapacitar','Mejora de Ataque'], pasivas: ['Robo de Vida','Invulnerable'] }
   },
   centinela: {
     nombre: 'Centinela',
@@ -761,25 +909,19 @@ const personajes = {
     ataque: 11,
     defensa: 17,
     dano: 4,
+    danoCC: 4,
+    danoAD: 4,
+    resistenciaCC: 0,
+    resistenciaAD: 0,
     rango: 10,
     vida: 18,
     agilidad: 20,
     imagen: 'imagenes/centinela.webp',
     animacion: 'animaciones/centinela.webp',
     poderes: poderesFuente.centinela,
-    poderesDeclarados: { activas: ['Incapacitar','Explosión'], pasivas: ['Resistencia','Invulnerable a/d'] }
-  },
+    habilidades: { activas: ['Incapacitar','Explosión'], pasivas: ['Resistencia','Invulnerable a/d'] }
+  }
 };
-
-Object.entries(personajes).forEach(([clave, personaje]) => {
-  const poderes = { ...obtenerPoderes(clave, personaje.poderesAlias) };
-  const poderesDeclarados = personaje.poderesDeclarados || { activas: [], pasivas: [] };
-
-  const activos = Array.from(new Set([...(poderes.activos || []), ...(poderesDeclarados.activas || [])]));
-  const pasivos = Array.from(new Set([...(poderes.pasivos || []), ...(poderesDeclarados.pasivas || [])]));
-
-  personaje.poderes = { activos, pasivos };
-});
 
 if (typeof window !== 'undefined') {
   window.personajes = personajes;
