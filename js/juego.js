@@ -636,6 +636,9 @@ function startTurn(piece) {
 }
 
 function updateStatusBar(piece) {
+  if (!turnInfo || !movementInfo) {
+    return;
+  }
   const stats = pieceMap.get(piece);
   turnInfo.textContent = `Turno: ${stats.nombre}`;
   movementInfo.textContent = `Mov: ${piece.dataset.movesLeft}`;
