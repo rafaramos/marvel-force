@@ -289,7 +289,7 @@ const personajes = {
     ataque: 7,
     defensa: 15,
     dano: 1,
-    rango: 2,
+    rango: 1,
     vida: 5,
     agilidad: 10,
     imagen: 'imagenes/maestroMarionetas.webp',
