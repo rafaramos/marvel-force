@@ -969,7 +969,6 @@
       <span id="turnInfo">Turno:</span>
       <span id="movementInfo"></span>
     </div>
-    <div id="combatInfo" aria-live="polite" style="display: none; margin-bottom: 12px; font-weight: 700;"></div>
 
     <div class="layout">
       <aside class="card-panel" aria-label="Vida aliados">
@@ -2157,6 +2156,9 @@ function attachTooltipEvents(piece) {
     }
     function updateCombatInfo() {
       const combatBox = document.getElementById('combatInfo');
+      if (!combatBox) {
+        return;
+      }
       if (!pendingAttackInfo) {
         combatBox.textContent = '';
         return;
@@ -2442,7 +2444,7 @@ async function resolveAttack(attacker, defender, actionKey = 'attack', options =
       const affectedText = detailsList.length > 0 ? formatter.format(detailsList) : 'Ninguno';
       
       // Construcción exacta del mensaje solicitado
-      const logMessage = `${attackerStats.name} ejecuta Explosión (Tirada ${roll}). ${damageDescription}. Afectados: ${affectedText}.`;
+      const logMessage = `${attackerStats.name} ejecuta Explosión. Ataca con ${attackerStats.ataque} y consigue en la tirada un ${roll}. ${damageDescription}. Afectados: ${affectedText}.`;
 
       pendingAttackInfo = {
         action: actionLabel('explosion'),
@@ -2555,7 +2557,7 @@ async function resolveAttack(attacker, defender, actionKey = 'attack', options =
       const affectedText = detailsList.length > 0 ? formatter.format(detailsList) : 'Ninguno';
 
       // Mensaje final ajustado
-      const logMessage = `${attackerStats.name} activa Pulso (Tirada ${roll}). ${damageDescription}. Afectados: ${affectedText}.`;
+      const logMessage = `${attackerStats.name} ejecuta Pulso. Ataca con ${attackerStats.ataque} y consigue en la tirada un ${roll}. ${damageDescription}. Afectados: ${affectedText}.`;
 
       pendingAttackInfo = {
         action: actionLabel('pulso'),
