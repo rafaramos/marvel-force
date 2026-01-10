@@ -915,6 +915,25 @@
     padding-left: 20px;
     margin: 0; /* Quitamos margen por defecto */
 }
+
+/* Rango especial (Púrpura) para Control Mental */
+    .square--range-special::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      opacity: 1;
+      /* Un borde púrpura brillante */
+      box-shadow: inset 0 0 0 4px #9b59b6; 
+      z-index: 2;
+    }
+    
+    /* Si una casilla tiene los dos rangos (caso raro), el naranja tiene prioridad visual 
+       en nuestra lógica JS, pero por si acaso en CSS: */
+    .square--range.square--range-special::after {
+      box-shadow: inset 0 0 0 5px rgba(255, 132, 0, 0.85); /* Gana el naranja */
+    }
+
+    
   </style>
 </head>
 <body>
@@ -1738,7 +1757,9 @@ function registerTurnSound({ damageDealt = 0, attackFailed = false, zeroDamageHi
     }
 
     function clearRangeHighlights() {
-      squares.forEach((square) => square.classList.remove('square--range', 'square--target'));
+      squares.forEach((square) => {
+          square.classList.remove('square--range', 'square--target', 'square--range-special');
+      });
     }
 
     function clearHighlights() {
@@ -1765,15 +1786,44 @@ function registerTurnSound({ damageDealt = 0, attackFailed = false, zeroDamageHi
       return distance <= maxRange && (includeOrigin ? distance >= 0 : distance > 0);
     }
 
-    function highlightRange(piece) {
+   function highlightRange(piece) {
       clearRangeHighlights();
       const origin = getPieceSquare(piece);
       if (!origin) return;
-      const maxRange = rangeForPiece(piece);
-      if (maxRange <= 0) return;
+      
+      const stats = pieceMap.get(piece);
+      
+      // 1. Rango Físico (Naranja)
+      const physRange = rangeForPiece(piece);
+      
+      // 2. Rango Especial (Púrpura) - Solo si tiene Control Mental
+      // Definimos que el Control Mental llega hasta 4 casillas
+      let specialRange = 0;
+      if (hasActive(stats, 'control mental')) {
+          specialRange = 4; 
+      }
+
+      // Si el rango especial no supera al físico, no pintamos nada extra
+      if (specialRange <= physRange) {
+          specialRange = 0;
+      }
+
+      // El rango máximo a comprobar es el mayor de los dos
+      const maxCheck = Math.max(physRange, specialRange);
+
       squares.forEach((square) => {
-        if (isWithinAttackRange(origin, square, maxRange)) {
-          square.classList.add('square--range');
+        // Calculamos distancia
+        const dist = attackDistance(origin, square);
+        
+        if (dist > 0 && dist <= maxCheck) {
+            // LÓGICA DE COLORES
+            if (dist <= physRange) {
+                // Dentro del rango físico -> NARANJA
+                square.classList.add('square--range');
+            } else {
+                // Fuera del físico pero dentro del especial -> PÚRPURA
+                square.classList.add('square--range-special');
+            }
         }
       });
     }
@@ -2874,18 +2924,20 @@ async function resolveHeal(attacker, target) {
           if (isAllyTarget || isSamePiece) return; // Ataque: solo a enemigos
         }
 
-        // Comprobamos rango
-        const attackerSquare = getPieceSquare(activePiece);
-        const maxRange = rangeForPiece(activePiece);
-        const includeOrigin = supportAction;
-
-        if (!isWithinAttackRange(attackerSquare, square, maxRange, { includeOrigin })) {
+        // --- CAMBIO CLAVE: VALIDACIÓN POR COLOR ---
+        // En lugar de calcular distancias matemáticas, confiamos en lo que ves.
+        // Si tiene luz Naranja (Físico) o Púrpura (Especial), es válido.
+        const isOrange = square.classList.contains('square--range');
+        const isPurple = square.classList.contains('square--range-special');
+        
+        if (!isOrange && !isPurple) {
           if (typeof showTurnPopup === 'function') showTurnPopup('El objetivo está fuera de rango.');
           else alert('El objetivo está fuera de rango.');
           
           clearTargetSelection();
           return;
         }
+        // ------------------------------------------
 
         // Marcamos el objetivo
         clearTargetSelection();
@@ -2950,16 +3002,31 @@ function handleActionClick(actionKey) {
         return;
       }
 
-      const attackerSquare = getPieceSquare(attacker);
+      // --- CAMBIO CLAVE: RESTRICCIÓN DE ZONA PÚRPURA ---
       const targetSquare = getPieceSquare(selectedTarget);
-      const maxRange = rangeForPiece(attacker);
-      const includeOrigin = isSupportPower(actionKey);
-
-      if (!isWithinAttackRange(attackerSquare, targetSquare, maxRange, { includeOrigin })) {
-        alert('El objetivo está fuera de rango.');
-        clearTargetSelection();
-        return;
+      
+      // Detectamos en qué zona está
+      const isInPurpleZone = targetSquare.classList.contains('square--range-special');
+      const isInOrangeZone = targetSquare.classList.contains('square--range');
+      
+      // REGLA: Si está en zona Púrpura PERO NO en Naranja (es decir, lejos),
+      // solo permitimos Control Mental.
+      if (isInPurpleZone && !isInOrangeZone) {
+          if (actionKey !== 'control mental') {
+              const msg = 'El objetivo está demasiado lejos para esta acción. Solo puedes usar Control Mental aquí.';
+              if (typeof showTurnPopup === 'function') showTurnPopup(msg);
+              else alert(msg);
+              return;
+          }
       }
+      
+      // Comprobación de seguridad final (por si acaso no hay ninguna luz)
+      if (!isInOrangeZone && !isInPurpleZone) {
+          alert('El objetivo está fuera de rango.');
+          clearTargetSelection();
+          return;
+      }
+      // --------------------------------------------------
 
       const supportAction = normalizePowerKey(actionKey);
 
@@ -2989,7 +3056,7 @@ function handleActionClick(actionKey) {
         return;
       }
 
-      // --- 4. NUEVO: Lógica de Incapacitar ---
+      // 4. Lógica de Incapacitar
       if (actionKey === 'incapacitar') {
         const targetStats = pieceMap.get(selectedTarget);
         if (targetStats.incapacitatedTurns > 0) {
@@ -2997,14 +3064,13 @@ function handleActionClick(actionKey) {
            else alert(`¡${targetStats.name} ya está incapacitado!`);
            return;
         }
-        // CAMBIO: Añadido allowCounter: false
         resolveAttack(attacker, selectedTarget, 'incapacitar', { allowCounter: false });
         return;
       }
 
+      // 5. Lógica de Control Mental
       if (actionKey === 'control mental') {
         const targetStats = pieceMap.get(selectedTarget);
-        // Evitamos controlar a alguien que ya está controlado para no liar el código
         if (targetStats.mindControlled) {
             showTurnPopup(`¡${targetStats.name} ya está bajo control mental!`);
             return;
@@ -3012,9 +3078,8 @@ function handleActionClick(actionKey) {
         resolveAttack(attacker, selectedTarget, 'control mental');
         return;
       }
-      // ---------------------------------------
 
-      // 5. Resto de Ataques (Explosión y Normal)
+      // 6. Resto de Ataques (Explosión y Normal)
       prepareAttackInfo(attacker, selectedTarget, actionKey);
       
       if (actionKey === 'explosion') {
