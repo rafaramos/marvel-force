@@ -7,7 +7,7 @@
   <style>
     :root {
       --square-size: 70px;
-      --board-columns: 10;
+      --board-columns: 16;
       --board-rows: 10;
       --board-width: calc(var(--square-size) * var(--board-columns));
       --board-height: calc(var(--square-size) * var(--board-rows));
@@ -690,6 +690,9 @@
       background: #111;
       isolation: isolate;
       min-height: 100%;
+      display: flex;
+      flex-direction: column; /* Asegura que el contenido fluya verticalmente */
+      justify-content: flex-end; /* Alinea al fondo */
     }
 
     .duel-card__image {
@@ -732,16 +735,20 @@
       letter-spacing: 0.04em;
       word-break: break-word;
       backdrop-filter: blur(2px);
+      padding-bottom: clamp(16px, 2vw, 30px);
     }
 
     .duel-card__name {
-      font-size: var(--duel-name-size, clamp(18px, 2.6vw, 36px));
+      /* Usamos la variable que calcula JS, pero forzamos el ajuste */
+      font-size: var(--duel-name-size, 1rem); 
       margin: 0 0 4px;
       text-transform: uppercase;
-      line-height: 1.05;
-      word-break: keep-all;
-      overflow-wrap: anywhere;
-      text-wrap: balance;
+      line-height: 1; /* Línea más ajustada */
+
+      white-space: normal; 
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+      hyphens: auto;
     }
 
     .duel-card__stats {
@@ -880,6 +887,34 @@
       font-weight: 900;
       pointer-events: none;
     }
+    /* Busca .tooltip en tu CSS y actualízalo o añade esto al final del style */
+.tooltip {
+    /* Mantenemos lo que tenías y aseguramos el z-index alto */
+    z-index: 1000; 
+    max-width: 350px; /* Un poco más ancho para los textos de poderes */
+}
+
+/* --- ARREGLO DE ESTILOS DEL TOOLTIP --- */
+
+/* Espacio entre cada poder individual */
+.tooltip .power-list li {
+    margin-bottom: 5px;
+    line-height: 1.3; /* Un poco más de altura para que no se choquen verticalmente */
+}
+
+/* Títulos de sección (Activos/Pasivos) */
+.tooltip h4 {
+    margin: 12px 0 4px 0; /* Un poco de aire por encima */
+    color: #ffd166;       /* Color dorado */
+    font-size: 0.95rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1); /* Línea separadora sutil */
+}
+
+/* Contenedor de la lista */
+.tooltip .power-list {
+    padding-left: 20px;
+    margin: 0; /* Quitamos margen por defecto */
+}
   </style>
 </head>
 <body>
@@ -934,7 +969,7 @@
       <span id="turnInfo">Turno:</span>
       <span id="movementInfo"></span>
     </div>
-    <div id="combatInfo" aria-live="polite" style="margin-bottom: 12px; font-weight: 700;"></div>
+    <div id="combatInfo" aria-live="polite" style="display: none; margin-bottom: 12px; font-weight: 700;"></div>
 
     <div class="layout">
       <aside class="card-panel" aria-label="Vida aliados">
@@ -1023,18 +1058,33 @@
       });
       const SCORE_PER_DAMAGE = 10;
       const SCORE_PER_KILL = 50;
-      const punchSound = new Audio('sonidos/efectos/Punch.mp3');
-      const failureSound = new Audio('sonidos/efectos/Failure.mp3');
-      const incapacitarSound = new Audio('sonidos/efectos/incapacitar.wav');
+      
+      const punchSound = new Audio('sonidos/efectos/punch.mp3');
+      const ohSound = new Audio('sonidos/efectos/oh.mp3');
+      const failureSound = new Audio('sonidos/efectos/failure.mp3');
       const passTurnSound = new Audio('sonidos/efectos/pasar.wav');
-      const explosionSound = new Audio('sonidos/efectos/explosion.mp3');
       const deathSound = new Audio('sonidos/efectos/muerte.wav');
+
+      const criticoSound = new Audio('sonidos/efectos/critico.mp3');
+      const pifiaSound = new Audio('sonidos/efectos/pifia.mp3');
+
+      const controlMentalSound = new Audio('sonidos/efectos/controlMental.mp3');
+      const curarSound = new Audio('sonidos/efectos/curar.mp3');
+      const explosionSound = new Audio('sonidos/efectos/explosion.mp3');
+      const incapacitarSound = new Audio('sonidos/efectos/incapacitar.wav');
+      const pulsoSound = new Audio('sonidos/efectos/pulso.wav');
+      
       let pendingPopupSound = null;
       const BOARD_ROWS = 10;
-      const BOARD_COLS = 10;
+      const BOARD_COLS = 16;
       const backgroundMusic = new Audio('sonidos/sintonias/Endgame.mp3');
       backgroundMusic.loop = true;
       backgroundMusic.volume = 0.35;
+
+      const introMusic = new Audio('sonidos/sintonias/introduccion.wav');
+      introMusic.loop = true; // Para que se repita si tardas mucho en elegir
+      introMusic.volume = 0.4; // Ajusta el volumen si quieres
+
       let backgroundStarted = false;
       let isPlayerVsAI = false;
       let gameStarted = false;
@@ -1098,19 +1148,24 @@
     }
 
     function createPieceElement({ key, team, className }) {
-      const stats = pieceStats[key];
-      const piece = document.createElement('span');
-      piece.className = `piece ${className}`;
-      piece.dataset.team = team;
-      piece.dataset.key = key;
-      piece.setAttribute('role', 'img');
-      piece.setAttribute('aria-label', stats?.name || key);
-      piece.innerHTML = `
+    const stats = pieceStats[key];
+    const piece = document.createElement('span');
+    piece.className = `piece ${className}`;
+    piece.dataset.team = team;
+    piece.dataset.key = key;
+    piece.setAttribute('role', 'img');
+    piece.setAttribute('aria-label', stats?.name || key);
+    piece.innerHTML = `
         <img class="piece__image" src="${stats?.imagen || ''}" alt="${stats?.name || key}" />
         <span class="piece__name">${stats?.name || key}</span>
-      `;
-      return piece;
-    }
+    `;
+
+    // --- AÑADE ESTA LÍNEA AQUÍ ---
+    attachTooltipEvents(piece); 
+    // -----------------------------
+
+    return piece;
+}
 
     function buildBoard() {
       board.innerHTML = '';
@@ -1166,6 +1221,21 @@
     let turnOrder = [];
     let turnIndex = 0;
 
+    // --- FUNCIONES DE MOVIMIENTO (RECUPERADAS) ---
+    function remainingMovement(piece) {
+      return movementPool.get(piece) ?? Number(piece.dataset.movimiento);
+    }
+
+    function resetMovement(piece) {
+      movementPool.set(piece, Number(piece.dataset.movimiento));
+    }
+
+    function spendMovement(piece, amount) {
+      const left = Math.max(remainingMovement(piece) - amount, 0);
+      movementPool.set(piece, left);
+    }
+    // ---------------------------------------------
+
     function recomputeTurnOrder() {
       turnOrder = pieces
         .map(({ element }) => element)
@@ -1220,12 +1290,12 @@
       return attacker?.dataset.team && target?.dataset.team && attacker.dataset.team !== target.dataset.team;
     }
 
-    function registerTurnSound({ damageDealt = 0, attackFailed = false } = {}) {
+function registerTurnSound({ damageDealt = 0, attackFailed = false, zeroDamageHit = false } = {}) {
       if (damageDealt > 0) {
         pendingPopupSound = 'punch';
-        return;
-      }
-      if (attackFailed && !pendingPopupSound) {
+      } else if (zeroDamageHit) {
+        pendingPopupSound = 'oh'; // <--- Sonido para acierto con 0 daño
+      } else if (attackFailed && !pendingPopupSound) {
         pendingPopupSound = 'failure';
       }
     }
@@ -1233,7 +1303,12 @@
     function playTurnSound() {
       const chosen = pendingPopupSound;
       pendingPopupSound = null;
-      const sound = chosen === 'punch' ? punchSound : chosen === 'failure' ? failureSound : null;
+      
+      let sound = null;
+      if (chosen === 'punch') sound = punchSound;
+      else if (chosen === 'failure') sound = failureSound;
+      else if (chosen === 'oh') sound = ohSound; // <--- Reproducimos el OH
+      
       if (!sound) return;
       sound.currentTime = 0;
       sound.play().catch(() => {});
@@ -1257,16 +1332,38 @@
     function attachPieceData(piece, key, team) {
       const stats = pieceStats[key];
       if (!stats) return;
-      const powers = stats.poderes || { activos: [], pasivos: [] };
-      const baseDamage = stats.dano ?? stats.danoCC ?? stats.danoAD ?? 0;
-      const baseResistencia = stats.resistencia ?? 0;
+
+      // --- LISTA DE PODERES OCULTOS ---
+      // Los ponemos en minúsculas. El juego ignorará cualquier poder que esté aquí.
+      const HIDDEN_POWERS = [
+          'barrera', 
+          'telekinesis' // Añado esta variante por si acaso en el futuro lo escribes con 'q'
+      ];
+      // --------------------------------
+
+      const rawPowers = stats.poderes || { activos: [], pasivos: [] };
+
+      // Filtramos las listas eliminando los que estén en la lista negra
+      const filteredPowers = {
+          activos: (rawPowers.activos || []).filter(p => {
+              const nombre = normalizePowerKey(p.nombre || p);
+              return !HIDDEN_POWERS.includes(nombre);
+          }),
+          pasivos: (rawPowers.pasivos || []).filter(p => {
+              const nombre = normalizePowerKey(p.nombre || p);
+              return !HIDDEN_POWERS.includes(nombre);
+          })
+      };
+
+      // Resto de la lógica de inicialización (sin cambios)
+      const baseDamage = stats.dano ?? 0;
+      const baseResistencia = 0; 
+
       const computedStats = {
         ...stats,
         dano: baseDamage,
-        danoCC: stats.danoCC ?? baseDamage,
-        danoAD: stats.danoAD ?? baseDamage,
         resistencia: baseResistencia,
-        poderes: powers,
+        poderes: filteredPowers, // <--- USAMOS LA LISTA FILTRADA
         baseAtaque: stats.ataque,
         baseDefensa: stats.defensa,
         baseAgilidad: stats.agilidad,
@@ -1277,6 +1374,7 @@
         probabilidadTurns: 0,
         puntos: 0,
       };
+      
       piece.dataset.key = key;
       piece.dataset.team = team;
       piece.dataset.rango = stats.rango;
@@ -1408,8 +1506,17 @@
           card.classList.add('duel-card--eliminated');
         }
         card.style.flexBasis = `${100 / characters.length}%`;
-        const nameSizeVw = Math.min(3.2, Math.max(1.8, 7 / characters.length));
+        
+        // --- CAMBIO EN EL CÁLCULO DE LA FUENTE ---
+        // Si hay 1 carta: Grande (3.5vw)
+        // Si hay 4 cartas: Pequeño (1.4vw)
+        let fontSizeBase = 4.5 / Math.sqrt(characters.length); 
+        // Límites de seguridad (mínimo 14px visuales aprox, máximo 40px)
+        const nameSizeVw = Math.min(3.5, Math.max(1.1, fontSizeBase));
+        
         card.style.setProperty('--duel-name-size', `${nameSizeVw}vw`);
+        // -----------------------------------------
+
         const overlayClass = char.role === 'attacker' ? 'duel-card__overlay--attacker' : 'duel-card__overlay--defender';
         card.innerHTML = `
           <img class="duel-card__image" src="${char.imagen}" alt="${char.name}" />
@@ -1704,26 +1811,54 @@
 
     function calculateDamage(attackerStats, defenderStats, distance, isCritical) {
       const isMelee = distance <= 1;
-      const damageForMode = isMelee ? attackerStats.danoCC : attackerStats.danoAD;
-      const baseDamageBeforeClaws = damageForMode ?? attackerStats.dano ?? 0;
+      
+      // 1. Obtenemos el daño base inicial
+      let baseDamageBeforeClaws = attackerStats.dano ?? 0;
+
+      // --- NUEVO: IMPLEMENTACIÓN DE EXPERTO A/D ---
+      // Si el ataque es a distancia (no es melee) y tiene el poder, sumamos 2 al base.
+      if (!isMelee && hasPassive(attackerStats, 'experto a/d')) {
+        baseDamageBeforeClaws += 2;
+      }
+      // --------------------------------------------
+      
+      // 2. Lógica de Garras (Solo melee)
       let clawsRoll = null;
-      const hasClaws = isMelee && hasPassive(attackerStats, 'garras');
+      const hasClaws = isMelee && hasPassive(attackerStats, 'garras'); 
       if (hasClaws) {
         clawsRoll = Math.floor(Math.random() * 6) + 1;
       }
+      
+      // Si tiene garras, el daño base es el mayor entre el actual y la tirada
       const baseDamageAfterClaws = hasClaws
         ? Math.max(baseDamageBeforeClaws, clawsRoll)
         : baseDamageBeforeClaws;
+      
+      // 3. Cálculo de Crítico (x2)
       const baseDamageWithCrit = isCritical ? baseDamageAfterClaws * 2 : baseDamageAfterClaws;
-      const resistance = defenderStats.resistencia ?? 0;
+      
+      // 4. Cálculo de Resistencia (Dureza / Invulnerable)
+      let valDureza = 0;
+      let valInvulnerable = 0;
+      let valInvulnerableAD = 0;
+
+      if (hasPassive(defenderStats, 'dureza')) valDureza = 1;
+      if (hasPassive(defenderStats, 'invulnerable')) valInvulnerable = 2;
+      if (!isMelee && hasPassive(defenderStats, 'invulnerable a/d')) valInvulnerableAD = 2;
+      
+      // Nos quedamos con la mayor resistencia
+      const resistance = Math.max(valDureza, valInvulnerable, valInvulnerableAD);
+      
+      // 5. Daño Final
       const totalDamage = Math.max(baseDamageWithCrit - resistance, 0);
+      
       return {
         totalDamage,
         isMelee,
         clawsRoll,
         rawDamage: baseDamageWithCrit,
         resistance,
-        baseDamageBeforeClaws,
+        baseDamageBeforeClaws, // Ahora este valor incluirá el +2 de Experto a/d si aplica
         baseDamageAfterClaws,
       };
     }
@@ -1799,25 +1934,106 @@
       return r === 0 ? 1 : r;
     }
 
-    function showTooltip(piece) {
-      const stats = pieceMap.get(piece);
-      if (!stats) return;
-      tooltip.innerHTML = `
-        <h3>${stats.name}</h3>
-        <ul>
-          <li>Mov: ${stats.movimiento}</li>
-          <li>Atk: ${stats.ataque}</li>
-          <li>Def: ${stats.defensa}</li>
-          <li>Daño: ${stats.dano ?? stats.danoCC ?? stats.danoAD ?? 0}</li>
-          <li>Resistencia: ${stats.resistencia ?? 0}</li>
-          <li>Rango: ${stats.rango}</li>
-          <li>Vida: ${Math.max(stats.currentVida, 0)}</li>
-          <li>Agilidad: ${stats.agilidad}</li>
-        </ul>
-      `;
-      tooltip.hidden = false;
-      requestAnimationFrame(() => positionTooltip(piece));
-    }
+    // Variable global para controlar el tiempo (ponla justo antes de las funciones)
+let tooltipTimer = null;
+
+function showTooltip(piece) {
+  const stats = pieceMap.get(piece);
+  if (!stats) return;
+
+  // --- 1. ETIQUETA DE EQUIPO ---
+  let teamLabel = piece.dataset.team || '';
+  if (teamLabel) {
+      teamLabel = teamLabel.charAt(0).toUpperCase() + teamLabel.slice(1);
+      teamLabel = `(${teamLabel})`;
+  }
+
+  // --- 2. LISTAS DE PODERES ---
+  const activos = (stats.poderes?.activos || []).map(p => p.nombre || p).join('</li><li>');
+  const pasivos = (stats.poderes?.pasivos || []).map(p => p.nombre || p).join('</li><li>');
+
+  // --- 3. RECOPILACIÓN DE BUFFOS (EL ARREGLO ESTÁ AQUÍ) ---
+  let listaBuffos = [];
+
+  // A) Buffos de estadísticas (Ataque, Defensa, Agilidad)
+  if (stats.statBuffs) {
+      Object.values(stats.statBuffs).forEach(v => listaBuffos.push(v.label));
+  }
+
+  // B) Buffo de Crítico (se guardaba aparte y por eso no salía)
+  if (stats.critBuff) {
+      listaBuffos.push(stats.critBuff.label);
+  }
+  
+  // C) Probabilidad (si quieres que salga también como efecto positivo)
+  if (stats.probabilidadTurns > 0) {
+      listaBuffos.push("Probabilidad");
+  }
+
+  const buffosTexto = listaBuffos.join(', ');
+  // ---------------------------------------------------------
+
+  tooltip.innerHTML = `
+    <h3>${stats.name} <span style="font-size:0.8em; opacity:0.7">${teamLabel}</span></h3>
+    
+    <ul>
+      <li><strong>Vida:</strong> ${Math.max(stats.currentVida, 0)} / ${stats.maxVida}</li>
+      <li><strong>Movimiento:</strong> ${stats.movimiento}</li>
+      <li><strong>Ataque:</strong> ${stats.ataque} <small>(Base: ${stats.baseAtaque || stats.ataque})</small></li>
+      <li><strong>Defensa:</strong> ${stats.defensa} <small>(Base: ${stats.baseDefensa || stats.defensa})</small></li>
+      <li><strong>Agilidad:</strong> ${stats.agilidad} <small>(Base: ${stats.baseAgilidad || stats.agilidad})</small></li>
+      <li><strong>Daño:</strong> ${stats.dano}</li>
+      <li><strong>Rango:</strong> ${stats.rango}</li>
+    </ul>
+
+    <div>
+        ${activos ? `<h4>Poderes Activos</h4><ul class="power-list"><li>${activos}</li></ul>` : ''}
+        ${pasivos ? `<h4>Poderes Pasivos</h4><ul class="power-list"><li>${pasivos}</li></ul>` : ''}
+    </div>
+    
+    ${buffosTexto ? `<h4 style="color:#4ade80">Buffos Temporales</h4><div style="font-size:0.8rem; margin-left:10px;">${buffosTexto}</div>` : ''}
+  `;
+
+  tooltip.hidden = false;
+  requestAnimationFrame(() => positionTooltip(piece));
+}
+
+
+function hideTooltip() {
+  tooltip.hidden = true;
+  if (tooltipTimer) {
+    clearTimeout(tooltipTimer);
+    tooltipTimer = null;
+  }
+}
+
+function attachTooltipEvents(piece) {
+  // Usamos pointerenter/leave que funcionan mejor para ratón y touch
+  piece.addEventListener('pointerenter', () => {
+    // Si es la pieza activa o del mismo equipo, normalmente no mostramos info
+    // PERO como es para debug, lo mostramos igual. Si quieres ocultarlo en turno propio, descomenta abajo:
+    /* const activePiece = turnOrder[turnIndex];
+    if (piece === activePiece) return; 
+    */
+    
+    // Limpiamos cualquier timer anterior
+    if (tooltipTimer) clearTimeout(tooltipTimer);
+
+    // Esperamos 1 segundo (1000ms) antes de mostrar
+    tooltipTimer = setTimeout(() => {
+      showTooltip(piece);
+    }, 1000);
+  });
+
+  piece.addEventListener('pointerleave', () => {
+    hideTooltip();
+  });
+  
+  // Ocultar también al hacer clic para que no moleste al atacar
+  piece.addEventListener('click', () => {
+    hideTooltip();
+  });
+}
 
     function positionTooltip(target) {
       const targetRect = target.getBoundingClientRect();
@@ -1838,9 +2054,6 @@
       tooltip.style.top = `${top}px`;
     }
 
-    function hideTooltip() {
-      tooltip.hidden = true;
-    }
 
     function setIncapacitated(piece, turns = 1) {
       const stats = pieceMap.get(piece);
@@ -1884,11 +2097,8 @@
         baseDamageAfterClaws,
       }) {
         const need = neededRollToHit(attackerStats, defenderStats);
-        const attackTypeLabel = isMelee ? 'ataque cuerpo a cuerpo' : 'ataque a distancia';
-        const resistanceLabel = 'resistencia';
-        const baseDamage = rawDamage ?? damage;
-        const inflictedDamage = success && actionKey !== 'incapacitar' ? damage : 0;
-
+        
+        // --- BLOQUE PERSONALIZADO: INCAPACITAR ---
         if (actionKey === 'incapacitar') {
           const opening = `${attackerStats.name} realiza un ataque de Incapacitación con ${attackerStats.ataque} a ${defenderStats.name} que defiende con ${defenderStats.defensa}.`;
           const rollLine = `${attackerStats.name} necesita un ${need} y ${roll ? `consigue un ${roll}.` : 'prepara la tirada.'}`;
@@ -1898,12 +2108,33 @@
           return `${opening} ${rollLine} ${resultLine}`;
         }
 
+        // --- BLOQUE PERSONALIZADO: CONTROL MENTAL ---
+        if (actionKey === 'control mental') {
+            const opening = `${attackerStats.name} realiza un ataque de Control Mental con ${attackerStats.ataque} a ${defenderStats.name} que defiende con ${defenderStats.defensa}.`;
+            const rollLine = `${attackerStats.name} necesita un ${need} y ${roll ? `consigue un ${roll}.` : 'prepara la tirada.'}`;
+            
+            let resultLine = '';
+            if (success) {
+                resultLine = `${defenderStats.name} es controlado y pasa al equipo de ${attackerStats.name} este turno.`;
+            } else {
+                resultLine = `${attackerStats.name} falla el ataque de Control Mental contra ${defenderStats.name}.`;
+            }
+            
+            return `${opening} ${rollLine} ${resultLine}`;
+        }
+        // ---------------------------------------------
+
+        // --- ATAQUES NORMALES (Daño) ---
+        const attackTypeLabel = isMelee ? 'ataque cuerpo a cuerpo' : 'ataque a distancia';
+        const resistanceLabel = 'resistencia';
+        const baseDamage = rawDamage ?? damage;
+        const inflictedDamage = success ? damage : 0;
+
         const opening = `${attackerStats.name} realiza un ${attackTypeLabel} con ${attackerStats.ataque} a ${defenderStats.name} que defiende con ${defenderStats.defensa}.`;
         const rollLine = `${attackerStats.name} necesita un ${need} y ${roll ? `consigue un ${roll}${critical ? ' (Crítico)' : ''}.` : 'prepara la tirada.'}`;
 
         if (!success) {
-          const failOrIncap = `${attackerStats.name} falla el ataque contra ${defenderStats.name}.`;
-          return `${opening} ${rollLine} ${failOrIncap}`;
+          return `${opening} ${rollLine} ${attackerStats.name} falla el ataque contra ${defenderStats.name}.`;
         }
 
         const clawsLine =
@@ -1912,17 +2143,18 @@
                 clawsRoll > baseDamageBeforeClaws ? 'aumenta a' : 'se mantiene en'
               } ${clawsRoll > baseDamageBeforeClaws ? baseDamageAfterClaws : baseDamageBeforeClaws}.`
             : '';
+        
         const baseDamageLine =
           clawsRoll === null || clawsRoll === undefined
             ? `El daño base del ataque es ${baseDamage}.`
             : '';
+            
         const resistanceLine = `${defenderStats.name} tiene una ${resistanceLabel} de ${resistance ?? 0}.`;
         const damageLine = `${attackerStats.name} le causa ${inflictedDamage} puntos de daño infligido a ${defenderStats.name}.`;
         const deathLine = defenderStats.currentVida <= 0 ? `${defenderStats.name} es eliminado.` : '';
 
       return `${opening} ${rollLine} ${clawsLine} ${baseDamageLine} ${resistanceLine} ${damageLine} ${deathLine}`.replace(/\s+/g, ' ').trim();
     }
-
     function updateCombatInfo() {
       const combatBox = document.getElementById('combatInfo');
       if (!pendingAttackInfo) {
@@ -1975,156 +2207,174 @@
       attackButton.classList.add('button--pulse');
       updateCombatInfo();
     }
+    
 
-    function resolveAttack(attacker, defender, actionKey = 'attack', options = {}) {
-      const { allowCounter = true, skipTurnAdvance = false, actionLabelOverride = null } = options;
+async function resolveAttack(attacker, defender, actionKey = 'attack', options = {}) {
+      const { 
+        allowCounter = true, 
+        skipTurnAdvance = false, 
+        actionLabelOverride = null, 
+        isSecondAttack = false 
+      } = options;
+
       const attackerStats = pieceMap.get(attacker);
       const defenderStats = pieceMap.get(defender);
       const attackerSquare = getPieceSquare(attacker);
       const targetSquare = getPieceSquare(defender);
       const distance = attackDistance(attackerSquare, targetSquare);
 
+      // --- 1. CÁLCULOS ---
       const die1 = Math.floor(Math.random() * 6) + 1;
       const die2 = Math.floor(Math.random() * 6) + 1;
       const roll = die1 + die2;
+      
       const { success, critical, isPifia, shouldCounter } = evaluateAttackRoll(
-        attackerStats,
-        defenderStats,
-        roll,
-        distance,
-        { allowCounter }
+        attackerStats, defenderStats, roll, distance, { allowCounter }
       );
 
-      const {
-        totalDamage,
-        clawsRoll,
-        isMelee,
-        rawDamage,
-        resistance,
-        baseDamageBeforeClaws,
-        baseDamageAfterClaws,
-      } = calculateDamage(attackerStats, defenderStats, distance, critical);
-      const damageApplied = success && actionKey !== 'incapacitar' ? totalDamage : 0;
-      if (success && actionKey === 'incapacitar') {
-        setIncapacitated(defender, 1);
-        if (isEnemy(attacker, defender)) {
-          addPoints(attacker, SCORE_PER_DAMAGE);
+      // SONIDOS
+      if (critical) playEffectSound(criticoSound);
+      if (isPifia) playEffectSound(pifiaSound);
+
+      const { totalDamage, clawsRoll, isMelee, resistance, rawDamage, baseDamageBeforeClaws, baseDamageAfterClaws } = 
+        calculateDamage(attackerStats, defenderStats, distance, critical);
+
+      const isStatusAttack = actionKey === 'incapacitar' || actionKey === 'control mental';
+      const damageApplied = success && !isStatusAttack ? totalDamage : 0;
+
+      // --- 2. APLICAR EFECTOS ---
+      let specialEffectMessage = ''; // Se queda vacío, el mensaje ahora lo genera buildAttackPopupMessage
+
+      if (success) {
+        if (actionKey === 'incapacitar') {
+          setIncapacitated(defender, 1);
+          if (isEnemy(attacker, defender)) addPoints(attacker, SCORE_PER_DAMAGE);
+          playEffectSound(incapacitarSound);
+        } 
+        else if (actionKey === 'control mental') {
+          const currentTeam = defender.dataset.team;
+          defenderStats.originalTeam = currentTeam; 
+          
+          const newTeam = currentTeam === 'aliado' ? 'enemigo' : 'aliado';
+          
+          defenderStats.team = newTeam;
+          defender.dataset.team = newTeam;
+          defenderStats.mindControlled = true;
+          
+          // ELIMINADO: specialEffectMessage = `...` (Ya no hace falta)
+          playEffectSound(controlMentalSound);
         }
-      }
-      if (damageApplied > 0) {
-        defenderStats.currentVida = Math.max(defenderStats.currentVida - damageApplied, 0);
-        if (isEnemy(attacker, defender)) {
-          addPoints(attacker, damageApplied * SCORE_PER_DAMAGE);
+        else if (damageApplied > 0) {
+          defenderStats.currentVida = Math.max(defenderStats.currentVida - damageApplied, 0);
+          if (isEnemy(attacker, defender)) addPoints(attacker, damageApplied * SCORE_PER_DAMAGE);
+
+          if (hasPassive(attackerStats, 'robo de vida')) {
+            const missing = attackerStats.maxVida - attackerStats.currentVida;
+            const heal = Math.min(damageApplied, missing);
+            if (heal > 0) {
+              attackerStats.currentVida += heal;
+              specialEffectMessage = ` ${attackerStats.name} roba vida (+${heal}).`;
+            }
+          }
         }
       }
 
-      pendingAttackInfo = {
-        action: actionLabelOverride || actionLabel(actionKey),
-        attacker: attackerStats.ataque,
-        defender: defenderStats.defensa,
-        difference: attackerStats.ataque - defenderStats.defensa,
-        roll,
-        success,
-        critical,
-        damage: damageApplied,
-        defenderVida: defenderStats.currentVida,
-        attackerName: attackerStats.name,
-        defenderName: defenderStats.name,
-        clawsRoll,
-        isMelee,
-        resistance,
-        rawDamage,
-        baseDamageBeforeClaws,
-        baseDamageAfterClaws,
-        neededRoll: neededRollToHit(attackerStats, defenderStats),
-        note:
-          actionKey === 'incapacitar'
-            ? 'El ataque no causa daño.'
-            : shouldCounter
-            ? 'Pifia: el defensor realizará una réplica.'
-            : null,
-      };
+      // --- 3. PREPARAR MENSAJE ---
+      const labelAccion = actionLabelOverride || (isSecondAttack ? '2º Ataque c/c' : actionLabel(actionKey));
 
-      const popupMessage = buildAttackPopupMessage({
-        attackerStats,
-        defenderStats,
-        roll,
-        success,
-        damage: damageApplied,
-        isMelee,
-        resistance,
-        rawDamage,
-        actionKey,
-        clawsRoll,
-        critical,
-        baseDamageBeforeClaws,
-        baseDamageAfterClaws,
+      let popupMessage = buildAttackPopupMessage({
+        attackerStats, defenderStats, roll, success, damage: damageApplied,
+        isMelee, resistance, rawDamage, actionKey, clawsRoll, critical,
+        baseDamageBeforeClaws, baseDamageAfterClaws
       });
-
-      if (success && actionKey === 'incapacitar') {
-        playEffectSound(incapacitarSound);
-      }
+      
+      popupMessage += specialEffectMessage; // Solo añade robo de vida si aplica
 
       addHistoryEntry(attacker.dataset.team, popupMessage, { attacker, defenders: [defender] });
 
-      if (success && actionKey !== 'incapacitar' && defenderStats.currentVida <= 0) {
-        queueDeathMessage(`${defenderStats.name} ha sido eliminado por ${attackerStats.name}.`);
-        if (isEnemy(attacker, defender)) {
-          addPoints(attacker, SCORE_PER_KILL);
-        }
+      if (success && !isStatusAttack && defenderStats.currentVida <= 0) {
+        queueDeathMessage(`${defenderStats.name} eliminado por ${attackerStats.name}.`);
+        if (isEnemy(attacker, defender)) addPoints(attacker, SCORE_PER_KILL);
         eliminatePiece(defender);
       }
 
-      registerTurnSound({ damageDealt: damageApplied, attackFailed: !success });
+      // Sonido Normal
+      const skipFailureSound = isPifia; 
+      const isZeroDamageHit = success && damageApplied === 0 && !isStatusAttack;
+      
+      registerTurnSound({ 
+        damageDealt: damageApplied, 
+        attackFailed: !success && !skipFailureSound, 
+        zeroDamageHit: isZeroDamageHit 
+      });
 
-      if (
-        shouldCounter &&
-        defenderStats.currentVida > 0 &&
-        defender.dataset.eliminated !== 'true' &&
-        attacker.dataset.eliminated !== 'true'
-      ) {
-        resolveAttack(defender, attacker, 'attack', {
+      if (damageApplied > 0 && !pendingPopupSound) pendingPopupSound = 'punch';
+
+      renderLifeCards();
+      updateCombatInfo();
+
+      // --- 4. FLUJO DE PIFIA Y DOBLE ATAQUE ---
+      if (shouldCounter && defenderStats.currentVida > 0 && defender.dataset.eliminated !== 'true') {
+        await showTurnPopup(`¡PIFIA! ${attackerStats.name} ha fallado estrepitosamente.\n${defenderStats.name} prepara su contraataque.\n(Haz clic para resolver la réplica)`);
+        await sleep(300);
+        await resolveAttack(defender, attacker, 'attack', {
           allowCounter: false,
           skipTurnAdvance: true,
           actionLabelOverride: 'Réplica',
         });
+        if (!skipTurnAdvance) finishTurn(attacker);
+        return;
       }
 
-      renderLifeCards();
+      const hasDoubleAttack = hasPassive(attackerStats, 'doble ataque c/c');
+      if (isMelee && hasDoubleAttack && !isSecondAttack && !options.actionLabelOverride && !isStatusAttack &&
+          defenderStats.currentVida > 0 && defender.dataset.eliminated !== 'true' &&
+          attackerStats.currentVida > 0 && attacker.dataset.eliminated !== 'true') {
+        
+        await showTurnPopup(`${popupMessage}\n\n[DOBLE ATAQUE]\n(Clic para el segundo golpe)`);
+        await sleep(300);
+        await resolveAttack(attacker, defender, actionKey, {
+          ...options,
+          isSecondAttack: true, 
+          actionLabelOverride: '2º Ataque c/c'
+        });
+        return; 
+      }
+
       if (!skipTurnAdvance) {
         hideTooltip();
         clearRangeHighlights();
         selectedTarget = null;
         attackButton.classList.remove('button--pulse');
-      }
-      updateCombatInfo();
-      if (!skipTurnAdvance) {
         finishTurn(attacker);
       }
     }
+    
 
-    function resolveExplosion(attacker, defender) {
+   async function resolveExplosion(attacker, defender) {
       const attackerStats = pieceMap.get(attacker);
       const attackerSquare = getPieceSquare(attacker);
       const centerSquare = getPieceSquare(defender);
+      
       const die1 = Math.floor(Math.random() * 6) + 1;
       const die2 = Math.floor(Math.random() * 6) + 1;
       const roll = die1 + die2;
       const critical = isCriticalRoll(attackerStats, roll);
-      const baseDamage = attackerStats.danoAD;
+
+      if (critical) playEffectSound(criticoSound);
+      
+      // --- 1. MENSAJE AJUSTADO (Daño Base) ---
+      let baseRaw = attackerStats.dano ?? 0;
+      if (critical) baseRaw *= 2; // Mostramos el base YA multiplicado si es crítico
+      const damageDescription = `${attackerStats.name} tiene un daño base para este ataque de ${baseRaw}`;
+      // ---------------------------------------
 
       const affectedPieces = [];
       const seenPieces = new Set();
       let totalDamageDealt = 0;
       let anySuccess = false;
 
-      const CROSS_OFFSETS = [
-        [0, 0],
-        [1, 0],
-        [-1, 0],
-        [0, 1],
-        [0, -1],
-      ];
+      const CROSS_OFFSETS = [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]];
 
       CROSS_OFFSETS.forEach(([dr, dc]) => {
         const row = Number(centerSquare.dataset.row) + dr;
@@ -2138,38 +2388,61 @@
       });
 
       const targetsSummary = [];
+
       affectedPieces.forEach(({ piece, square }) => {
         const targetStats = pieceMap.get(piece);
-        const distance = attackDistance(attackerSquare, square);
-        const { success } = evaluateAttackRoll(attackerStats, targetStats, roll, distance, {
-          allowCounter: false,
+        const distanceToAttacker = attackDistance(attackerSquare, square);
+        
+        // Bloqueamos contraataque con allowCounter: false
+        const { success } = evaluateAttackRoll(attackerStats, targetStats, roll, distanceToAttacker, {
+          allowCounter: false, 
         });
+
         let damage = 0;
         if (success) {
-          const { totalDamage } = calculateDamage(attackerStats, targetStats, distance, critical);
-          damage = totalDamage;
+          // Usamos el baseRaw calculado arriba
+          let valDureza = 0;
+          let valInvulnerable = 0;
+          let valInvulnerableAD = 0;
+
+          if (hasPassive(targetStats, 'dureza')) valDureza = 1;
+          if (hasPassive(targetStats, 'invulnerable')) valInvulnerable = 2;
+          if (distanceToAttacker > 1 && hasPassive(targetStats, 'invulnerable a a/d')) {
+              valInvulnerableAD = 2;
+          }
+
+          const resistance = Math.max(valDureza, valInvulnerable, valInvulnerableAD);
+          damage = Math.max(baseRaw - resistance, 0);
+          
           targetStats.currentVida = Math.max(targetStats.currentVida - damage, 0);
           totalDamageDealt += damage;
-          if (isEnemy(attacker, piece)) {
-            addPoints(attacker, damage * SCORE_PER_DAMAGE);
-          }
+          if (isEnemy(attacker, piece)) addPoints(attacker, damage * SCORE_PER_DAMAGE);
           anySuccess = true;
         }
-        targetsSummary.push({
-          name: targetStats.name,
-          success,
-          damage,
-          vida: targetStats.currentVida,
-          eliminated: success && targetStats.currentVida <= 0,
-        });
-        if (success && targetStats.currentVida <= 0) {
+
+        const eliminated = success && targetStats.currentVida <= 0;
+        targetsSummary.push({ name: targetStats.name, success, damage, eliminated });
+
+        if (eliminated) {
           queueDeathMessage(`${targetStats.name} ha sido eliminado por ${attackerStats.name}.`);
-          if (isEnemy(attacker, piece)) {
-            addPoints(attacker, SCORE_PER_KILL);
-          }
+          if (isEnemy(attacker, piece)) addPoints(attacker, SCORE_PER_KILL);
           eliminatePiece(piece);
         }
       });
+
+      // Formato de lista
+      const formatter = new Intl.ListFormat('es', { style: 'long', type: 'conjunction' });
+      const detailsList = targetsSummary.map(t => {
+        if (!t.success) return `${t.name} (esquiva)`;
+        let detail = `daño ${t.damage}`; // Ya no mostramos "daño recibido", solo "daño X"
+        if (t.eliminated) detail += ` y eliminado`;
+        return `${t.name} (${detail})`;
+      });
+
+      const affectedText = detailsList.length > 0 ? formatter.format(detailsList) : 'Ninguno';
+      
+      // Construcción exacta del mensaje solicitado
+      const logMessage = `${attackerStats.name} ejecuta Explosión (Tirada ${roll}). ${damageDescription}. Afectados: ${affectedText}.`;
 
       pendingAttackInfo = {
         action: actionLabel('explosion'),
@@ -2180,40 +2453,41 @@
       };
 
       playEffectSound(explosionSound);
-
-      addHistoryEntry(
-        attacker.dataset.team,
-        `${attackerStats.name} ejecuta Explosión con un ataque de ${attackerStats.ataque}. En la tirada consigue un ${roll}${
-          critical ? ' (Crítico)' : roll === 2 ? ' (Pifia)' : ''
-        }. ${attackerStats.name} tiene un daño base de ${baseDamage} a distancia. Afectados: ${targetsSummary
-          .map((t) => `${t.name}${t.success ? ` daño ${t.damage}${t.eliminated ? ' (eliminado)' : ''}` : ' sin efecto'}`)
-          .join('; ')}`,
-        { attacker, defenders: affectedPieces.map(({ piece }) => piece) }
-      );
-
+      addHistoryEntry(attacker.dataset.team, logMessage, { attacker, defenders: affectedPieces.map(({ piece }) => piece) });
       registerTurnSound({ damageDealt: totalDamageDealt, attackFailed: !anySuccess });
-
       renderLifeCards();
       hideTooltip();
       clearRangeHighlights();
       selectedTarget = null;
       attackButton.classList.remove('button--pulse');
       updateCombatInfo();
-      finishTurn(attacker);
+      
+      await showTurnPopup(logMessage);
+      finishTurn(attacker, { showPopup: false });
     }
+    
 
-    function resolvePulse(attacker) {
+   async function resolvePulse(attacker) { // Nota: Hazla async para ser consistente
       const attackerStats = pieceMap.get(attacker);
       const attackerSquare = getPieceSquare(attacker);
+      
+      const die1 = Math.floor(Math.random() * 6) + 1;
+      const die2 = Math.floor(Math.random() * 6) + 1;
+      const roll = die1 + die2;
+      const critical = isCriticalRoll(attackerStats, roll);
+      
+      if (critical) playEffectSound(criticoSound);
+
+      // --- 1. MENSAJE AJUSTADO ---
+      let baseRaw = attackerStats.dano ?? 0;
+      if (critical) baseRaw *= 2;
+      const damageDescription = `${attackerStats.name} tiene un daño base para este ataque de ${baseRaw}`;
+      // ---------------------------
+
+      const attackTotal = attackerStats.ataque + roll;
       const affectedPieces = [];
       let totalDamageDealt = 0;
-
-      const CROSS_OFFSETS = [
-        [1, 0],
-        [-1, 0],
-        [0, 1],
-        [0, -1],
-      ];
+      const CROSS_OFFSETS = [[1, 0], [-1, 0], [0, 1], [0, -1]];
 
       CROSS_OFFSETS.forEach(([dr, dc]) => {
         const row = Number(attackerSquare.dataset.row) + dr;
@@ -2225,65 +2499,76 @@
       });
 
       const targetsSummary = [];
+      let anySuccess = false;
 
-      affectedPieces.forEach(({ piece, square, distance }) => {
+      affectedPieces.forEach(({ piece, distance }) => {
         const targetStats = pieceMap.get(piece);
-        const die1 = Math.floor(Math.random() * 6) + 1;
-        const die2 = Math.floor(Math.random() * 6) + 1;
-        const roll = die1 + die2;
-        const { success, critical, isPifia } = evaluateAttackRoll(attackerStats, targetStats, roll, distance, {
-          allowCounter: false,
-        });
+        const success = attackTotal >= targetStats.defensa;
+
         let damage = 0;
         if (success) {
-          const { totalDamage } = calculateDamage(attackerStats, targetStats, distance, critical);
-          damage = totalDamage;
-          targetStats.currentVida = Math.max(targetStats.currentVida - damage, 0);
-          totalDamageDealt += damage;
-          if (isEnemy(attacker, piece)) {
-            addPoints(attacker, damage * SCORE_PER_DAMAGE);
+          // Mitigación (Pulso es distancia 1, a/d no aplica normalmente pero dejamos la lógica)
+          let valDureza = 0;
+          let valInvulnerable = 0;
+          let valInvulnerableAD = 0;
+
+          if (hasPassive(targetStats, 'dureza')) valDureza = 1;
+          if (hasPassive(targetStats, 'invulnerable')) valInvulnerable = 2;
+          if (distance > 1 && hasPassive(targetStats, 'invulnerable a a/d')) {
+              valInvulnerableAD = 2;
           }
+          const resistance = Math.max(valDureza, valInvulnerable, valInvulnerableAD);
+          
+          damage = Math.max(baseRaw - resistance, 0);
+          
+          if (damage > 0) {
+            targetStats.currentVida = Math.max(targetStats.currentVida - damage, 0);
+            totalDamageDealt += damage;
+            if (isEnemy(attacker, piece)) addPoints(attacker, damage * SCORE_PER_DAMAGE);
+          }
+          anySuccess = true;
         }
+
         targetsSummary.push({
           name: targetStats.name,
           success,
           damage,
-          vida: targetStats.currentVida,
-          roll,
-          critical,
-          isPifia,
+          eliminated: success && targetStats.currentVida <= 0
         });
+
         if (success && targetStats.currentVida <= 0) {
-          queueDeathMessage(`${targetStats.name} ha sido eliminado por ${attackerStats.name}.`);
-          if (isEnemy(attacker, piece)) {
-            addPoints(attacker, SCORE_PER_KILL);
-          }
+          queueDeathMessage(`${targetStats.name} ha sido eliminado por el Pulso de ${attackerStats.name}.`);
+          if (isEnemy(attacker, piece)) addPoints(attacker, SCORE_PER_KILL);
           eliminatePiece(piece);
         }
       });
 
+      // Formato de lista
+      const formatter = new Intl.ListFormat('es', { style: 'long', type: 'conjunction' });
+      const detailsList = targetsSummary.map(t => {
+        if (!t.success) return `${t.name} (esquiva)`;
+        let detail = `daño ${t.damage}`;
+        if (t.eliminated) detail += ` y eliminado`;
+        return `${t.name} (${detail})`;
+      });
+
+      const affectedText = detailsList.length > 0 ? formatter.format(detailsList) : 'Ninguno';
+
+      // Mensaje final ajustado
+      const logMessage = `${attackerStats.name} activa Pulso (Tirada ${roll}). ${damageDescription}. Afectados: ${affectedText}.`;
+
       pendingAttackInfo = {
         action: actionLabel('pulso'),
         attackerName: attackerStats.name,
-        roll: '-',
-        critical: false,
+        roll: roll,
+        critical: critical,
         targets: targetsSummary,
       };
 
-      playEffectSound(explosionSound);
+      playEffectSound(pulsoSound);
+      addHistoryEntry(attacker.dataset.team, logMessage, { attacker, defenders: affectedPieces.map(({ piece }) => piece) });
 
-      addHistoryEntry(
-        attacker.dataset.team,
-        `${attackerStats.name} activa Pulso: ${targetsSummary
-          .map((t) => `${t.name} (tirada ${t.roll}${t.critical ? ' crítico' : t.isPifia ? ' pifia' : ''}${
-            t.success ? `, daño ${t.damage}` : ', sin efecto'
-          })`)
-          .join('; ')}`,
-        { attacker, defenders: affectedPieces.map(({ piece }) => piece) }
-      );
-
-      const allMissed = targetsSummary.every((t) => !t.success);
-      registerTurnSound({ damageDealt: totalDamageDealt, attackFailed: allMissed });
+      registerTurnSound({ damageDealt: totalDamageDealt, attackFailed: !anySuccess });
 
       renderLifeCards();
       hideTooltip();
@@ -2291,30 +2576,45 @@
       selectedTarget = null;
       attackButton.classList.remove('button--pulse');
       updateCombatInfo();
-      finishTurn(attacker);
+      
+      // Hacemos await para que se vea el mensaje
+      if (affectedPieces.length > 0 || anySuccess) {
+         await showTurnPopup(logMessage);
+      }
+      
+      finishTurn(attacker, { showPopup: false }); // Ya mostramos el popup arriba
     }
+
+
 
     function alliedPiecesInRange1(centerSquare, team) {
       if (!centerSquare) return [];
 
-      const directions = [
-        [0, 0],
-        [1, 0],
-        [-1, 0],
-        [0, 1],
-        [0, -1],
+      // Definimos "Adyacentes" como la CRUZ (más el centro)
+      const offsets = [
+        [0, 0],   // Centro (Objetivo principal)
+        [1, 0],   // Abajo
+        [-1, 0],  // Arriba
+        [0, 1],   // Derecha
+        [0, -1],  // Izquierda
       ];
 
       const allies = [];
       const seenPieces = new Set();
 
-      directions.forEach(([dr, dc]) => {
-        const square = getSquareAt(Number(centerSquare.dataset.row) + dr, Number(centerSquare.dataset.col) + dc);
-        const occupant = square?.querySelector('.piece');
-        if (!occupant || seenPieces.has(occupant)) return;
-        if (occupant.dataset.team !== team) return;
-        seenPieces.add(occupant);
-        allies.push(occupant);
+      offsets.forEach(([dr, dc]) => {
+        const row = Number(centerSquare.dataset.row) + dr;
+        const col = Number(centerSquare.dataset.col) + dc;
+        const square = getSquareAt(row, col);
+        
+        if (square) {
+          const occupant = square.querySelector('.piece');
+          // Debe haber pieza, no estar repetida y ser del MISMO equipo
+          if (occupant && !seenPieces.has(occupant) && occupant.dataset.team === team) {
+            seenPieces.add(occupant);
+            allies.push(occupant);
+          }
+        }
       });
 
       return allies;
@@ -2368,36 +2668,76 @@
       finishTurn(attacker);
     }
 
-    function applyStatBuff(attacker, target, { stat, label }) {
+   function applyStatBuff(attacker, target, { stat, label }) {
       const attackerStats = pieceMap.get(attacker);
       const centerSquare = getPieceSquare(target);
       if (!attackerStats || !centerSquare) return;
 
+      // 1. Identificar objetivos (Centro + Cruz)
       const affected = alliedPiecesInRange1(centerSquare, attacker.dataset.team).map((piece) => {
         const stats = pieceMap.get(piece);
         if (!stats) return null;
+        
+        // --- A) MEJORA DE CRÍTICO ---
         if (stat === 'critico') {
+          // Activamos el flag 'critBuff'. La función isCriticalRoll ya sabe que:
+          // - Si tiene buff y NO tiene Astucia pasiva -> Crítico con 11+
+          // - Si tiene buff Y SI tiene Astucia pasiva -> Crítico con 10+
           stats.critBuff = { remaining: 2, label };
           return { piece, stats };
         }
-        const baseKey = stat === 'ataque' ? 'baseAtaque' : stat === 'defensa' ? 'baseDefensa' : 'baseAgilidad';
-        const baseValue = stats[baseKey] ?? stats[stat] ?? 0;
-        const nextValue = Math.min(baseValue + 1, baseValue + 1);
-        stats[stat] = nextValue;
-        stats.statBuffs = stats.statBuffs || {};
-        stats.statBuffs[stat] = { remaining: 2, baseValue, label };
+
+        // --- B) MEJORAS DE ESTADÍSTICAS (Ataque, Defensa, Agilidad) ---
+        // Definimos qué propiedad base mirar y cuánto sumar
+        const configMap = {
+            'ataque': { baseKey: 'baseAtaque', boost: 1 },
+            'defensa': { baseKey: 'baseDefensa', boost: 1 },
+            'agilidad': { baseKey: 'baseAgilidad', boost: 10 }
+        };
+
+        const config = configMap[stat];
+        if (config) {
+            // Aseguramos que existe el valor base original
+            if (stats[config.baseKey] === undefined) {
+                stats[config.baseKey] = stats[stat];
+            }
+            
+            // Regla: El valor es SIEMPRE Base + Boost (No se acumula, solo se fija)
+            stats[stat] = stats[config.baseKey] + config.boost;
+            
+            // Guardamos el buff para contar los turnos
+            stats.statBuffs = stats.statBuffs || {};
+            stats.statBuffs[stat] = { 
+                remaining: 2, 
+                label, 
+                baseValue: stats[config.baseKey] // Guardamos base para restaurar luego
+            };
+        }
+        
         return { piece, stats };
       });
 
       const validAffected = affected.filter(Boolean);
       const recipientNames = validAffected.map(({ stats }) => stats.name).join(', ');
+
+      // --- 2. PUNTOS (+10 por personaje afectado) ---
+      if (validAffected.length > 0) {
+        const pointsEarned = validAffected.length * 10;
+        addPoints(attacker, pointsEarned);
+        
+        // Usamos sonido de curar (o efecto positivo)
+        if (typeof curarSound !== 'undefined') playEffectSound(curarSound);
+        else playEffectSound(incapacitarSound); 
+      }
+
+      // --- 3. MENSAJES E HISTORIAL ---
       const message = validAffected.length
-        ? `${attackerStats.name} aplica ${label} sobre ${recipientNames}.`
+        ? `${attackerStats.name} aplica ${label} sobre: ${recipientNames}.`
         : `${attackerStats.name} intenta aplicar ${label}, pero nadie se beneficia.`;
 
       addHistoryEntry(attacker.dataset.team, message, {
         attacker,
-        defenders: validAffected.map(({ piece }) => piece),
+        defenders: validAffected.map(({ piece }) => piece), // Los tratamos visualmente como defenders para el log
       });
 
       pendingAttackInfo = {
@@ -2406,60 +2746,92 @@
         roll: '-',
         targets: validAffected.map(({ stats }) => ({
           name: stats.name,
-          success: true,
+          success: true, // Siempre es éxito si es aliado
           damage: 0,
           vida: stats.currentVida,
         })),
       };
 
+      // --- 4. CIERRE VISUAL ---
+      renderLifeCards();
       hideTooltip();
       clearRangeHighlights();
       clearTargetSelection(true);
       attackButton.classList.remove('button--pulse');
       updateCombatInfo();
-      finishTurn(attacker);
+      
+      // Mostramos popup informativo
+      showTurnPopup(message).then(() => {
+          finishTurn(attacker, { showPopup: false });
+      });
     }
 
-    function applyHeal(attacker, target) {
+async function resolveHeal(attacker, target) {
       const attackerStats = pieceMap.get(attacker);
       const targetStats = pieceMap.get(target);
       if (!attackerStats || !targetStats) return;
 
-      const missing = Math.max(targetStats.maxVida - targetStats.currentVida, 0);
-      const healRoll = Math.floor(Math.random() * 6) + 1;
-      const healed = Math.min(healRoll, missing);
-      if (healed > 0) {
-        targetStats.currentVida += healed;
-        addPoints(attacker, healed * 5);
-        renderLifeCards();
+      // 1. Calculamos "Daño Recibido" (Max - Actual)
+      const damageReceived = Math.max(targetStats.maxVida - targetStats.currentVida, 0);
+
+      // Si el objetivo está a tope de vida, no se puede curar
+      if (damageReceived === 0) {
+        await showTurnPopup(`${attackerStats.name} intenta curar a ${targetStats.name}, pero ya está al máximo de salud.`);
+        hideTooltip();
+        clearTargetSelection(true);
+        finishTurn(attacker, { showPopup: false });
+        return;
       }
 
-      const message = healed
-        ? `${attackerStats.name} cura ${healed} a ${targetStats.name} (vida ${targetStats.currentVida}).`
-        : `${attackerStats.name} intenta curar a ${targetStats.name}, pero no hay vida que recuperar.`;
+      // 2. Tirada: Ataque + Daño Recibido + 2d6
+      const die1 = Math.floor(Math.random() * 6) + 1;
+      const die2 = Math.floor(Math.random() * 6) + 1;
+      const roll = die1 + die2;
+      
+      const attackValue = attackerStats.ataque + damageReceived + roll;
+      const difficulty = targetStats.defensa;
+      
+      const success = attackValue >= difficulty;
 
-      addHistoryEntry(attacker.dataset.team, message, { attacker, defenders: [target] });
+      let healed = 0;
+      let healRoll = 0;
+      let resultMessage = "";
 
-      pendingAttackInfo = {
-        action: 'Curar',
-        attackerName: attackerStats.name,
-        roll: '-',
-        targets: [
-          {
-            name: targetStats.name,
-            success: true,
-            damage: -healed,
-            vida: targetStats.currentVida,
-          },
-        ],
-      };
+      if (success) {
+        // 3. Éxito: Tiramos 1d6 para ver cuánto cura
+        healRoll = Math.floor(Math.random() * 6) + 1;
+        // Nunca puede curar más de lo que le falta (Daño Recibido)
+        healed = Math.min(healRoll, damageReceived);
+        
+        targetStats.currentVida += healed;
+        addPoints(attacker, healed * 5); // Damos puntos por curar
 
+        resultMessage = `¡Éxito! Recupera ${healed} puntos de vida (Tirada cura: ${healRoll}).`;
+        // Efecto visual/sonoro
+        playEffectSound(curarSound); // Usamos un sonido genérico de efecto
+      } else {
+        resultMessage = "Fallo. No consigue aplicar la cura.";
+        registerTurnSound({ attackFailed: true }); // Sonido de fallo
+      }
+
+      // 4. Construimos el mensaje detallado
+      const details = `Ataque (${attackerStats.ataque}) + Heridas (${damageReceived}) + Dados (${roll}) = ${attackValue}.\nDificultad (Defensa): ${difficulty}.`;
+      const finalMessage = `${attackerStats.name} intenta curar a ${targetStats.name}.\n${details}\n\n${resultMessage}`;
+
+      // Historial
+      addHistoryEntry(attacker.dataset.team, finalMessage, { attacker, defenders: [target] });
+
+      // 5. Actualizamos UI y mostramos Popup
+      renderLifeCards();
       hideTooltip();
       clearRangeHighlights();
       clearTargetSelection(true);
       attackButton.classList.remove('button--pulse');
       updateCombatInfo();
-      finishTurn(attacker);
+
+      await showTurnPopup(finalMessage);
+      
+      finishTurn(attacker, { showPopup: false });
     }
 
     function clearTargetSelection(preserveAttack = false) {
@@ -2476,28 +2848,120 @@
       }
     }
 
-    function handleActionClick(actionKey) {
+    board.addEventListener('click', async (event) => {
+      // Si no hay piezas o turno activo, no hacemos nada
+      if (turnOrder.length === 0) return;
+
+      const activePiece = turnOrder[turnIndex];
+      const square = event.target.closest('.square');
+      if (!square) return;
+
+      const targetPiece = square.querySelector('.piece');
+
+      // --- A) LÓGICA DE SELECCIÓN DE OBJETIVO (Click en personaje) ---
+      if (targetPiece) {
+        const isSamePiece = targetPiece === activePiece;
+        const isAllyTarget = targetPiece.dataset.team === activePiece.dataset.team;
+
+        // Determinamos si la acción actual busca aliados o enemigos
+        const supportAction = isSupportPower(currentAction);
+
+        if (supportAction) {
+          if (!isAllyTarget) return; // Poder de ayuda: solo a aliados
+        } else {
+          if (isAllyTarget || isSamePiece) return; // Ataque: solo a enemigos
+        }
+
+        // Comprobamos rango
+        const attackerSquare = getPieceSquare(activePiece);
+        const maxRange = rangeForPiece(activePiece);
+        const includeOrigin = supportAction;
+
+        if (!isWithinAttackRange(attackerSquare, square, maxRange, { includeOrigin })) {
+          if (typeof showTurnPopup === 'function') showTurnPopup('El objetivo está fuera de rango.');
+          else alert('El objetivo está fuera de rango.');
+          
+          clearTargetSelection();
+          return;
+        }
+
+        // Marcamos el objetivo
+        clearTargetSelection();
+        square.classList.add('square--target');
+        selectedTarget = targetPiece;
+
+        // Actualizamos información visual
+        const attackerStats = pieceMap.get(activePiece);
+        const targetStats = pieceMap.get(targetPiece);
+        
+        pendingAttackInfo = {
+          action: actionLabel(currentAction),
+          attackerName: attackerStats?.name,
+          defenderName: targetStats?.name,
+          note: supportAction ? 'Aliado seleccionado' : 'Objetivo seleccionado',
+        };
+        updateCombatInfo();
+        attackButton.classList.add('button--pulse');
+        return;
+      }
+
+      // --- B) LÓGICA DE MOVIMIENTO (Click en cuadro vacío) ---
+      // Si tiene la clase 'square--move', es válido para mover
+      if (square.classList.contains('square--move')) {
+        // Doble comprobación de seguridad
+        if (square.querySelector('.piece')) return;
+
+        const distance = movementDistances.get(square);
+
+        // Verificamos que la distancia esté calculada y tengamos movimiento
+        if (distance !== undefined && distance <= remainingMovement(activePiece)) {
+          // 1. Ejecutamos la animación de movimiento
+          await animatePieceToSquare(activePiece, square);
+          
+          // 2. Restamos el movimiento gastado
+          spendMovement(activePiece, distance);
+          
+          // 3. Limpiamos y recalculamos luces (rango y nuevo movimiento posible)
+          clearHighlights();
+          highlightMovement(activePiece);
+          highlightRange(activePiece);
+          updateStatusBar(activePiece);
+        }
+        return;
+      }
+    });
+
+function handleActionClick(actionKey) {
       currentAction = actionKey;
       const attacker = turnOrder[turnIndex];
+      
+      // 1. Acciones sin objetivo (Área)
       if (actionKey === 'pulso') {
         resolvePulse(attacker);
         return;
       }
+
+      // 2. Verificaciones básicas de objetivo
       if (!selectedTarget) {
         const supportAction = isSupportPower(actionKey);
         alert(supportAction ? 'Selecciona primero un aliado dentro de tu rango.' : 'Selecciona primero un enemigo dentro de tu rango.');
         return;
       }
+
       const attackerSquare = getPieceSquare(attacker);
       const targetSquare = getPieceSquare(selectedTarget);
       const maxRange = rangeForPiece(attacker);
       const includeOrigin = isSupportPower(actionKey);
+
       if (!isWithinAttackRange(attackerSquare, targetSquare, maxRange, { includeOrigin })) {
         alert('El objetivo está fuera de rango.');
         clearTargetSelection();
         return;
       }
+
       const supportAction = normalizePowerKey(actionKey);
+
+      // 3. Poderes de Apoyo
       if (supportAction === 'probabilidad') {
         applyProbabilidad(attacker, selectedTarget);
         return;
@@ -2519,10 +2983,38 @@
         return;
       }
       if (supportAction === 'curar') {
-        applyHeal(attacker, selectedTarget);
+        resolveHeal(attacker, selectedTarget);
         return;
       }
+
+      // --- 4. NUEVO: Lógica de Incapacitar ---
+      if (actionKey === 'incapacitar') {
+        const targetStats = pieceMap.get(selectedTarget);
+        if (targetStats.incapacitatedTurns > 0) {
+           if (typeof showTurnPopup === 'function') showTurnPopup(`¡${targetStats.name} ya está incapacitado!`);
+           else alert(`¡${targetStats.name} ya está incapacitado!`);
+           return;
+        }
+        // CAMBIO: Añadido allowCounter: false
+        resolveAttack(attacker, selectedTarget, 'incapacitar', { allowCounter: false });
+        return;
+      }
+
+      if (actionKey === 'control mental') {
+        const targetStats = pieceMap.get(selectedTarget);
+        // Evitamos controlar a alguien que ya está controlado para no liar el código
+        if (targetStats.mindControlled) {
+            showTurnPopup(`¡${targetStats.name} ya está bajo control mental!`);
+            return;
+        }
+        resolveAttack(attacker, selectedTarget, 'control mental');
+        return;
+      }
+      // ---------------------------------------
+
+      // 5. Resto de Ataques (Explosión y Normal)
       prepareAttackInfo(attacker, selectedTarget, actionKey);
+      
       if (actionKey === 'explosion') {
         resolveExplosion(attacker, selectedTarget);
       } else {
@@ -2530,99 +3022,7 @@
       }
     }
 
-    attackButton.addEventListener('click', () => handleActionClick('attack'));
-
-    function remainingMovement(piece) {
-      return movementPool.get(piece) ?? Number(piece.dataset.movimiento);
-    }
-
-    function resetMovement(piece) {
-      movementPool.set(piece, Number(piece.dataset.movimiento));
-    }
-
-    function spendMovement(piece, amount) {
-      const left = Math.max(remainingMovement(piece) - amount, 0);
-      movementPool.set(piece, left);
-    }
-
-    board.addEventListener('click', async (event) => {
-      const activePiece = turnOrder[turnIndex];
-
-      const square = event.target.closest('.square');
-      if (!square) return;
-
-      const targetPiece = square.querySelector('.piece');
-
-      if (targetPiece) {
-        const isSamePiece = targetPiece === activePiece;
-        const isAllyTarget = targetPiece.dataset.team === activePiece.dataset.team;
-
-        const supportAction = isSupportPower(currentAction);
-
-        if (supportAction) {
-          if (!isAllyTarget) return;
-        } else {
-          if (isAllyTarget || isSamePiece) return;
-        }
-
-        const attackerSquare = getPieceSquare(activePiece);
-        const maxRange = rangeForPiece(activePiece);
-        const includeOrigin = supportAction;
-        if (!isWithinAttackRange(attackerSquare, square, maxRange, { includeOrigin })) {
-          alert('Objetivo fuera de rango.');
-          clearTargetSelection();
-          return;
-        }
-        clearTargetSelection();
-        square.classList.add('square--target');
-        selectedTarget = targetPiece;
-        if (supportAction) {
-          const attackerStats = pieceMap.get(activePiece);
-          const targetStats = pieceMap.get(targetPiece);
-          pendingAttackInfo = {
-            action: actionLabel(currentAction),
-            attackerName: attackerStats?.name,
-            defenderName: targetStats?.name,
-            note: 'Preparado para aplicar un poder de apoyo.',
-          };
-        } else {
-          prepareAttackInfo(activePiece, targetPiece, currentAction);
-        }
-        return;
-      }
-
-      if (!square.classList.contains('square--move')) return;
-      if (square.querySelector('.piece')) return;
-      const distance = movementDistances.get(square);
-      if (distance === undefined || distance > remainingMovement(activePiece)) return;
-      await animatePieceToSquare(activePiece, square);
-      spendMovement(activePiece, distance);
-      clearHighlights();
-      highlightMovement(activePiece);
-      highlightRange(activePiece);
-      updateStatusBar(activePiece);
-    });
-
-    function attachTooltipEvents(piece) {
-      piece.addEventListener('pointerenter', () => {
-        const activePiece = turnOrder[turnIndex];
-        if (piece === activePiece || piece.dataset.team === activePiece.dataset.team) {
-          hideTooltip();
-          return;
-        }
-        showTooltip(piece);
-      });
-
-      piece.addEventListener('pointerleave', () => {
-        hideTooltip();
-      });
-    }
-
-    pieces.forEach(({ element }) => {
-      if (element) {
-        attachTooltipEvents(element);
-      }
-    });
+    
 
     function sleep(ms) {
       return new Promise((resolve) => setTimeout(resolve, ms));
@@ -2705,10 +3105,13 @@
 
     function shouldUseIncapacitar(attackerStats, targetStats) {
       if (!attackerStats || !targetStats) return false;
-      const targetResilience = targetStats.resistencia ?? 0;
+      const targetResilience = targetStats.resistencia ?? 0; // Esto leerá 0 o lo calculado si se pasara, pero para IA simple vale
       const targetThreat = targetStats.ataque ?? 0;
       const targetVida = targetStats.currentVida ?? targetStats.vida ?? 0;
-      const potentialDamage = attackerStats.dano ?? Math.max(attackerStats.danoCC ?? 0, attackerStats.danoAD ?? 0);
+      
+      // CAMBIO V2: Simplificar lectura de daño potencial
+      const potentialDamage = attackerStats.dano ?? 0;
+      
       const canLikelyFinish = targetVida <= potentialDamage + 4;
       const tanky = targetResilience > 0 && targetVida > potentialDamage + 6;
       const veryDangerous = targetThreat >= 11;
@@ -2754,7 +3157,10 @@
 
     async function performEnemyTurn(piece) {
       const target = findClosestEnemy(piece);
+      
+      // Si no hay enemigos (muy raro), pasa turno con sonido
       if (!target) {
+        playEffectSound(passTurnSound); 
         finishTurn(piece);
         return;
       }
@@ -2782,10 +3188,14 @@
       await sleep(ENEMY_ACTION_DELAY_MS);
       const refreshedTarget = findClosestEnemy(piece) || target;
       const action = selectBestEnemyAction(piece, refreshedTarget);
+      
+      // Si decide moverse otra vez o no atacar, pasa turno con sonido
       if (action === 'move') {
+        playEffectSound(passTurnSound); // <--- AÑADIDO SONIDO AQUÍ
         finishTurn(piece);
         return;
       }
+      
       selectedTarget = refreshedTarget;
       handleActionClick(action);
     }
@@ -2852,39 +3262,72 @@
 
     async function finishTurn(piece, options = {}) {
       const { skipRegeneration = false, summaryOverride = null, showPopup = null } = options;
-      const regenResult = skipRegeneration ? { regenerated: false, message: '' } : applyRegeneration(piece);
+      
       const stats = pieceMap.get(piece);
+      
+      // 1. Regeneración
+      const regenResult = skipRegeneration ? { regenerated: false, message: '' } : applyRegeneration(piece);
+      
+      // 2. Probabilidad
       const probabilityResult = consumeProbabilidadTurn(piece);
+      
+      // 3. Buffos
       const buffMessages = consumeStatBuffs(piece);
+
+      // --- 4. RECUPERACIÓN DE CONTROL MENTAL (NUEVO) ---
+      let mindControlMsg = '';
+      if (stats && stats.mindControlled) {
+        // Revertimos al equipo original
+        stats.team = stats.originalTeam;
+        piece.dataset.team = stats.originalTeam; // Devuelve el color original
+        
+        // Limpiamos las marcas
+        stats.mindControlled = false;
+        delete stats.originalTeam;
+        
+        mindControlMsg = ` ${stats.name} se libera del control mental y vuelve a su equipo.`;
+      }
+      // --------------------------------------------------
+
+      // Construcción del mensaje final
       const summaryParts = [
         summaryOverride || latestActionMessage || (stats ? `${stats.name} finaliza su turno.` : 'Turno completado.'),
       ];
       if (regenResult?.regenerated) summaryParts.push(regenResult.message);
       if (probabilityResult?.expired) summaryParts.push(probabilityResult.message);
       buffMessages.forEach((msg) => summaryParts.push(msg));
+      
+      if (mindControlMsg) summaryParts.push(mindControlMsg); // Añadimos el mensaje de liberación
+
       const summary = summaryParts.join(' ').trim();
       latestActionMessage = null;
+
       if (latestPopupContext) {
         latestPopupContext.message = summary;
-      } else if (regenResult?.regenerated) {
+      } else if (regenResult?.regenerated || mindControlMsg) {
         setLatestPopupContext(summary, [{ piece, role: piece.dataset.team === 'aliado' ? 'attacker' : 'defender' }]);
       }
+
       const shouldShowPopup = showPopup ?? Boolean(latestPopupContext);
       if (shouldShowPopup) {
         await showTurnPopup(summary);
       } else {
         latestPopupContext = null;
       }
+
       if (pendingDeathMessages.length > 0) {
         await showQueuedDeathPopups();
       }
+
       advanceTurn();
     }
 
-    function startTurn(piece) {
+function startTurn(piece) {
       if (!piece) return;
       const stats = pieceMap.get(piece);
       if (!stats) return;
+
+      // 1. Verificar Incapacitado
       if (stats.incapacitatedTurns && stats.incapacitatedTurns > 0) {
         const incapMessage = `${stats.name} pierde el turno por estar incapacitado.`;
         addHistoryEntry(piece.dataset.team, incapMessage, { attacker: piece });
@@ -2896,19 +3339,39 @@
         finishTurn(piece, { summaryOverride: incapMessage });
         return;
       }
+
+      // 2. Configuración Estándar (Tu código original)
+      // Esto asegura que si eres TÚ quien controla la pieza (incluso por Control Mental), 
+      // los botones y luces se enciendan correctamente.
       resetMovement(piece);
-      setActivePiece(piece);
+      setActivePiece(piece); // Habilita botones Pass/Attack
       clearTargetSelection(true);
       clearHighlights();
       highlightMovement(piece);
       highlightRange(piece);
+
+      // 3. Bloqueo para IA (Solo si NO lo controlas tú)
+      // Si usaste Control Mental, el dataset.team será 'aliado', así que este IF fallará 
+      // y podrás jugar con el personaje. Si es un enemigo real, entra aquí.
+      if (isPlayerVsAI && piece.dataset.team === 'enemigo') {
+        passButton.disabled = true;
+        attackButton.disabled = true;
+        setTimeout(() => performEnemyTurn(piece), 1000);
+      }
     }
+
+    // --- EVENTOS DE LOS BOTONES PRINCIPALES ---
 
     passButton.addEventListener('click', () => {
       const currentPiece = turnOrder[turnIndex];
       playEffectSound(passTurnSound);
       finishTurn(currentPiece, { showPopup: false });
     });
+
+    // ¡ESTA LÍNEA ES CRUCIAL!
+    attackButton.addEventListener('click', () => handleActionClick('attack'));
+
+
 
     function ownerLabel(playerId) {
       if (playerId === 'player1') return 'Jugador 1';
@@ -3022,19 +3485,90 @@
       }
     }
 
+    // --- EVALUADOR DE PERSONAJES (PRIORIDAD: DAÑO > VIDA > RANGO) ---
+    function evaluateCombatValue(key, stats, enemySelections) {
+       
+       // 1. CÁLCULO DE VALOR BRUTO
+       // Multiplicadores ajustados para que el Daño sea lo más valioso
+       let value = 0;
+
+       // PRIORIDAD 1: DAÑO
+       // Multiplicamos por 20. Así un personaje con Daño 3 suma 60 puntos solo por eso.
+       // Uno con Daño 2 suma 40. La diferencia es enorme.
+       value += (stats.dano * 20); 
+
+       // PRIORIDAD 2: VIDA
+       // Multiplicamos por 4. Un personaje con 10 de vida suma 40 puntos.
+       value += (stats.vida * 4);
+
+       // PRIORIDAD 3: RANGO
+       // Multiplicamos por 5. Un personaje a distancia (Rango 3) suma 15 puntos extra.
+       value += (stats.rango * 5);
+
+       // DESEMPATES (Muy poco peso, solo para no elegir al azar si empatan en lo importante)
+       value += (stats.defensa * 0.5);
+       value += (stats.ataque * 0.5);
+
+       // PODERES CLAVE (Solo los que rompen el juego)
+       // Aunque prioricemos stats, si alguien cura o incapacita, sigue siendo útil.
+       const activePowers = (stats.poderes?.activos || []).map(p => normalizePowerKey(p.nombre || p));
+       if (activePowers.includes('incapacitar')) value += 15;
+       if (activePowers.includes('curar')) value += 20;
+
+
+       // 2. LÓGICA DE RESPUESTA (COUNTER PICK SIMPLIFICADO)
+       // Solo miramos si el enemigo nos obliga a priorizar aún más esas 3 stats
+       if (enemySelections.length > 0) {
+           let enemyTankiness = 0;
+           let enemyDamage = 0;
+
+           enemySelections.forEach(enemyKey => {
+               const est = pieceStats[enemyKey];
+               enemyTankiness += est.vida; // Sumamos la vida total del enemigo
+               enemyDamage += est.dano;    // Sumamos el daño total del enemigo
+           });
+
+           // Si el enemigo tiene mucha Vida en total -> Nuestro DAÑO vale aún más
+           if (enemyTankiness > 30) {
+               value += (stats.dano * 10); // Bonus extra al daño
+           }
+
+           // Si el enemigo pega muy fuerte -> Nuestra VIDA vale aún más
+           if (enemyDamage > 10) {
+               value += (stats.vida * 2); // Bonus extra a la vida
+           }
+       }
+
+       return value;
+    }
+
+    // --- FUNCIÓN DE SELECCIÓN IA ---
     function performAIPick() {
       if (!draftActive) return;
       if (draftIsComplete() || draftIndex >= draftOrder.length) {
         finalizeDraft();
         return;
       }
+      
       const options = availablePool();
       if (options.length === 0) {
         finalizeDraft();
         return;
       }
-      const randomKey = options[Math.floor(Math.random() * options.length)];
-      handleDraftPick(randomKey);
+
+      const playerSelections = selections.player1;
+
+      // Ordenamos estrictamente por el valor calculado
+      options.sort((a, b) => {
+          const valA = evaluateCombatValue(a, pieceStats[a], playerSelections);
+          const valB = evaluateCombatValue(b, pieceStats[b], playerSelections);
+          
+          // Reducimos el factor aleatorio al mínimo (casi 0) para que la IA sea "seria"
+          // y elija siempre lo que considere matemáticamente mejor.
+          return (valB + Math.random()) - (valA + Math.random());
+      });
+
+      handleDraftPick(options[0]);
     }
 
     function buildPositionsFromSelections() {
@@ -3086,28 +3620,43 @@
     }
 
     function beginDraft(mode) {
-      isPlayerVsAI = false;
+      // 1. CORRECCIÓN: Asignamos el modo correctamente
+      isPlayerVsAI = (mode === 'ai'); 
+
       selections.player1 = [];
       selections.player2 = [];
       availableCharacters = Object.keys(pieceStats);
+      
       firstPicker = Math.random() < 0.5 ? 'player1' : 'player2';
       draftOrder = generateDraftOrder(firstPicker);
       draftIndex = 0;
       draftActive = true;
+      
       showDraftScreen();
       updateDraftLabels();
       renderDraftCards();
 
-      const pickerId = draftOrder[draftIndex];
+      // 2. CORRECCIÓN: Si la IA empieza eligiendo, hay que avisarla
+      const currentPicker = draftOrder[draftIndex];
+      if (isPlayerVsAI && currentPicker === 'player2') {
+        setTimeout(performAIPick, 600);
+      }
     }
 
-    function startGame() {
+function startGame() {
       if (gameStarted) return;
+      
+      // --- AÑADE ESTAS DOS LÍNEAS ---
+      introMusic.pause();        // Paramos la intro
+      introMusic.currentTime = 0; // La rebobinamos
+      // ------------------------------
+
       gameStarted = true;
       hideStartScreen();
       draftScreen.hidden = true;
       gameContainer.hidden = false;
-      startBackgroundMusic();
+      startBackgroundMusic(); // Aquí arranca la música de Endgame
+      
       if (turnOrder.length > 0) {
         highlightRange(turnOrder[turnIndex]);
         startTurn(turnOrder[turnIndex]);
@@ -3138,21 +3687,35 @@
       return initialPositions.length > 0;
     }
 
-    function startWithoutMenus() {
-      draftActive = false;
-      hideStartScreen();
-      draftScreen.hidden = true;
-      draftScreen.style.display = 'none';
-      draftScreen.style.opacity = '0';
-      draftScreen.style.visibility = 'hidden';
+   // ... código anterior ...
 
-      if (!prepareDefaultSelections()) return;
+  /* COMENTAMOS O BORRAMOS LA FUNCIÓN DE SALTAR MENÚS
+     startWithoutMenus(); 
+  */
 
-      rebuildGameState();
-      startGame();
-    }
+  // Y AÑADIMOS ESTO PARA INICIAR NORMALMENTE:
+  function initNormalGame() {
+      // Configuramos la pantalla visible
+      startScreen.hidden = false;
+      startScreen.classList.remove('start-screen--hidden');
+      startScreen.removeAttribute('hidden');
+      startScreen.style.display = 'grid';
+      startScreen.style.opacity = '1';
+      startScreen.style.visibility = 'visible';
 
-    startWithoutMenus();
+      // --- AÑADE ESTO PARA ARRANCAR LA MÚSICA ---
+      introMusic.play().catch(() => {
+          // Si el navegador bloquea el autoplay, esperamos al primer clic en cualquier sitio
+          console.log("Autoplay bloqueado: esperando interacción del usuario.");
+          document.addEventListener('click', () => {
+              introMusic.play().catch(() => {});
+          }, { once: true });
+      });
+      // ------------------------------------------
+  }
+
+  initNormalGame();
+</script>
   </script>
 </body>
 </html>
