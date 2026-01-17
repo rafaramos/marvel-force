@@ -33,8 +33,8 @@ let turnIndex = 0;
 let selectedTarget = null;
 let currentAction = 'Ataque'; // Acción seleccionada
 let activeBarriers = []; // Lista de barreras activas
-let barrierDirection = null;
 let barrierPreviewSquares = [];
+let pendingBarrierPlacement = null;
 
 // --- SISTEMA DE SONIDOS (Placeholders) ---
 const sounds = {
@@ -62,20 +62,11 @@ function getDistance(sq1, sq2) {
          Math.abs(Number(sq1.dataset.col) - Number(sq2.dataset.col));
 }
 
-function getCardinalDirection(fromSq, toSq) {
-  const rowDiff = Number(toSq.dataset.row) - Number(fromSq.dataset.row);
-  const colDiff = Number(toSq.dataset.col) - Number(fromSq.dataset.col);
-  if (Math.abs(rowDiff) >= Math.abs(colDiff)) {
-    return [rowDiff >= 0 ? 1 : -1, 0];
-  }
-  return [0, colDiff >= 0 ? 1 : -1];
-}
-
-function getAdjacentDirection(fromSq, toSq) {
-  const rowDiff = Number(toSq.dataset.row) - Number(fromSq.dataset.row);
-  const colDiff = Number(toSq.dataset.col) - Number(fromSq.dataset.col);
-  if (Math.abs(rowDiff) + Math.abs(colDiff) !== 1) return null;
-  return [rowDiff, colDiff];
+function areAdjacentSquares(fromSq, toSq) {
+  if (!fromSq || !toSq) return false;
+  const rowDiff = Math.abs(Number(toSq.dataset.row) - Number(fromSq.dataset.row));
+  const colDiff = Math.abs(Number(toSq.dataset.col) - Number(fromSq.dataset.col));
+  return rowDiff + colDiff === 1;
 }
 
 function clearBarrierPreview() {
@@ -83,16 +74,16 @@ function clearBarrierPreview() {
   barrierPreviewSquares = [];
 }
 
-function updateBarrierPreview(originSq, direction) {
+function updateBarrierPreview(originSq) {
   clearBarrierPreview();
-  if (!originSq || !direction) return;
-  const [dRow, dCol] = direction;
-  for (let i = 0; i < 4; i++) {
-    const sq = getSquareAt(Number(originSq.dataset.row) + dRow * i, Number(originSq.dataset.col) + dCol * i);
-    if (!sq) break;
+  if (!originSq) return;
+  const neighbors = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+  neighbors.forEach(([dr, dc]) => {
+    const sq = getSquareAt(Number(originSq.dataset.row) + dr, Number(originSq.dataset.col) + dc);
+    if (!sq || sq.querySelector('.piece') || sq.classList.contains('square--barrier')) return;
     sq.classList.add('square--barrier-preview');
     barrierPreviewSquares.push(sq);
-  }
+  });
 }
 
 function hasPassive(stats, partialName) {
@@ -307,9 +298,26 @@ board.addEventListener('click', (e) => {
   // 2. Selección de Objetivo
   const targetPiece = sq.querySelector('.piece');
   
+  if (pendingBarrierPlacement) {
+    if (!areAdjacentSquares(pendingBarrierPlacement.lastSquare, sq)) return;
+    if (!placeBarrierBlock(sq)) return;
+    pendingBarrierPlacement.remaining--;
+    pendingBarrierPlacement.created += 1;
+    pendingBarrierPlacement.lastSquare = sq;
+    updateBarrierPreview(sq);
+    if (pendingBarrierPlacement.remaining <= 0 || barrierPreviewSquares.length === 0) {
+      const created = pendingBarrierPlacement.created;
+      logCombat(`Barrera creada (${created} segmentos).`);
+      pendingBarrierPlacement = null;
+      clearBarrierPreview();
+      endTurn();
+    }
+    return;
+  }
+
   // Caso especial: Barrera (target es una casilla vacía)
   if (currentAction === 'Barrera' && sq.classList.contains('square--range') && !targetPiece && !sq.classList.contains('square--barrier')) {
-    selectSquareTarget(sq);
+    resolveBarrier(activePiece, sq);
     return;
   }
 
@@ -337,16 +345,6 @@ board.addEventListener('click', (e) => {
   }
 });
 
-board.addEventListener('mousemove', (e) => {
-  if (currentAction !== 'Barrera' || !selectedTarget || !selectedTarget.classList?.contains('square')) return;
-  const hoverSq = e.target.closest('.square');
-  if (!hoverSq) return;
-  const direction = getAdjacentDirection(selectedTarget, hoverSq);
-  if (!direction) return;
-  barrierDirection = direction;
-  updateBarrierPreview(selectedTarget, barrierDirection);
-});
-
 function selectTarget(piece) {
   clearTargetSelection();
   selectedTarget = piece;
@@ -359,16 +357,12 @@ function selectSquareTarget(sq) {
   selectedTarget = sq; // Target es el DIV, no una pieza
   sq.classList.add('square--target');
   attackButton.classList.add('button--pulse');
-  const attacker = turnOrder[turnIndex];
-  barrierDirection = getCardinalDirection(getPieceSquare(attacker), sq);
-  updateBarrierPreview(sq, barrierDirection);
 }
 
 function clearTargetSelection() {
   selectedTarget = null;
   squares.forEach(s => s.classList.remove('square--target'));
   attackButton.classList.remove('button--pulse');
-  barrierDirection = null;
   clearBarrierPreview();
 }
 
@@ -389,6 +383,7 @@ attackButton.addEventListener('click', () => {
   else if (currentAction === 'Superfuerza' || currentAction === 'Telekinesis') resolveThrow(attacker, selectedTarget);
   else if (currentAction.includes('Mejora')) resolveBuff(attacker, selectedTarget, currentAction);
   
+  if (currentAction === 'Barrera' && pendingBarrierPlacement) return;
   // Finalizar turno (salvo doble ataque, que es complejo, lo simplificamos a 1 acción)
   endTurn();
 });
@@ -571,26 +566,22 @@ function resolveThrow(attacker, defender) {
   }
 }
 
+function placeBarrierBlock(square) {
+  if (!square || square.querySelector('.piece') || square.classList.contains('square--barrier')) return false;
+  const barrier = document.createElement('div');
+  barrier.className = 'barrier';
+  square.classList.add('square--barrier');
+  square.appendChild(barrier);
+  activeBarriers.push({ element: barrier, square, turns: BARRIER_DURATION });
+  return true;
+}
+
 function resolveBarrier(attacker, square) {
   if (!square) return;
-  const direction = barrierDirection || getCardinalDirection(getPieceSquare(attacker), square);
-  if (!direction) return;
-  const [dRow, dCol] = direction;
-  let created = 0;
-
-  for (let i = 0; i < 4; i++) {
-    const sq = getSquareAt(Number(square.dataset.row) + dRow * i, Number(square.dataset.col) + dCol * i);
-    if (!sq || sq.querySelector('.piece') || sq.classList.contains('square--barrier')) break;
-    const barrier = document.createElement('div');
-    barrier.className = 'barrier';
-    sq.classList.add('square--barrier');
-    sq.appendChild(barrier);
-    activeBarriers.push({ element: barrier, square: sq, turns: BARRIER_DURATION });
-    created++;
-  }
-
+  if (!placeBarrierBlock(square)) return;
   playSound('barrier');
-  logCombat(`Barrera creada (${created} segmentos).`);
+  pendingBarrierPlacement = { attacker, remaining: 3, lastSquare: square, created: 1 };
+  updateBarrierPreview(square);
 }
 
 function resolveBuff(attacker, centerTarget, actionName) {

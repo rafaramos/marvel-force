@@ -192,8 +192,8 @@
       // --- NUEVA VARIABLE DE ESTADO ---
     let pendingTelekinesis = null; // Guardará { attacker, victim } mientras eliges destino
       const BARRIER_SEGMENTS = 4;
-      let barrierDirection = null;
       let barrierPreviewSquares = [];
+      let pendingBarrierPlacement = null;
 
 
 
@@ -795,20 +795,11 @@ function registerTurnSound({ damageDealt = 0, attackFailed = false, zeroDamageHi
       return Boolean(square?.classList.contains('square--barrier'));
     }
 
-    function getCardinalDirection(fromSquare, toSquare) {
-      const rowDiff = Number(toSquare.dataset.row) - Number(fromSquare.dataset.row);
-      const colDiff = Number(toSquare.dataset.col) - Number(fromSquare.dataset.col);
-      if (Math.abs(rowDiff) >= Math.abs(colDiff)) {
-        return [rowDiff >= 0 ? 1 : -1, 0];
-      }
-      return [0, colDiff >= 0 ? 1 : -1];
-    }
-
-    function getAdjacentDirection(fromSquare, toSquare) {
-      const rowDiff = Number(toSquare.dataset.row) - Number(fromSquare.dataset.row);
-      const colDiff = Number(toSquare.dataset.col) - Number(fromSquare.dataset.col);
-      if (Math.abs(rowDiff) + Math.abs(colDiff) !== 1) return null;
-      return [rowDiff, colDiff];
+    function areAdjacentSquares(firstSquare, secondSquare) {
+      if (!firstSquare || !secondSquare) return false;
+      const rowDiff = Math.abs(Number(secondSquare.dataset.row) - Number(firstSquare.dataset.row));
+      const colDiff = Math.abs(Number(secondSquare.dataset.col) - Number(firstSquare.dataset.col));
+      return rowDiff + colDiff === 1;
     }
 
     function clearBarrierPreview() {
@@ -816,19 +807,20 @@ function registerTurnSound({ damageDealt = 0, attackFailed = false, zeroDamageHi
       barrierPreviewSquares = [];
     }
 
-    function updateBarrierPreview(originSquare, direction) {
+    function updateBarrierPreview(originSquare) {
       clearBarrierPreview();
-      if (!originSquare || !direction) return;
-      const [dr, dc] = direction;
-      for (let i = 0; i < BARRIER_SEGMENTS; i += 1) {
+      if (!originSquare) return;
+      const offsets = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+      offsets.forEach(([dr, dc]) => {
         const square = getSquareAt(
-          Number(originSquare.dataset.row) + dr * i,
-          Number(originSquare.dataset.col) + dc * i
+          Number(originSquare.dataset.row) + dr,
+          Number(originSquare.dataset.col) + dc
         );
-        if (!square) break;
+        if (!square) return;
+        if (square.querySelector('.piece') || isBarrierSquare(square)) return;
         square.classList.add('square--barrier-preview');
         barrierPreviewSquares.push(square);
-      }
+      });
     }
 
     function computeRangeDistances(originSquare, maxRange) {
@@ -1005,6 +997,7 @@ function registerTurnSound({ damageDealt = 0, attackFailed = false, zeroDamageHi
       clearRangeHighlights();
       tooltip.hidden = true;
       selectedTarget = null;
+      pendingBarrierPlacement = null;
     }
 
     function highlightMovement(piece) {
@@ -1871,31 +1864,17 @@ async function resolvePulse(attacker) {
   finishTurn(attacker, { showPopup: false });
 }
 
-async function resolveBarrier(attacker, targetSquare) {
+function placeBarrierBlock(targetSquare) {
+  if (!targetSquare || targetSquare.querySelector('.piece') || isBarrierSquare(targetSquare)) return false;
+  const barrier = document.createElement('div');
+  barrier.className = 'barrier';
+  targetSquare.classList.add('square--barrier');
+  targetSquare.appendChild(barrier);
+  return true;
+}
+
+async function finalizeBarrierPlacement(attacker, created) {
   const attackerStats = pieceMap.get(attacker);
-  if (!attackerStats || !targetSquare) return;
-
-  const originSquare = getPieceSquare(attacker);
-  const direction = barrierDirection || (originSquare ? getCardinalDirection(originSquare, targetSquare) : null);
-  if (!direction) return;
-
-  const [dr, dc] = direction;
-  let created = 0;
-
-  for (let i = 0; i < BARRIER_SEGMENTS; i += 1) {
-    const square = getSquareAt(
-      Number(targetSquare.dataset.row) + dr * i,
-      Number(targetSquare.dataset.col) + dc * i
-    );
-    if (!square || square.querySelector('.piece') || isBarrierSquare(square)) break;
-    const barrier = document.createElement('div');
-    barrier.className = 'barrier';
-    square.classList.add('square--barrier');
-    square.appendChild(barrier);
-    created += 1;
-  }
-
-  playEffectSound(barrierSound);
   const message = `${attackerStats.name} crea una barrera (${created} bloques).`;
 
   pendingAttackInfo = {
@@ -1913,6 +1892,8 @@ async function resolveBarrier(attacker, targetSquare) {
   };
 
   addHistoryEntry(attacker.dataset.team, message, { attacker });
+  pendingBarrierPlacement = null;
+  clearBarrierPreview();
   hideTooltip();
   clearRangeHighlights();
   clearTargetSelection(true);
@@ -1920,6 +1901,32 @@ async function resolveBarrier(attacker, targetSquare) {
   updateCombatInfo();
   await showTurnPopup(message);
   finishTurn(attacker, { showPopup: false });
+}
+
+async function resolveBarrier(attacker, targetSquare) {
+  const attackerStats = pieceMap.get(attacker);
+  if (!attackerStats || !targetSquare) return;
+  if (!placeBarrierBlock(targetSquare)) {
+    if (typeof showTurnPopup === 'function') await showTurnPopup('No se pudo colocar la barrera.');
+    return;
+  }
+
+  playEffectSound(barrierSound);
+  pendingBarrierPlacement = {
+    attacker,
+    remaining: BARRIER_SEGMENTS - 1,
+    lastSquare: targetSquare,
+    created: 1,
+  };
+  clearRangeHighlights();
+  clearTargetSelection(true);
+  updateBarrierPreview(targetSquare);
+  attackButton.classList.add('button--pulse');
+  updateCombatInfo();
+
+  if (pendingBarrierPlacement.remaining <= 0 || barrierPreviewSquares.length === 0) {
+    await finalizeBarrierPlacement(attacker, pendingBarrierPlacement.created);
+  }
 }
 
 
@@ -2262,7 +2269,6 @@ async function resolveHeal(attacker, target) {
       
       squares.forEach((square) => square.classList.remove('square--target'));
       selectedTarget = null;
-      barrierDirection = null;
       clearBarrierPreview();
       
       if (!preserveAttack) {
@@ -2316,6 +2322,31 @@ async function resolveHeal(attacker, target) {
 
       const targetPiece = square.querySelector('.piece');
 
+      if (pendingBarrierPlacement) {
+        if (!areAdjacentSquares(pendingBarrierPlacement.lastSquare, square)) {
+          const msg = 'La barrera solo puede crecer en casillas adyacentes.';
+          if (typeof showTurnPopup === 'function') showTurnPopup(msg);
+          else alert(msg);
+          return;
+        }
+        if (!placeBarrierBlock(square)) {
+          const msg = 'No se puede colocar la barrera en esa casilla.';
+          if (typeof showTurnPopup === 'function') showTurnPopup(msg);
+          else alert(msg);
+          return;
+        }
+        pendingBarrierPlacement.created += 1;
+        pendingBarrierPlacement.remaining -= 1;
+        pendingBarrierPlacement.lastSquare = square;
+        updateBarrierPreview(square);
+
+        const hasMore = pendingBarrierPlacement.remaining > 0 && barrierPreviewSquares.length > 0;
+        if (!hasMore) {
+          await finalizeBarrierPlacement(pendingBarrierPlacement.attacker, pendingBarrierPlacement.created);
+        }
+        return;
+      }
+
       if (currentAction === 'barrera' && !targetPiece) {
         const isOrange = square.classList.contains('square--range');
         if (!isOrange || isBarrierSquare(square)) {
@@ -2324,12 +2355,7 @@ async function resolveHeal(attacker, target) {
           else alert(msg);
           return;
         }
-        clearTargetSelection();
-        square.classList.add('square--target');
-        selectedTarget = square;
-        barrierDirection = getCardinalDirection(getPieceSquare(activePiece), square);
-        updateBarrierPreview(square, barrierDirection);
-        attackButton.classList.add('button--pulse');
+        await resolveBarrier(activePiece, square);
         return;
       }
 
@@ -2425,17 +2451,6 @@ async function resolveHeal(attacker, target) {
       }
     });
 
-    board.addEventListener('mousemove', (event) => {
-      if (currentAction !== 'barrera') return;
-      if (!selectedTarget || !selectedTarget.classList?.contains('square')) return;
-      const hoverSquare = event.target.closest('.square');
-      if (!hoverSquare) return;
-      const direction = getAdjacentDirection(selectedTarget, hoverSquare);
-      if (!direction) return;
-      barrierDirection = direction;
-      updateBarrierPreview(selectedTarget, barrierDirection);
-    });
-
    function handleActionClick(actionKey) {
   currentAction = actionKey;
   const attacker = turnOrder[turnIndex];
@@ -2472,8 +2487,12 @@ async function resolveHeal(attacker, target) {
     return;
   }
 
+  if (actionKey === 'barrera' && pendingBarrierPlacement) {
+    return;
+  }
+
   if (actionKey === 'barrera') {
-    const targetSquare = selectedTarget.classList?.contains('square')
+    const targetSquare = selectedTarget?.classList?.contains('square')
       ? selectedTarget
       : getPieceSquare(selectedTarget);
     const isInOrangeZone = targetSquare?.classList.contains('square--range');
@@ -2895,6 +2914,9 @@ function startTurn(piece) {
   if (!piece) return;
   const stats = pieceMap.get(piece);
   if (!stats) return;
+
+  pendingBarrierPlacement = null;
+  clearBarrierPreview();
 
   // 1. Verificar Incapacitado
   if (stats.incapacitatedTurns && stats.incapacitatedTurns > 0) {
