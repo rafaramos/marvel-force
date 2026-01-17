@@ -278,6 +278,7 @@ function highlightRange(piece) {
   squares.forEach((square) => {
     const dist = getDistance(origin, square);
     if (dist <= 0 || dist > range) return;
+    if (square.classList.contains('square--barrier')) return;
     if (dist > 1 && !hasLineOfSight(origin, square)) return;
     square.classList.add('square--range');
   });

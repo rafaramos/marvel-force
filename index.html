@@ -947,6 +947,7 @@ function registerTurnSound({ damageDealt = 0, attackFailed = false, zeroDamageHi
   squares.forEach((square) => {
     const dist = attackDistance(origin, square);
     if (dist > maxCheck) return;
+    if (isBarrierSquare(square)) return;
     if (dist === 0 && !isSupport) return;
     if (!isSupport && dist > 1 && !hasLineOfSight(origin, square)) return;
 
@@ -2270,6 +2271,7 @@ async function resolveHeal(attacker, target) {
       squares.forEach((square) => {
         const dist = attackDistance(origin, square);
         if (dist > maxCheck) return;
+        if (isBarrierSquare(square)) return;
         if (dist === 0 && !isSupport) return;
         if (!isSupport && dist > 1 && !hasLineOfSight(origin, square)) return;
 
