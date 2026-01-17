@@ -286,13 +286,7 @@ function highlightRange(piece) {
     if (dist <= 0 || dist > range) return;
     if (square.classList.contains('square--barrier')) return;
     const lineBlocked = dist > 1 && !hasLineOfSight(origin, square);
-    if (lineBlocked) {
-      if (!isFlyingAttack) return;
-      const targetPiece = square.querySelector('.piece');
-      if (!targetPiece) return;
-      const targetStats = getEffectiveStats(targetPiece);
-      if (!hasPassive(targetStats, 'Volar')) return;
-    }
+    if (lineBlocked && !isFlyingAttack) return;
     square.classList.add('square--range');
   });
 
@@ -515,7 +509,7 @@ function resolveAttack(attacker, defender) {
     return;
   }
   const lineBlocked = distance > 1 && !hasLineOfSight(attackerSquare, defenderSquare);
-  if (lineBlocked && !(attackerCanFly && defenderCanFly)) {
+  if (lineBlocked && !attackerCanFly) {
     logCombat('Ataque bloqueado por una barrera.');
     return;
   }
