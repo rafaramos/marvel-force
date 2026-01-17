@@ -947,6 +947,7 @@ function registerTurnSound({ damageDealt = 0, attackFailed = false, zeroDamageHi
 
   rangeDistances.forEach((dist, square) => {
     if (dist === 0 && !isSupport) return;
+    if (!isSupport && dist > 1 && !hasLineOfSight(origin, square)) return;
 
     let isValidSquare = false;
     if (dist <= physRange) {
@@ -1008,11 +1009,45 @@ function registerTurnSound({ damageDealt = 0, attackFailed = false, zeroDamageHi
       });
     }
 
+    function hasLineOfSight(attackerSquare, targetSquare) {
+      const startRow = Number(attackerSquare.dataset.row);
+      const startCol = Number(attackerSquare.dataset.col);
+      const endRow = Number(targetSquare.dataset.row);
+      const endCol = Number(targetSquare.dataset.col);
+
+      let x0 = startCol;
+      let y0 = startRow;
+      const x1 = endCol;
+      const y1 = endRow;
+      const dx = Math.abs(x1 - x0);
+      const dy = Math.abs(y1 - y0);
+      const sx = x0 < x1 ? 1 : -1;
+      const sy = y0 < y1 ? 1 : -1;
+      let err = dx - dy;
+
+      while (!(x0 === x1 && y0 === y1)) {
+        const e2 = 2 * err;
+        if (e2 > -dy) {
+          err -= dy;
+          x0 += sx;
+        }
+        if (e2 < dx) {
+          err += dx;
+          y0 += sy;
+        }
+        if (x0 === x1 && y0 === y1) break;
+        const square = getSquareAt(y0, x0);
+        if (square && isBarrierSquare(square)) return false;
+      }
+      return true;
+    }
+
     function isWithinAttackRange(attackerSquare, targetSquare, maxRange, { includeOrigin = false } = {}) {
-      const distances = computeRangeDistances(attackerSquare, maxRange);
-      const distance = distances.get(targetSquare);
-      if (distance === undefined) return false;
-      return includeOrigin ? distance >= 0 : distance > 0;
+      const distance = attackDistance(attackerSquare, targetSquare);
+      if (distance > maxRange) return false;
+      if (!includeOrigin && distance === 0) return false;
+      if (distance > 1 && !hasLineOfSight(attackerSquare, targetSquare)) return false;
+      return true;
     }
 
     
@@ -1532,8 +1567,19 @@ async function resolveAttack(attacker, defender, actionKey = 'attack', options =
   const attackerSquare = getPieceSquare(attacker);
   const targetSquare = getPieceSquare(defender);
   const maxRange = rangeForAction(attacker, actionKey);
-  const reachableSquares = computeRangeDistances(attackerSquare, maxRange);
-  if (!reachableSquares.has(targetSquare)) {
+  const distance = attackDistance(attackerSquare, targetSquare);
+  if (distance > maxRange) {
+    const blockedMessage = 'El objetivo está fuera de rango.';
+    addHistoryEntry(attacker.dataset.team, blockedMessage, { attacker, defenders: [defender] });
+    pendingAttackInfo = null;
+    updateCombatInfo();
+    if (!skipTurnAdvance) {
+      await showTurnPopup(blockedMessage);
+      finishTurn(attacker, { showPopup: false });
+    }
+    return;
+  }
+  if (distance > 1 && !hasLineOfSight(attackerSquare, targetSquare)) {
     const blockedMessage = 'La barrera bloquea el ataque.';
     addHistoryEntry(attacker.dataset.team, blockedMessage, { attacker, defenders: [defender] });
     pendingAttackInfo = null;
@@ -1544,8 +1590,6 @@ async function resolveAttack(attacker, defender, actionKey = 'attack', options =
     }
     return;
   }
-  const distance = attackDistance(attackerSquare, targetSquare);
-
   // 1. CÁLCULOS
   const die1 = Math.floor(Math.random() * 6) + 1;
   const die2 = Math.floor(Math.random() * 6) + 1;
@@ -2219,6 +2263,7 @@ async function resolveHeal(attacker, target) {
 
       rangeDistances.forEach((dist, square) => {
         if (dist === 0 && !isSupport) return;
+        if (!isSupport && dist > 1 && !hasLineOfSight(origin, square)) return;
 
         let isValidSquare = false;
 

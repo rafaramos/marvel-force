@@ -62,6 +62,39 @@ function getDistance(sq1, sq2) {
          Math.abs(Number(sq1.dataset.col) - Number(sq2.dataset.col));
 }
 
+function hasLineOfSight(attackerSquare, targetSquare) {
+  const startRow = Number(attackerSquare.dataset.row);
+  const startCol = Number(attackerSquare.dataset.col);
+  const endRow = Number(targetSquare.dataset.row);
+  const endCol = Number(targetSquare.dataset.col);
+
+  let x0 = startCol;
+  let y0 = startRow;
+  const x1 = endCol;
+  const y1 = endRow;
+  const dx = Math.abs(x1 - x0);
+  const dy = Math.abs(y1 - y0);
+  const sx = x0 < x1 ? 1 : -1;
+  const sy = y0 < y1 ? 1 : -1;
+  let err = dx - dy;
+
+  while (!(x0 === x1 && y0 === y1)) {
+    const e2 = 2 * err;
+    if (e2 > -dy) {
+      err -= dy;
+      x0 += sx;
+    }
+    if (e2 < dx) {
+      err += dx;
+      y0 += sy;
+    }
+    if (x0 === x1 && y0 === y1) break;
+    const square = getSquareAt(y0, x0);
+    if (square && square.classList.contains('square--barrier')) return false;
+  }
+  return true;
+}
+
 function computeRangeDistances(originSquare, maxRange) {
   const distances = new Map();
   if (!originSquare) return distances;
@@ -259,6 +292,7 @@ function highlightRange(piece) {
       const newDist = distance + 1;
       visited.set(neighbor, newDist);
       if (newDist <= range) {
+        if (newDist > 1 && !hasLineOfSight(origin, neighbor)) return;
         neighbor.classList.add('square--range');
         queue.push({ square: neighbor, distance: newDist });
       }
@@ -463,8 +497,12 @@ function resolveAttack(attacker, defender) {
   const attackerSquare = getPieceSquare(attacker);
   const defenderSquare = getPieceSquare(defender);
   const maxRange = attStats.rango === 0 ? 1 : attStats.rango;
-  const reachableSquares = computeRangeDistances(attackerSquare, maxRange);
-  if (!reachableSquares.has(defenderSquare)) {
+  const distance = getDistance(attackerSquare, defenderSquare);
+  if (distance > maxRange) {
+    logCombat('El objetivo está fuera de rango.');
+    return;
+  }
+  if (distance > 1 && !hasLineOfSight(attackerSquare, defenderSquare)) {
     logCombat('Ataque bloqueado por una barrera.');
     return;
   }
