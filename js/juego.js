@@ -276,7 +276,6 @@ function highlightRange(piece) {
   const canFly = hasPassive(stats, 'Volar');
   const isFlyingAttack = canFly && currentAction === 'Ataque';
   let range = stats.rango === 0 ? 1 : stats.rango;
-  const ignoreBarrierForAttack = isFlyingAttack;
 
   // Modificadores de rango por acción
   if (currentAction === 'Superfuerza' || currentAction === 'Telekinesis') range = 3; // Rango para lanzar objetos
@@ -286,14 +285,14 @@ function highlightRange(piece) {
     const dist = getDistance(origin, square);
     if (dist <= 0 || dist > range) return;
     if (square.classList.contains('square--barrier')) return;
-    if (isFlyingAttack) {
+    const lineBlocked = dist > 1 && !hasLineOfSight(origin, square);
+    if (lineBlocked) {
+      if (!isFlyingAttack) return;
       const targetPiece = square.querySelector('.piece');
-      if (targetPiece) {
-        const targetStats = getEffectiveStats(targetPiece);
-        if (!hasPassive(targetStats, 'Volar')) return;
-      }
+      if (!targetPiece) return;
+      const targetStats = getEffectiveStats(targetPiece);
+      if (!hasPassive(targetStats, 'Volar')) return;
     }
-    if (!ignoreBarrierForAttack && dist > 1 && !hasLineOfSight(origin, square)) return;
     square.classList.add('square--range');
   });
 
@@ -507,7 +506,6 @@ function resolveAttack(attacker, defender) {
   const defenderSquare = getPieceSquare(defender);
   const maxRange = attStats.rango === 0 ? 1 : attStats.rango;
   const distance = getDistance(attackerSquare, defenderSquare);
-  const ignoreBarrierForAttack = attackerCanFly && defenderCanFly;
   if (attackerCanFly && !defenderCanFly) {
     logCombat('Un volador solo puede atacar a otro volador.');
     return;
@@ -516,7 +514,8 @@ function resolveAttack(attacker, defender) {
     logCombat('El objetivo está fuera de rango.');
     return;
   }
-  if (distance > 1 && !ignoreBarrierForAttack && !hasLineOfSight(attackerSquare, defenderSquare)) {
+  const lineBlocked = distance > 1 && !hasLineOfSight(attackerSquare, defenderSquare);
+  if (lineBlocked && !(attackerCanFly && defenderCanFly)) {
     logCombat('Ataque bloqueado por una barrera.');
     return;
   }
