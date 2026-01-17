@@ -67,30 +67,33 @@ function hasLineOfSight(attackerSquare, targetSquare) {
   const startCol = Number(attackerSquare.dataset.col);
   const endRow = Number(targetSquare.dataset.row);
   const endCol = Number(targetSquare.dataset.col);
+  const dx = endCol - startCol;
+  const dy = endRow - startRow;
+  const steps = Math.max(Math.abs(dx), Math.abs(dy));
+  if (steps <= 1) return true;
 
-  let x0 = startCol;
-  let y0 = startRow;
-  const x1 = endCol;
-  const y1 = endRow;
-  const dx = Math.abs(x1 - x0);
-  const dy = Math.abs(y1 - y0);
-  const sx = x0 < x1 ? 1 : -1;
-  const sy = y0 < y1 ? 1 : -1;
-  let err = dx - dy;
+  const epsilon = 1e-9;
+  const coordCells = (value) => {
+    const rounded = Math.round(value);
+    if (Math.abs(value - rounded) < epsilon) {
+      return [rounded];
+    }
+    return [Math.floor(value), Math.ceil(value)];
+  };
 
-  while (!(x0 === x1 && y0 === y1)) {
-    const e2 = 2 * err;
-    if (e2 > -dy) {
-      err -= dy;
-      x0 += sx;
+  for (let step = 1; step < steps; step += 1) {
+    const t = step / steps;
+    const x = startCol + t * dx;
+    const y = startRow + t * dy;
+    const cols = coordCells(x);
+    const rows = coordCells(y);
+
+    for (const row of rows) {
+      for (const col of cols) {
+        const square = getSquareAt(row, col);
+        if (square && square.classList.contains('square--barrier')) return false;
+      }
     }
-    if (e2 < dx) {
-      err += dx;
-      y0 += sy;
-    }
-    if (x0 === x1 && y0 === y1) break;
-    const square = getSquareAt(y0, x0);
-    if (square && square.classList.contains('square--barrier')) return false;
   }
   return true;
 }
