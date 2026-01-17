@@ -272,32 +272,12 @@ function highlightRange(piece) {
   if (currentAction === 'Superfuerza' || currentAction === 'Telekinesis') range = 3; // Rango para lanzar objetos
   if (currentAction === 'Control Mental') range = 5; // Rango típico mental
 
-  const queue = [{ square: origin, distance: 0 }];
-  const visited = new Map();
-  visited.set(origin, 0);
-
-  while (queue.length > 0) {
-    const { square, distance } = queue.shift();
-    if (distance >= range) continue;
-
-    const row = Number(square.dataset.row);
-    const col = Number(square.dataset.col);
-    const neighbors = [[row + 1, col], [row - 1, col], [row, col + 1], [row, col - 1]];
-
-    neighbors.forEach(([r, c]) => {
-      const neighbor = getSquareAt(r, c);
-      if (!neighbor || visited.has(neighbor)) return;
-      if (neighbor.classList.contains('square--barrier')) return;
-
-      const newDist = distance + 1;
-      visited.set(neighbor, newDist);
-      if (newDist <= range) {
-        if (newDist > 1 && !hasLineOfSight(origin, neighbor)) return;
-        neighbor.classList.add('square--range');
-        queue.push({ square: neighbor, distance: newDist });
-      }
-    });
-  }
+  squares.forEach((square) => {
+    const dist = getDistance(origin, square);
+    if (dist <= 0 || dist > range) return;
+    if (dist > 1 && !hasLineOfSight(origin, square)) return;
+    square.classList.add('square--range');
+  });
 
   if (origin && (currentAction === 'Pulso' || currentAction.includes('Mejora'))) {
     origin.classList.add('square--range');

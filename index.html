@@ -943,9 +943,10 @@ function registerTurnSound({ damageDealt = 0, attackFailed = false, zeroDamageHi
   board.classList.add('targeting');
 
   let targetsFound = false;
-  const rangeDistances = computeRangeDistances(origin, maxCheck);
 
-  rangeDistances.forEach((dist, square) => {
+  squares.forEach((square) => {
+    const dist = attackDistance(origin, square);
+    if (dist > maxCheck) return;
     if (dist === 0 && !isSupport) return;
     if (!isSupport && dist > 1 && !hasLineOfSight(origin, square)) return;
 
@@ -2259,9 +2260,10 @@ async function resolveHeal(attacker, target) {
       board.classList.add('targeting'); // Activamos modo foco
 
       let targetsFound = false;
-      const rangeDistances = computeRangeDistances(origin, maxCheck);
 
-      rangeDistances.forEach((dist, square) => {
+      squares.forEach((square) => {
+        const dist = attackDistance(origin, square);
+        if (dist > maxCheck) return;
         if (dist === 0 && !isSupport) return;
         if (!isSupport && dist > 1 && !hasLineOfSight(origin, square)) return;
 
