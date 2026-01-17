@@ -4,918 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Tablero 10x10</title>
-  <style>
-    :root {
-      --square-size: 70px;
-      --board-columns: 16;
-      --board-rows: 10;
-      --board-width: calc(var(--square-size) * var(--board-columns));
-      --board-height: calc(var(--square-size) * var(--board-rows));
-      --board-color: #1f8a3b;
-      --square-border: #0f4d20;
-    }
-
-    * {
-      box-sizing: border-box;
-    }
-
-    body {
-      margin: 0;
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: linear-gradient(180deg, #0f4d20 0%, #0d3618 100%);
-      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
-      color: #f4f4f4;
-    }
-
-    .wrapper {
-      text-align: center;
-      padding: 24px 18px 40px;
-      width: 100%;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-
-    .start-screen {
-      position: fixed;
-      inset: 0;
-      display: grid;
-      place-items: center;
-      gap: 16px;
-      justify-items: center;
-      text-align: center;
-      background: linear-gradient(180deg, #0f4d20 0%, #0d3618 100%);
-      padding: 24px 16px;
-      z-index: 50;
-      transition: opacity 220ms ease, visibility 220ms ease;
-    }
-
-    .start-screen--hidden {
-      opacity: 0;
-      visibility: hidden;
-      pointer-events: none;
-    }
-
-    .start-screen__headline {
-      font-size: clamp(28px, 4vw, 36px);
-      margin: 0;
-      letter-spacing: 0.3px;
-    }
-
-    .start-screen__subtitle {
-      margin: 0;
-      opacity: 0.85;
-      font-weight: 600;
-    }
-
-    .draft-screen {
-      position: fixed;
-      inset: 0;
-      background: radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.08), transparent 35%),
-        radial-gradient(circle at 80% 15%, rgba(255, 200, 120, 0.06), transparent 32%),
-        linear-gradient(180deg, #0f4d20 0%, #0d3618 100%);
-      display: grid;
-      place-items: center;
-      padding: clamp(16px, 4vw, 36px);
-      z-index: 45;
-      transition: opacity 200ms ease, visibility 200ms ease;
-    }
-
-    .draft-screen[hidden] {
-      opacity: 0;
-      visibility: hidden;
-      pointer-events: none;
-    }
-
-    .draft-panel {
-      width: min(1600px, 98vw);
-      background: rgba(10, 28, 16, 0.92);
-      border: 2px solid rgba(255, 255, 255, 0.2);
-      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.45);
-      border-radius: 20px;
-      padding: clamp(16px, 1.6vw, 24px);
-      display: grid;
-      gap: 14px;
-      color: #f4f4f4;
-      max-height: min(920px, 94vh);
-      overflow: auto;
-    }
-
-    .draft-header {
-      display: flex;
-      justify-content: space-between;
-      gap: 12px;
-      align-items: baseline;
-      flex-wrap: wrap;
-    }
-
-    .draft-kicker {
-      margin: 0;
-      text-transform: uppercase;
-      letter-spacing: 0.12em;
-      font-weight: 800;
-      font-size: 0.9rem;
-      opacity: 0.9;
-      color: #ffd166;
-    }
-
-    .draft-title {
-      margin: 4px 0 0;
-      font-size: clamp(26px, 3vw, 34px);
-      letter-spacing: 0.04em;
-    }
-
-    .draft-subtitle {
-      margin: 6px 0 0;
-      opacity: 0.9;
-      font-weight: 500;
-    }
-
-    .draft-meta {
-      text-align: right;
-      min-width: 220px;
-    }
-
-    .draft-meta strong {
-      display: block;
-      font-size: clamp(18px, 2.2vw, 22px);
-    }
-
-    .draft-legend {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-      align-items: center;
-      font-size: 0.95rem;
-      opacity: 0.92;
-    }
-
-    .draft-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 6px 10px;
-      border-radius: 999px;
-      background: rgba(255, 255, 255, 0.08);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-    }
-
-    .draft-swatch {
-      width: 12px;
-      height: 12px;
-      border-radius: 999px;
-      background: #2b9afc;
-      box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.2);
-    }
-
-    .draft-swatch--enemy {
-      background: #ef3f3f;
-    }
-
-    .draft-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-      gap: 10px;
-      align-items: start;
-    }
-
-    .draft-card {
-      position: relative;
-      background: #0b0b0b;
-      border-radius: 12px;
-      overflow: hidden;
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      box-shadow: 0 10px 18px rgba(0, 0, 0, 0.45);
-      cursor: pointer;
-      transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease, opacity 140ms ease;
-      isolation: isolate;
-      min-height: 150px;
-    }
-
-    .draft-card:hover {
-      transform: translateY(-3px);
-      box-shadow: 0 14px 22px rgba(0, 0, 0, 0.5);
-      border-color: rgba(255, 209, 102, 0.6);
-    }
-
-    .draft-card:active {
-      transform: translateY(0);
-    }
-
-    .draft-card__image {
-      width: 100%;
-      aspect-ratio: 1 / 1;
-      object-fit: cover;
-      display: block;
-      filter: saturate(1.05);
-    }
-
-    .draft-card__body {
-      position: absolute;
-      inset: auto 0 0;
-      padding: 10px 12px 12px;
-      background: linear-gradient(180deg, transparent, rgba(0, 0, 0, 0.8));
-    }
-
-    .draft-card__title {
-      margin: 0;
-      font-size: 1.02rem;
-      letter-spacing: 0.03em;
-      text-shadow: 0 2px 8px rgba(0, 0, 0, 0.7);
-      line-height: 1.2;
-      color: #ffffff;
-      font-weight: 800;
-    }
-
-    .draft-card--taken {
-      opacity: 0.45;
-      pointer-events: none;
-    }
-
-    .draft-card--taken::after {
-      content: attr(data-owner);
-      position: absolute;
-      inset: 0;
-      display: grid;
-      place-items: center;
-      background: rgba(0, 0, 0, 0.6);
-      color: #ffd166;
-      font-weight: 900;
-      letter-spacing: 0.08em;
-      font-size: 1.05rem;
-      text-transform: uppercase;
-    }
-
-    .draft-footer {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 10px;
-    }
-
-    .draft-prompt {
-      margin: 0;
-      font-weight: 700;
-      letter-spacing: 0.02em;
-    }
-
-    .start-screen__modes {
-      display: none;
-      gap: 12px;
-      justify-items: center;
-    }
-
-    .start-screen__modes[hidden] {
-      display: none !important;
-    }
-
-    .start-screen--modes .start-screen__modes {
-      display: grid;
-      animation: fadeIn 240ms ease;
-    }
-
-    .start-screen__buttons {
-      display: flex;
-      gap: 12px;
-      flex-wrap: wrap;
-      justify-content: center;
-    }
-
-    .controls {
-      display: flex;
-      justify-content: center;
-      gap: 12px;
-      margin-bottom: 16px;
-    }
-
-    .button {
-      background: #f4f4f4;
-      color: #0d3618;
-      border: none;
-      border-radius: 8px;
-      padding: 10px 16px;
-      font-weight: 700;
-      cursor: pointer;
-      box-shadow: 0 6px 14px rgba(0, 0, 0, 0.25);
-      transition: transform 120ms ease, box-shadow 120ms ease, background 120ms ease;
-    }
-
-    .button:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
-      background: #ffffff;
-    }
-
-    .button:active {
-      transform: translateY(0);
-      box-shadow: 0 6px 14px rgba(0, 0, 0, 0.28);
-    }
-
-    .button--primary {
-      background: #f17c00;
-      color: #fff8f0;
-    }
-
-    .button--primary:hover {
-      background: #ff9400;
-    }
-
-    .button--pulse {
-      animation: pulse 0.8s ease-in-out infinite;
-      box-shadow: 0 0 0 0 rgba(241, 124, 0, 0.65);
-    }
-
-    .start-screen__play {
-      padding: 16px 36px;
-      font-size: clamp(18px, 4vw, 24px);
-      letter-spacing: 0.6px;
-      border-radius: 18px;
-      background: linear-gradient(135deg, #ffae34 0%, #ff6b00 50%, #ffd166 100%);
-      color: #1c1200;
-      box-shadow:
-        0 12px 24px rgba(0, 0, 0, 0.35),
-        0 0 18px rgba(255, 174, 52, 0.6),
-        inset 0 2px 0 rgba(255, 255, 255, 0.35);
-      border: 2px solid rgba(255, 230, 184, 0.7);
-      text-transform: uppercase;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .start-screen__play::after {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(120deg, transparent 0%, rgba(255, 255, 255, 0.35) 40%, transparent 80%);
-      transform: translateX(-120%);
-      transition: transform 450ms ease;
-    }
-
-    .start-screen__play:hover::after {
-      transform: translateX(120%);
-    }
-
-    .start-screen__play:active {
-      transform: translateY(1px);
-    }
-
-    @keyframes pulse {
-      0% {
-        box-shadow: 0 0 0 0 rgba(241, 124, 0, 0.65);
-      }
-      70% {
-        box-shadow: 0 0 0 12px rgba(241, 124, 0, 0);
-      }
-      100% {
-        box-shadow: 0 0 0 0 rgba(241, 124, 0, 0);
-      }
-    }
-
-    @keyframes fadeIn {
-      from {
-        opacity: 0;
-        transform: translateY(8px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-
-    .board {
-      width: calc(var(--board-width) + 16px);
-      height: calc(var(--board-height) + 16px);
-      display: grid;
-      grid-template-columns: repeat(var(--board-columns), var(--square-size));
-      grid-template-rows: repeat(var(--board-rows), var(--square-size));
-      background-color: var(--board-color);
-      border: 8px solid #0b2a13;
-      border-radius: 12px;
-      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.35);
-      overflow: hidden;
-      box-sizing: content-box;
-      justify-self: center;
-    }
-
-    .square {
-      position: relative;
-      width: var(--square-size);
-      height: var(--square-size);
-      border: 1px solid var(--square-border);
-      background-color: var(--board-color);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .piece {
-      position: absolute;
-      width: 80%;
-      height: 80%;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      border-radius: 12px;
-      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.35);
-      border: 3px solid rgba(255, 255, 255, 0.3);
-      display: grid;
-      place-items: center;
-      background: #0d0d0d;
-      overflow: hidden;
-      z-index: 3;
-      transition: box-shadow 160ms ease, outline-color 160ms ease;
-    }
-
-    .piece[data-team='aliado'] {
-      border-color: #2b9afc;
-      box-shadow: 0 4px 10px rgba(0, 98, 204, 0.45);
-    }
-
-    .piece[data-team='enemigo'] {
-      border-color: #ef3f3f;
-      box-shadow: 0 4px 10px rgba(215, 44, 44, 0.45);
-    }
-
-    .piece__image {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      display: block;
-    }
-
-    .piece__name {
-      position: absolute;
-      width: 1px;
-      height: 1px;
-      padding: 0;
-      margin: -1px;
-      overflow: hidden;
-      clip: rect(0, 0, 0, 0);
-      white-space: nowrap;
-      border: 0;
-    }
-
-    .piece--active {
-      outline: 4px solid #fbd34d;
-      outline-offset: 1px;
-      box-shadow: 0 0 0 6px rgba(251, 211, 77, 0.35), 0 6px 14px rgba(0, 0, 0, 0.35);
-      animation: active-glow 0.9s ease-in-out infinite;
-    }
-
-    @keyframes active-glow {
-      0% {
-        outline-color: rgba(251, 211, 77, 0.25);
-        box-shadow: 0 0 0 2px rgba(251, 211, 77, 0.35), 0 6px 14px rgba(0, 0, 0, 0.35);
-        filter: brightness(1);
-      }
-      50% {
-        outline-color: rgba(251, 211, 77, 0.9);
-        box-shadow: 0 0 0 8px rgba(251, 211, 77, 0.6), 0 10px 18px rgba(0, 0, 0, 0.45);
-        filter: brightness(1.18);
-      }
-      100% {
-        outline-color: rgba(251, 211, 77, 0.25);
-        box-shadow: 0 0 0 2px rgba(251, 211, 77, 0.35), 0 6px 14px rgba(0, 0, 0, 0.35);
-        filter: brightness(1);
-      }
-    }
-
-    .square::before,
-    .square::after {
-      content: '';
-      position: absolute;
-      inset: 0;
-      pointer-events: none;
-      opacity: 0;
-      transition: opacity 120ms ease;
-    }
-
-    .square::before {
-      z-index: 1;
-    }
-
-    .square::after {
-      z-index: 2;
-    }
-
-    .square--range::after {
-      opacity: 1;
-      box-shadow: inset 0 0 0 5px rgba(255, 132, 0, 0.85);
-      background: none;
-    }
-
-    .square--target {
-      box-shadow: inset 0 0 0 4px rgba(255, 171, 64, 0.9), inset 0 0 0 7px rgba(255, 171, 64, 0.35);
-    }
-
-    .square--move::before {
-      opacity: 1;
-      box-shadow: inset 0 0 0 4px rgba(0, 0, 0, 0.45);
-      background: radial-gradient(circle at 50% 50%, rgba(0, 0, 0, 0.28), transparent 70%);
-    }
-
-    .tooltip {
-      position: fixed;
-      top: 0;
-      left: 0;
-      transform: none;
-      background: #0f4d20;
-      color: #f4f4f4;
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      border-radius: 12px;
-      padding: 14px 16px;
-      box-shadow: 0 16px 32px rgba(0, 0, 0, 0.4);
-      pointer-events: none;
-      white-space: nowrap;
-      font-size: 0.95rem;
-      z-index: 20;
-      min-width: 240px;
-      max-width: 320px;
-    }
-
-    .tooltip h3 {
-      margin: 0 0 6px;
-      font-size: 1rem;
-    }
-
-    .tooltip ul {
-      list-style: none;
-      margin: 0;
-      padding: 0;
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 4px 8px;
-    }
-
-    .layout {
-      display: grid;
-      grid-template-columns: 340px auto 340px;
-      gap: 16px;
-      align-items: start;
-      width: fit-content;
-      margin: 0 auto;
-      justify-content: center;
-    }
-
-    .turn-popup,
-    .death-popup {
-      position: fixed;
-      inset: 0;
-      display: grid;
-      place-items: center;
-      background: rgba(0, 0, 0, 0.45);
-      z-index: 30;
-    }
-
-    .turn-popup[hidden],
-    .death-popup[hidden] {
-      display: none;
-    }
-
-    .turn-popup__content,
-    .death-popup__content {
-      position: relative;
-      background: #0f4d20;
-      border: 2px solid rgba(255, 255, 255, 0.35);
-      border-radius: 14px;
-      padding: 18px 20px;
-      width: min(1120px, 96vw);
-      max-width: min(1120px, 96vw);
-      height: 700px;
-      max-height: 700px;
-      box-shadow: 0 20px 36px rgba(0, 0, 0, 0.45);
-      text-align: center;
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-    }
-
-    .turn-popup__layout {
-      position: relative;
-      display: flex;
-      gap: 0;
-      align-items: stretch;
-      justify-content: center;
-      z-index: 1;
-      min-height: 0;
-      height: 100%;
-      flex: 1 1 auto;
-    }
-
-    .turn-popup__headline {
-      position: absolute;
-      top: 12px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: calc(100% - 32px);
-      max-width: none;
-      padding: clamp(14px, 1.8vw, 28px) clamp(18px, 2vw, 32px);
-      background: linear-gradient(120deg, rgba(0, 0, 0, 0.78), rgba(15, 77, 32, 0.9));
-      border-radius: 14px;
-      box-shadow: 0 16px 30px rgba(0, 0, 0, 0.45);
-      z-index: 5;
-      pointer-events: none;
-    }
-
-    .turn-popup__message,
-    .death-popup__message {
-      margin: 0;
-      font-size: clamp(0.75rem, 0.9vw + 0.45rem, 1.2rem);
-      line-height: 1.35;
-      font-family: 'Impact', 'Anton', system-ui, sans-serif;
-      letter-spacing: 0.05em;
-      text-shadow: 0 3px 10px rgba(0, 0, 0, 0.55), 0 0 30px rgba(251, 211, 77, 0.35);
-      text-transform: none;
-      width: 100%;
-    }
-
-    .turn-popup__hint {
-      margin: 0;
-      font-size: clamp(1.05rem, 0.6vw + 0.9rem, 1.35rem);
-      opacity: 0.95;
-      font-weight: 800;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-    }
-
-    .turn-popup__center {
-      position: absolute;
-      inset: 0;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      padding: 16px;
-      justify-content: flex-end;
-      align-items: center;
-      z-index: 3;
-      pointer-events: none;
-    }
-
-    .duel-panel {
-      position: relative;
-      flex: 1 1 0;
-      min-width: 0;
-      height: 590px;
-      min-height: 590px;
-      background: #0a0a0a;
-      border-radius: 12px;
-      overflow: hidden;
-      border: 2px solid rgba(255, 255, 255, 0.25);
-      box-shadow: 0 18px 36px rgba(0, 0, 0, 0.55);
-      display: flex;
-      gap: 0;
-      padding: 0;
-    }
-
-    .duel-panel__empty {
-      margin: auto;
-      opacity: 0.65;
-      font-weight: 700;
-      letter-spacing: 0.02em;
-    }
-
-    .duel-card {
-      position: relative;
-      flex: 1 1 auto;
-      min-width: 0;
-      border-radius: 10px;
-      overflow: hidden;
-      display: flex;
-      align-items: flex-end;
-      justify-content: flex-start;
-      background: #111;
-      isolation: isolate;
-      min-height: 100%;
-      display: flex;
-      flex-direction: column; /* Asegura que el contenido fluya verticalmente */
-      justify-content: flex-end; /* Alinea al fondo */
-    }
-
-    .duel-card__image {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      filter: saturate(1.1);
-      z-index: 0;
-    }
-
-    .duel-card__overlay {
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(180deg, rgba(0, 0, 0, 0.25), rgba(0, 0, 0, 0.7));
-      z-index: 1;
-      mix-blend-mode: screen;
-      opacity: 0.9;
-    }
-
-    .duel-card__overlay--attacker {
-      background: linear-gradient(200deg, rgba(24, 114, 255, 0.55), rgba(11, 40, 94, 0.9));
-    }
-
-    .duel-card__overlay--defender {
-      background: linear-gradient(200deg, rgba(255, 71, 102, 0.65), rgba(115, 16, 35, 0.9));
-    }
-
-    .duel-card__label {
-      position: absolute;
-      inset: auto 0 0;
-      z-index: 2;
-      width: 100%;
-      padding: clamp(14px, 1.6vw, 22px) clamp(16px, 1.8vw, 26px);
-      background: linear-gradient(180deg, rgba(0, 0, 0, 0.05) 0%, rgba(0, 0, 0, 0.55) 35%, rgba(0, 0, 0, 0.8) 100%);
-      color: #fff;
-      text-shadow: 0 2px 8px rgba(0, 0, 0, 0.7);
-      font-family: 'Impact', 'Anton', system-ui, sans-serif;
-      letter-spacing: 0.04em;
-      word-break: break-word;
-      backdrop-filter: blur(2px);
-      padding-bottom: clamp(16px, 2vw, 30px);
-    }
-
-    .duel-card__name {
-      /* Usamos la variable que calcula JS, pero forzamos el ajuste */
-      font-size: var(--duel-name-size, 1rem); 
-      margin: 0 0 4px;
-      text-transform: uppercase;
-      line-height: 1; /* Línea más ajustada */
-
-      white-space: normal; 
-      word-wrap: break-word;
-      overflow-wrap: break-word;
-      hyphens: auto;
-    }
-
-    .duel-card__stats {
-      margin: 0;
-      font-size: clamp(0.9rem, 0.6vw + 0.7rem, 1.1rem);
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      font-weight: 700;
-      align-items: flex-start;
-    }
-
-    .duel-card__badge {
-      background: rgba(0, 0, 0, 0.4);
-      padding: 4px 10px;
-      border-radius: 999px;
-      border: 1px solid rgba(255, 255, 255, 0.35);
-      box-shadow: 0 8px 14px rgba(0, 0, 0, 0.35);
-      display: inline-block;
-    }
-
-    .duel-card--eliminated .duel-card__overlay {
-      background: linear-gradient(200deg, rgba(255, 77, 77, 0.8), rgba(117, 10, 10, 0.92));
-    }
-
-    .duel-card--eliminated .duel-card__label {
-      background: linear-gradient(180deg, rgba(60, 0, 0, 0.35) 0%, rgba(0, 0, 0, 0.75) 40%, rgba(0, 0, 0, 0.9) 100%);
-    }
-
-    .duel-panel--hidden {
-      display: none;
-    }
-
-    .card-panel {
-      background: rgba(0, 0, 0, 0.25);
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      border-radius: 12px;
-      padding: 12px;
-      box-shadow: 0 10px 22px rgba(0, 0, 0, 0.35);
-      display: flex;
-      flex-direction: column;
-    }
-
-    .card-panel h3 {
-      margin: 0 0 8px;
-      font-size: 1rem;
-      letter-spacing: 0.02em;
-    }
-
-    .card-panel__content {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      align-items: stretch;
-      flex: 1;
-    }
-
-    .life-list {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      flex: 1;
-    }
-
-    .life-card {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      background: rgba(15, 77, 32, 0.65);
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      border-radius: 10px;
-      padding: 8px 10px;
-      font-weight: 700;
-      color: #f4f4f4;
-      text-align: left;
-      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
-    }
-
-    .life-card--eliminated {
-      background: linear-gradient(135deg, rgba(120, 6, 6, 0.8), rgba(40, 0, 0, 0.75));
-      border-color: rgba(255, 99, 99, 0.55);
-    }
-
-    .life-card__main {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      flex: 1;
-      min-width: 0;
-    }
-
-    .life-card__avatar {
-      width: 32px;
-      height: 32px;
-      border-radius: 8px;
-      object-fit: cover;
-      border: 1px solid rgba(255, 255, 255, 0.35);
-      box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.25);
-      background: #0d0d0d;
-    }
-
-    .life-card__label {
-      display: block;
-      line-height: 1.2;
-      max-width: 100%;
-      font-size: clamp(0.82rem, 1vw + 0.35rem, 1.05rem);
-      word-break: break-word;
-    }
-
-    .life-card__meta {
-      font-variant-numeric: tabular-nums;
-      margin-left: auto;
-      font-size: clamp(0.8rem, 0.8vw + 0.45rem, 1.02rem);
-      opacity: 0.95;
-      text-align: right;
-    }
-
-    .status-bar {
-      margin-bottom: 12px;
-      display: flex;
-      justify-content: center;
-      gap: 16px;
-      align-items: center;
-      font-weight: 700;
-    }
-
-    .piece--incapacitated::after {
-      content: '✖';
-      position: absolute;
-      inset: 0;
-      display: grid;
-      place-items: center;
-      background: rgba(255, 0, 0, 0.35);
-      color: #fff;
-      font-size: 42px;
-      font-weight: 900;
-      pointer-events: none;
-    }
-    /* Busca .tooltip en tu CSS y actualízalo o añade esto al final del style */
-.tooltip {
-    /* Mantenemos lo que tenías y aseguramos el z-index alto */
-    z-index: 1000; 
-    max-width: 350px; /* Un poco más ancho para los textos de poderes */
-}
-
-/* --- ARREGLO DE ESTILOS DEL TOOLTIP --- */
-
-/* Espacio entre cada poder individual */
-.tooltip .power-list li {
-    margin-bottom: 5px;
-    line-height: 1.3; /* Un poco más de altura para que no se choquen verticalmente */
-}
-
-/* Títulos de sección (Activos/Pasivos) */
-.tooltip h4 {
-    margin: 12px 0 4px 0; /* Un poco de aire por encima */
-    color: #ffd166;       /* Color dorado */
-    font-size: 0.95rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1); /* Línea separadora sutil */
-}
-
-/* Contenedor de la lista */
-.tooltip .power-list {
-    padding-left: 20px;
-    margin: 0; /* Quitamos margen por defecto */
-}
-  </style>
+  <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
   <div id="startScreen" class="start-screen start-screen--hidden" hidden>
@@ -965,12 +54,6 @@
       <button class="button button--primary" id="attack" type="button">Atacar</button>
     </div>
     <div class="controls" id="powerControls" aria-label="Poderes activos"></div>
-    <div class="status-bar" aria-live="polite">
-      <span id="turnInfo">Turno:</span>
-      <span id="movementInfo"></span>
-    </div>
-    <div id="combatInfo" aria-live="polite" style="display: none; margin-bottom: 12px; font-weight: 700;"></div>
-
     <div class="layout">
       <aside class="card-panel" aria-label="Vida aliados">
         <h3>Aliados</h3>
@@ -1073,6 +156,7 @@
       const explosionSound = new Audio('sonidos/efectos/explosion.mp3');
       const incapacitarSound = new Audio('sonidos/efectos/incapacitar.wav');
       const pulsoSound = new Audio('sonidos/efectos/pulso.wav');
+      const telekinesisSound = new Audio('sonidos/efectos/telekinesis.wav');
       
       let pendingPopupSound = null;
       const BOARD_ROWS = 10;
@@ -1103,6 +187,13 @@
       let draftActive = false;
       const selections = { player1: [], player2: [] };
       let availableCharacters = [];
+
+      // --- NUEVA VARIABLE DE ESTADO ---
+    let pendingTelekinesis = null; // Guardará { attacker, victim } mientras eliges destino
+
+
+
+
 
     function revealModes() {
       startScreen.classList.add('start-screen--modes');
@@ -1330,16 +421,12 @@ function registerTurnSound({ damageDealt = 0, attackFailed = false, zeroDamageHi
     }
 
     function attachPieceData(piece, key, team) {
+      // --- CORRECCIÓN: Definimos la lista aquí mismo para evitar errores ---
+      const HIDDEN_POWERS = []; // Lista vacía = todos los poderes visibles
+      // -------------------------------------------------------------------
+
       const stats = pieceStats[key];
       if (!stats) return;
-
-      // --- LISTA DE PODERES OCULTOS ---
-      // Los ponemos en minúsculas. El juego ignorará cualquier poder que esté aquí.
-      const HIDDEN_POWERS = [
-          'barrera', 
-          'telekinesis' // Añado esta variante por si acaso en el futuro lo escribes con 'q'
-      ];
-      // --------------------------------
 
       const rawPowers = stats.poderes || { activos: [], pasivos: [] };
 
@@ -1355,7 +442,6 @@ function registerTurnSound({ damageDealt = 0, attackFailed = false, zeroDamageHi
           })
       };
 
-      // Resto de la lógica de inicialización (sin cambios)
       const baseDamage = stats.dano ?? 0;
       const baseResistencia = 0; 
 
@@ -1363,7 +449,7 @@ function registerTurnSound({ damageDealt = 0, attackFailed = false, zeroDamageHi
         ...stats,
         dano: baseDamage,
         resistencia: baseResistencia,
-        poderes: filteredPowers, // <--- USAMOS LA LISTA FILTRADA
+        poderes: filteredPowers, 
         baseAtaque: stats.ataque,
         baseDefensa: stats.defensa,
         baseAgilidad: stats.agilidad,
@@ -1402,7 +488,7 @@ function registerTurnSound({ damageDealt = 0, attackFailed = false, zeroDamageHi
       });
     }
 
-    function renderLifeCards() {
+   function renderLifeCards() {
       allyCards.innerHTML = '';
       enemyCards.innerHTML = '';
 
@@ -1413,11 +499,17 @@ function registerTurnSound({ damageDealt = 0, attackFailed = false, zeroDamageHi
         const container = element.dataset.team === 'aliado' ? allyCards : enemyCards;
         const card = document.createElement('div');
         card.className = `life-card${eliminated ? ' life-card--eliminated' : ''}`;
+        
+        // --- CAMBIO AQUÍ: Formato de vida Actual / Máxima ---
+        const vidaActual = Math.max(stats.currentVida, 0);
+        const vidaMax = stats.maxVida; 
+        // ---------------------------------------------------
+
         card.innerHTML = `
           <div class="life-card__main">
             <img class="life-card__avatar" src="${stats.imagen}" alt="${stats.name}" loading="lazy" />
             <span class="life-card__label">${stats.name}</span>
-            <span class="life-card__meta">Vida: ${Math.max(stats.currentVida, 0)} · ${stats.puntos ?? 0} pts</span>
+            <span class="life-card__meta">Vida: ${vidaActual}/${vidaMax} · ${stats.puntos ?? 0} pts</span>
           </div>
         `;
         container.appendChild(card);
@@ -1488,7 +580,7 @@ function registerTurnSound({ damageDealt = 0, attackFailed = false, zeroDamageHi
       latestPopupContext = context;
     }
 
-    function renderDuelSide(container, characters) {
+   function renderDuelSide(container, characters) {
       container.innerHTML = '';
       if (!characters || characters.length === 0) {
         container.classList.add('duel-panel--hidden');
@@ -1505,24 +597,26 @@ function registerTurnSound({ damageDealt = 0, attackFailed = false, zeroDamageHi
         if (char.eliminated) {
           card.classList.add('duel-card--eliminated');
         }
+        
+        // Mantenemos el ancho flexible, pero QUITAMOS el cálculo de fuentes
         card.style.flexBasis = `${100 / characters.length}%`;
         
-        // --- CAMBIO EN EL CÁLCULO DE LA FUENTE ---
-        // Si hay 1 carta: Grande (3.5vw)
-        // Si hay 4 cartas: Pequeño (1.4vw)
-        let fontSizeBase = 4.5 / Math.sqrt(characters.length); 
-        // Límites de seguridad (mínimo 14px visuales aprox, máximo 40px)
-        const nameSizeVw = Math.min(3.5, Math.max(1.1, fontSizeBase));
-        
-        card.style.setProperty('--duel-name-size', `${nameSizeVw}vw`);
-        // -----------------------------------------
+        // --- BLOQUE ELIMINADO/COMENTADO ---
+        // let fontSizeBase = 4.5 / Math.sqrt(characters.length); 
+        // const nameSizeVw = Math.min(3.5, Math.max(1.1, fontSizeBase));
+        // card.style.setProperty('--duel-name-size', `${nameSizeVw}vw`);
+        // -----------------------------------
 
         const overlayClass = char.role === 'attacker' ? 'duel-card__overlay--attacker' : 'duel-card__overlay--defender';
+        
+        // Añadimos una clase extra si el nombre es MUY largo para ayudar al CSS
+        const isLongName = char.name.length > 12;
+        
         card.innerHTML = `
           <img class="duel-card__image" src="${char.imagen}" alt="${char.name}" />
           <div class="duel-card__overlay ${overlayClass}"></div>
           <div class="duel-card__label">
-            <p class="duel-card__name">${char.name}</p>
+            <p class="duel-card__name ${isLongName ? 'duel-card__name--long' : ''}">${char.name}</p>
             <p class="duel-card__stats">
               <span class="duel-card__badge">Vida ${char.vida}</span>
               <span class="duel-card__badge">${char.puntos} pts</span>
@@ -1643,13 +737,16 @@ function registerTurnSound({ damageDealt = 0, attackFailed = false, zeroDamageHi
       return SUPPORT_POWERS.has(normalizePowerKey(actionKey));
     }
 
-    function renderPowerButtons(piece) {
+   function renderPowerButtons(piece) {
       powerControls.innerHTML = '';
       const stats = pieceMap.get(piece);
       if (!stats) return;
       const actives = stats.poderes?.activos || [];
       actives.forEach((ability) => {
         const key = normalizePowerKey(ability?.nombre ?? ability);
+        
+        
+
         const btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'button';
@@ -1663,7 +760,9 @@ function registerTurnSound({ damageDealt = 0, attackFailed = false, zeroDamageHi
           'mejora de agilidad': 'Mejora de Agilidad',
           'mejora de critico': 'Mejora de Crítico',
           curar: 'Curar',
+          'telekinesis': 'Telekinesis'
         };
+        
         btn.textContent = labels[key] || ability?.nombre || ability;
         btn.disabled = false;
         btn.addEventListener('click', () => handleActionClick(key));
@@ -1687,22 +786,23 @@ function registerTurnSound({ damageDealt = 0, attackFailed = false, zeroDamageHi
       return squaresByCoord.get(`${row},${col}`);
     }
 
-    function computeReachableSquares(piece) {
+   function computeReachableSquares(piece) {
       const origin = getPieceSquare(piece);
       if (!origin) return;
       const stats = pieceMap.get(piece);
-      const canPhase = hasPassive(stats, 'fase');
+      
+      const hasFlight = hasPassive(stats, 'volar') || hasPassive(stats, 'vuelo') || hasPassive(stats, 'alado');
+      const hasPhasing = hasPassive(stats, 'fase');
+      const hasJump = hasPassive(stats, 'saltar/trepar'); 
+
+      const canIgnoreEnemies = hasFlight || hasPhasing || hasJump;
+
       const maxMove = remainingMovement(piece);
       const visited = new Map();
       const queue = [{ row: Number(origin.dataset.row), col: Number(origin.dataset.col), cost: 0 }];
       visited.set(`${origin.dataset.row},${origin.dataset.col}`, 0);
 
-      const deltas = [
-        [1, 0],
-        [-1, 0],
-        [0, 1],
-        [0, -1],
-      ];
+      const deltas = [[1, 0], [-1, 0], [0, 1], [0, -1]];
 
       while (queue.length) {
         const { row, col, cost } = queue.shift();
@@ -1710,14 +810,21 @@ function registerTurnSound({ damageDealt = 0, attackFailed = false, zeroDamageHi
           const nr = row + dr;
           const nc = col + dc;
           const key = `${nr},${nc}`;
+          
           if (nr < 1 || nr > BOARD_ROWS || nc < 1 || nc > BOARD_COLS) continue;
+          
           const nextCost = cost + 1;
           if (nextCost > maxMove) continue;
           if (visited.has(key) && visited.get(key) <= nextCost) continue;
+          
           const square = getSquareAt(nr, nc);
           if (!square) continue;
+          
           const occupant = square.querySelector('.piece');
-          if (occupant && occupant.dataset.team !== piece.dataset.team && !canPhase) continue;
+          if (occupant && occupant.dataset.team !== piece.dataset.team && !canIgnoreEnemies) {
+              continue;
+          }
+          
           visited.set(key, nextCost);
           queue.push({ row: nr, col: nc, cost: nextCost });
         }
@@ -1727,6 +834,8 @@ function registerTurnSound({ damageDealt = 0, attackFailed = false, zeroDamageHi
       visited.forEach((dist, key) => {
         const square = squaresByCoord.get(key);
         if (!square) return;
+        
+        // Destino final debe estar vacío (salvo que sea aliado para curar, pero en movimiento básico no se permite solapamiento final)
         const occupied = square.querySelector('.piece');
         if (!occupied && dist > 0) {
           movementDistances.set(square, dist);
@@ -1738,9 +847,89 @@ function registerTurnSound({ damageDealt = 0, attackFailed = false, zeroDamageHi
       squares.forEach((square) => square.classList.remove('square--move'));
     }
 
+    // --- 1. LIMPIEZA COMPLETA ---
     function clearRangeHighlights() {
-      squares.forEach((square) => square.classList.remove('square--range', 'square--target'));
+      board.classList.remove('targeting');
+      
+      squares.forEach((square) => {
+          square.classList.remove('square--range', 'square--target', 'square--range-special');
+          
+          const piece = square.querySelector('.piece');
+          if (piece) {
+              // Quitamos TODAS las marcas posibles
+              piece.classList.remove('valid-target', 'valid-target-blue', 'valid-ally', 'piece--selected');
+          }
+      });
     }
+
+
+
+
+
+  function highlightRange(piece) {
+  clearRangeHighlights();
+  const origin = getPieceSquare(piece);
+  if (!origin) return;
+
+  const stats = pieceMap.get(piece);
+  const physRange = rangeForPiece(piece);
+  const mentalFloor = getMentalRangeFloor(piece);
+  const maxCheck = Math.max(physRange, mentalFloor);
+  const isSupport = isSupportPower(currentAction);
+
+  board.classList.add('targeting');
+
+  let targetsFound = false;
+
+  squares.forEach((square) => {
+    const dist = attackDistance(origin, square);
+
+    if (dist <= maxCheck && (dist > 0 || (dist === 0 && isSupport))) {
+      let isValidSquare = false;
+
+      if (dist <= physRange) {
+        square.classList.add('square--range');
+        isValidSquare = true;
+      } else {
+        square.classList.add('square--range-special');
+        isValidSquare = true;
+      }
+
+      if (isValidSquare) {
+        const targetPiece = square.querySelector('.piece');
+        if (targetPiece) {
+          const isAlly = targetPiece.dataset.team === piece.dataset.team;
+
+          // CASO A: Poder de Ayuda
+          if (isSupport && isAlly) {
+            targetPiece.classList.add('valid-ally');
+            targetsFound = true;
+          }
+          // CASO B: Ataque
+          else if (!isSupport && !isAlly) {
+            if (piece.dataset.team === 'aliado') {
+              targetPiece.classList.add('valid-target');
+            } else {
+              targetPiece.classList.add('valid-target-blue');
+            }
+            targetsFound = true;
+          }
+          // CASO C: Control Mental (Fuego amigo)
+          else if (!isSupport && isAlly && pieceMap.get(targetPiece)?.mindControlled) {
+            if (piece.dataset.team === 'aliado') targetPiece.classList.add('valid-target');
+            else targetPiece.classList.add('valid-target-blue');
+            targetsFound = true;
+          }
+        }
+      }
+    }
+  });
+
+  if (!targetsFound) {
+    board.classList.remove('targeting');
+  }
+}
+    
 
     function clearHighlights() {
       clearMoveHighlights();
@@ -1766,18 +955,9 @@ function registerTurnSound({ damageDealt = 0, attackFailed = false, zeroDamageHi
       return distance <= maxRange && (includeOrigin ? distance >= 0 : distance > 0);
     }
 
-    function highlightRange(piece) {
-      clearRangeHighlights();
-      const origin = getPieceSquare(piece);
-      if (!origin) return;
-      const maxRange = rangeForPiece(piece);
-      if (maxRange <= 0) return;
-      squares.forEach((square) => {
-        if (isWithinAttackRange(origin, square, maxRange)) {
-          square.classList.add('square--range');
-        }
-      });
-    }
+    
+
+
 
     function setActivePiece(piece) {
       document.querySelectorAll('.piece').forEach((p) => p.classList.remove('piece--active'));
@@ -1793,8 +973,10 @@ function registerTurnSound({ damageDealt = 0, attackFailed = false, zeroDamageHi
     function updateStatusBar(piece) {
       const stats = pieceMap.get(piece);
       if (!stats) return;
-      turnInfo.textContent = `Turno: ${stats.name}`;
-      movementInfo.textContent = `Movimiento restante: ${remainingMovement(piece)}`;
+      if (turnInfo && movementInfo) {
+        turnInfo.textContent = `Turno: ${stats.name}`;
+        movementInfo.textContent = `Movimiento restante: ${remainingMovement(piece)}`;
+      }
     }
 
     function attackDistance(attackerSquare, targetSquare) {
@@ -1809,47 +991,41 @@ function registerTurnSound({ damageDealt = 0, attackFailed = false, zeroDamageHi
       return raw === 0 ? 1 : raw;
     }
 
-    function calculateDamage(attackerStats, defenderStats, distance, isCritical) {
+   function calculateDamage(attackerStats, defenderStats, distance, isCritical) {
       const isMelee = distance <= 1;
       
-      // 1. Obtenemos el daño base inicial
       let baseDamageBeforeClaws = attackerStats.dano ?? 0;
 
-      // --- NUEVO: IMPLEMENTACIÓN DE EXPERTO A/D ---
-      // Si el ataque es a distancia (no es melee) y tiene el poder, sumamos 2 al base.
       if (!isMelee && hasPassive(attackerStats, 'experto a/d')) {
         baseDamageBeforeClaws += 2;
       }
-      // --------------------------------------------
       
-      // 2. Lógica de Garras (Solo melee)
       let clawsRoll = null;
-      const hasClaws = isMelee && hasPassive(attackerStats, 'garras'); 
+      const hasClaws = isMelee && hasPassive(attackerStats, 'cuchillas/garras/colmillos'); 
+
       if (hasClaws) {
         clawsRoll = Math.floor(Math.random() * 6) + 1;
       }
       
-      // Si tiene garras, el daño base es el mayor entre el actual y la tirada
       const baseDamageAfterClaws = hasClaws
         ? Math.max(baseDamageBeforeClaws, clawsRoll)
         : baseDamageBeforeClaws;
       
-      // 3. Cálculo de Crítico (x2)
       const baseDamageWithCrit = isCritical ? baseDamageAfterClaws * 2 : baseDamageAfterClaws;
       
-      // 4. Cálculo de Resistencia (Dureza / Invulnerable)
+      // 4. Cálculo de Resistencia
       let valDureza = 0;
       let valInvulnerable = 0;
-      let valInvulnerableAD = 0;
-
+      
+      // --- CAMBIO: HEMOS ELIMINADO LA LÍNEA DE 'defensa a/d' DE AQUÍ ---
+      // Ya no reduce daño, solo ayuda a esquivar.
+      
       if (hasPassive(defenderStats, 'dureza')) valDureza = 1;
       if (hasPassive(defenderStats, 'invulnerable')) valInvulnerable = 2;
-      if (!isMelee && hasPassive(defenderStats, 'invulnerable a/d')) valInvulnerableAD = 2;
       
-      // Nos quedamos con la mayor resistencia
-      const resistance = Math.max(valDureza, valInvulnerable, valInvulnerableAD);
+      const resistance = Math.max(valDureza, valInvulnerable);
+      // -----------------------------------------------------------------
       
-      // 5. Daño Final
       const totalDamage = Math.max(baseDamageWithCrit - resistance, 0);
       
       return {
@@ -1858,36 +1034,47 @@ function registerTurnSound({ damageDealt = 0, attackFailed = false, zeroDamageHi
         clawsRoll,
         rawDamage: baseDamageWithCrit,
         resistance,
-        baseDamageBeforeClaws, // Ahora este valor incluirá el +2 de Experto a/d si aplica
+        baseDamageBeforeClaws,
         baseDamageAfterClaws,
       };
     }
+    
 
-    function evaluateAttackRoll(attackerStats, defenderStats, roll, distance, options = {}) {
+  function evaluateAttackRoll(attackerStats, defenderStats, roll, distance, options = {}) {
       const { allowCounter = false } = options;
       const critical = isCriticalRoll(attackerStats, roll);
-      const isPifia = roll === 2;
-      const isMelee = distance <= 1;
-      const defenderCanRanged = effectiveRangeFromStats(defenderStats) > 1;
+      const isPifia = roll === 2; // Doble 1
+      
+      // --- CORRECCIÓN: DEFENSA A/D AHORA SUMA DEFENSA ---
+      // Si el ataque es a distancia (distance > 1) y tiene el poder, es más difícil darle.
+      let effectiveDefense = defenderStats.defensa;
+      if (distance > 1 && hasPassive(defenderStats, 'defensa a/d')) {
+          effectiveDefense += 2;
+      }
+      // --------------------------------------------------
 
       let success = false;
 
+      // 1. Lógica de acierto/fallo
       if (critical) {
         success = true;
       } else if (isPifia) {
-        if (isMelee || defenderCanRanged) {
-          success = roll + attackerStats.ataque >= defenderStats.defensa;
-        } else {
-          success = false;
-        }
+        success = false; 
       } else {
-        success = roll + attackerStats.ataque >= defenderStats.defensa;
+        // Comparamos contra la defensa MEJORADA
+        success = roll + attackerStats.ataque >= effectiveDefense;
       }
 
-      const shouldCounter = allowCounter && isPifia && (isMelee || defenderCanRanged);
+      // 2. Lógica de Contraataque
+      const isIncapacitated = (defenderStats.incapacitatedTurns || 0) > 0;
+      const defenderRange = effectiveRangeFromStats(defenderStats);
+      const isWithinDefenderRange = distance <= defenderRange;
 
+      const shouldCounter = allowCounter && isPifia && !isIncapacitated && isWithinDefenderRange;
+      
       return { success, critical, isPifia, shouldCounter };
     }
+    
 
     function hasProbabilidad(stats) {
       return Number(stats?.probabilidadTurns ?? 0) > 0;
@@ -1937,51 +1124,56 @@ function registerTurnSound({ damageDealt = 0, attackFailed = false, zeroDamageHi
     // Variable global para controlar el tiempo (ponla justo antes de las funciones)
 let tooltipTimer = null;
 
-function showTooltip(piece) {
-  const stats = pieceMap.get(piece);
+function showTooltip(target, isDraft = false) {
+  let stats;
+
+  if (isDraft) {
+      const key = target.dataset.key;
+      const raw = pieceStats[key];
+      if (!raw) return;
+      stats = {
+          ...raw,
+          name: raw.nombre || raw.name,
+          currentVida: raw.vida,
+          maxVida: raw.vida,
+          baseAtaque: raw.ataque,
+          baseDefensa: raw.defensa,
+          baseAgilidad: raw.agilidad,
+          poderes: raw.poderes || { activos: [], pasivos: [] }
+      };
+  } else {
+      stats = pieceMap.get(target);
+  }
+
   if (!stats) return;
 
-  // --- 1. ETIQUETA DE EQUIPO ---
-  let teamLabel = piece.dataset.team || '';
+  let teamLabel = target.dataset.team || '';
   if (teamLabel) {
       teamLabel = teamLabel.charAt(0).toUpperCase() + teamLabel.slice(1);
       teamLabel = `(${teamLabel})`;
+  } else if (isDraft) {
+      teamLabel = ""; 
   }
 
-  // --- 2. LISTAS DE PODERES ---
   const activos = (stats.poderes?.activos || []).map(p => p.nombre || p).join('</li><li>');
   const pasivos = (stats.poderes?.pasivos || []).map(p => p.nombre || p).join('</li><li>');
 
-  // --- 3. RECOPILACIÓN DE BUFFOS (EL ARREGLO ESTÁ AQUÍ) ---
   let listaBuffos = [];
-
-  // A) Buffos de estadísticas (Ataque, Defensa, Agilidad)
-  if (stats.statBuffs) {
-      Object.values(stats.statBuffs).forEach(v => listaBuffos.push(v.label));
-  }
-
-  // B) Buffo de Crítico (se guardaba aparte y por eso no salía)
-  if (stats.critBuff) {
-      listaBuffos.push(stats.critBuff.label);
-  }
-  
-  // C) Probabilidad (si quieres que salga también como efecto positivo)
-  if (stats.probabilidadTurns > 0) {
-      listaBuffos.push("Probabilidad");
-  }
-
+  if (stats.statBuffs) Object.values(stats.statBuffs).forEach(v => listaBuffos.push(v.label));
+  if (stats.critBuff) listaBuffos.push(stats.critBuff.label);
+  if (stats.probabilidadTurns > 0) listaBuffos.push("Probabilidad");
   const buffosTexto = listaBuffos.join(', ');
-  // ---------------------------------------------------------
 
+  // --- CAMBIO: Eliminada la parte <small>(...)</small> de las stats ---
   tooltip.innerHTML = `
     <h3>${stats.name} <span style="font-size:0.8em; opacity:0.7">${teamLabel}</span></h3>
     
     <ul>
       <li><strong>Vida:</strong> ${Math.max(stats.currentVida, 0)} / ${stats.maxVida}</li>
       <li><strong>Movimiento:</strong> ${stats.movimiento}</li>
-      <li><strong>Ataque:</strong> ${stats.ataque} <small>(Base: ${stats.baseAtaque || stats.ataque})</small></li>
-      <li><strong>Defensa:</strong> ${stats.defensa} <small>(Base: ${stats.baseDefensa || stats.defensa})</small></li>
-      <li><strong>Agilidad:</strong> ${stats.agilidad} <small>(Base: ${stats.baseAgilidad || stats.agilidad})</small></li>
+      <li><strong>Ataque:</strong> ${stats.ataque}</li>
+      <li><strong>Defensa:</strong> ${stats.defensa}</li>
+      <li><strong>Agilidad:</strong> ${stats.agilidad}</li>
       <li><strong>Daño:</strong> ${stats.dano}</li>
       <li><strong>Rango:</strong> ${stats.rango}</li>
     </ul>
@@ -1995,8 +1187,24 @@ function showTooltip(piece) {
   `;
 
   tooltip.hidden = false;
-  requestAnimationFrame(() => positionTooltip(piece));
+  requestAnimationFrame(() => positionTooltip(target));
 }
+
+
+// Calcula el rango mínimo garantizado por poderes mentales
+    function getMentalRangeFloor(piece) {
+      const stats = pieceMap.get(piece);
+      if (!stats) return 0;
+
+      // Jerarquía: Telekinesis (3) > Control Mental (2)
+      // Si tiene Telekinesis, el suelo es 3 (tenga o no CM).
+      if (hasActive(stats, 'telekinesis')) return 3;
+      
+      // Si solo tiene Control Mental, el suelo es 2.
+      if (hasActive(stats, 'control mental')) return 2;
+
+      return 0;
+    }
 
 
 function hideTooltip() {
@@ -2062,26 +1270,39 @@ function attachTooltipEvents(piece) {
       piece.classList.add('piece--incapacitated');
     }
 
-    function actionLabel(actionKey) {
-      if (actionKey === 'incapacitar') return 'Incapacitar';
-      if (actionKey === 'explosion') return 'Explosión';
-      if (actionKey === 'pulso') return 'Pulso';
-      if (actionKey === 'probabilidad') return 'Probabilidad';
-      if (actionKey === 'mejora de ataque') return 'Mejora de Ataque';
-      if (actionKey === 'mejora de defensa') return 'Mejora de Defensa';
-      if (actionKey === 'mejora de agilidad') return 'Mejora de Agilidad';
-      if (actionKey === 'mejora de critico') return 'Mejora de Crítico';
-      if (actionKey === 'curar') return 'Curar';
-      return 'Ataque';
+   function actionLabel(actionKey) {
+      const labels = {
+        'incapacitar': 'Incapacitar',
+        'explosion': 'Explosión',
+        'pulso': 'Pulso',
+        'probabilidad': 'Probabilidad',
+        'mejora de ataque': 'Mejora de Ataque',
+        'mejora de defensa': 'Mejora de Defensa',
+        'mejora de agilidad': 'Mejora de Agilidad',
+        'mejora de critico': 'Mejora de Crítico',
+        'curar': 'Curar',
+        'control mental': 'Control Mental',
+        'telekinesis': 'Telekinesis'
+      };
+      return labels[actionKey] || 'Ataque';
     }
 
-    function neededRollToHit(attackerStats, defenderStats) {
+    // AHORA RECIBE isMelee COMO TERCER PARÁMETRO
+    function neededRollToHit(attackerStats, defenderStats, isMelee) {
       if (!attackerStats || !defenderStats) return 0;
-      const delta = defenderStats.defensa - attackerStats.ataque;
-      return Math.max(4, delta);
+      
+      let effectiveDefense = defenderStats.defensa;
+      
+      // Si es ataque a distancia y tiene el poder, la dificultad sube
+      if (!isMelee && hasPassive(defenderStats, 'defensa a/d')) {
+          effectiveDefense += 2;
+      }
+      
+      const delta = effectiveDefense - attackerStats.ataque;
+      return Math.max(4, delta); // Mínimo siempre necesitas un 4 (salvo crítico)
     }
 
-      function buildAttackPopupMessage({
+     function buildAttackPopupMessage({
         attackerStats,
         defenderStats,
         roll,
@@ -2096,11 +1317,21 @@ function attachTooltipEvents(piece) {
         baseDamageBeforeClaws,
         baseDamageAfterClaws,
       }) {
-        const need = neededRollToHit(attackerStats, defenderStats);
+        // 1. Calculamos lo que necesita sacar (Ya incluye el +2 si aplica)
+        const need = neededRollToHit(attackerStats, defenderStats, isMelee);
         
-        // --- BLOQUE PERSONALIZADO: INCAPACITAR ---
+        // --- CORRECCIÓN: CALCULAR DEFENSA VISUAL ---
+        // Calculamos qué número vamos a imprimir en "que defiende con X"
+        // para que coincida con las matemáticas del juego.
+        let displayedDefense = defenderStats.defensa;
+        if (!isMelee && hasPassive(defenderStats, 'defensa a/d')) {
+            displayedDefense += 2;
+        }
+        // -------------------------------------------
+
         if (actionKey === 'incapacitar') {
-          const opening = `${attackerStats.name} realiza un ataque de Incapacitación con ${attackerStats.ataque} a ${defenderStats.name} que defiende con ${defenderStats.defensa}.`;
+          // Usamos displayedDefense en lugar de defenderStats.defensa
+          const opening = `${attackerStats.name} realiza un ataque de Incapacitación con ${attackerStats.ataque} a ${defenderStats.name} que defiende con ${displayedDefense}.`;
           const rollLine = `${attackerStats.name} necesita un ${need} y ${roll ? `consigue un ${roll}.` : 'prepara la tirada.'}`;
           const resultLine = success
             ? `${attackerStats.name} incapacita a ${defenderStats.name}.`
@@ -2108,29 +1339,21 @@ function attachTooltipEvents(piece) {
           return `${opening} ${rollLine} ${resultLine}`;
         }
 
-        // --- BLOQUE PERSONALIZADO: CONTROL MENTAL ---
         if (actionKey === 'control mental') {
-            const opening = `${attackerStats.name} realiza un ataque de Control Mental con ${attackerStats.ataque} a ${defenderStats.name} que defiende con ${defenderStats.defensa}.`;
+            // Usamos displayedDefense aquí también
+            const opening = `${attackerStats.name} realiza un ataque de Control Mental con ${attackerStats.ataque} a ${defenderStats.name} que defiende con ${displayedDefense}.`;
             const rollLine = `${attackerStats.name} necesita un ${need} y ${roll ? `consigue un ${roll}.` : 'prepara la tirada.'}`;
-            
-            let resultLine = '';
-            if (success) {
-                resultLine = `${defenderStats.name} es controlado y pasa al equipo de ${attackerStats.name} este turno.`;
-            } else {
-                resultLine = `${attackerStats.name} falla el ataque de Control Mental contra ${defenderStats.name}.`;
-            }
-            
+            let resultLine = success ? `${defenderStats.name} es controlado y pasa al equipo de ${attackerStats.name} este turno.` : `${attackerStats.name} falla el ataque de Control Mental contra ${defenderStats.name}.`;
             return `${opening} ${rollLine} ${resultLine}`;
         }
-        // ---------------------------------------------
 
-        // --- ATAQUES NORMALES (Daño) ---
         const attackTypeLabel = isMelee ? 'ataque cuerpo a cuerpo' : 'ataque a distancia';
         const resistanceLabel = 'resistencia';
         const baseDamage = rawDamage ?? damage;
         const inflictedDamage = success ? damage : 0;
 
-        const opening = `${attackerStats.name} realiza un ${attackTypeLabel} con ${attackerStats.ataque} a ${defenderStats.name} que defiende con ${defenderStats.defensa}.`;
+        // Y aquí en el ataque estándar
+        const opening = `${attackerStats.name} realiza un ${attackTypeLabel} con ${attackerStats.ataque} a ${defenderStats.name} que defiende con ${displayedDefense}.`;
         const rollLine = `${attackerStats.name} necesita un ${need} y ${roll ? `consigue un ${roll}${critical ? ' (Crítico)' : ''}.` : 'prepara la tirada.'}`;
 
         if (!success) {
@@ -2139,7 +1362,7 @@ function attachTooltipEvents(piece) {
 
         const clawsLine =
           clawsRoll !== null && clawsRoll !== undefined
-            ? `${attackerStats.name} hace una tirada de garras y consigue ${clawsRoll}, con lo que su daño base ${
+            ? `${attackerStats.name} usa Cuchillas/Garras/Colmillos (d6) y saca un ${clawsRoll}, con lo que su daño base ${
                 clawsRoll > baseDamageBeforeClaws ? 'aumenta a' : 'se mantiene en'
               } ${clawsRoll > baseDamageBeforeClaws ? baseDamageAfterClaws : baseDamageBeforeClaws}.`
             : '';
@@ -2155,8 +1378,12 @@ function attachTooltipEvents(piece) {
 
       return `${opening} ${rollLine} ${clawsLine} ${baseDamageLine} ${resistanceLine} ${damageLine} ${deathLine}`.replace(/\s+/g, ' ').trim();
     }
+
+    
     function updateCombatInfo() {
       const combatBox = document.getElementById('combatInfo');
+      if (!combatBox) return;
+      
       if (!pendingAttackInfo) {
         combatBox.textContent = '';
         return;
@@ -2181,7 +1408,11 @@ function attachTooltipEvents(piece) {
         successText = info.success ? (info.critical ? ' (Crítico)' : ' (Éxito)') : ' (Fallo)';
       }
       const damageText = info.roll ? ` | Daño: ${info.damage} | Vida defensor: ${info.defenderVida}` : '';
-      const clawsText = info.clawsRoll ? ` | Garras d6: ${info.clawsRoll}` : '';
+      
+      // --- CAMBIO AQUÍ: Nombre actualizado en la barra ---
+      const clawsText = info.clawsRoll ? ` | Cuchillas d6: ${info.clawsRoll}` : '';
+      // --------------------------------------------------
+      
       const noteText = info.note ? ` | ${info.note}` : '';
       combatBox.textContent = `${info.action} ${info.attackerName} (${info.attacker}) vs ${info.defenderName} (${info.defender}) | Diferencia: ${info.difference}${rollText}${successText}${damageText}${clawsText}${noteText}`;
     }
@@ -2209,381 +1440,368 @@ function attachTooltipEvents(piece) {
     }
     
 
+// --- BLOQUE DE COMBATE OPTIMIZADO ---
+
 async function resolveAttack(attacker, defender, actionKey = 'attack', options = {}) {
-      const { 
-        allowCounter = true, 
-        skipTurnAdvance = false, 
-        actionLabelOverride = null, 
-        isSecondAttack = false 
-      } = options;
+  const { 
+    allowCounter = true, 
+    skipTurnAdvance = false, 
+    actionLabelOverride = null, 
+    isSecondAttack = false 
+  } = options;
 
-      const attackerStats = pieceMap.get(attacker);
-      const defenderStats = pieceMap.get(defender);
-      const attackerSquare = getPieceSquare(attacker);
-      const targetSquare = getPieceSquare(defender);
-      const distance = attackDistance(attackerSquare, targetSquare);
+  const attackerStats = pieceMap.get(attacker);
+  const defenderStats = pieceMap.get(defender);
+  
+  // Validación de seguridad
+  if (!attackerStats || !defenderStats) {
+      console.error("Error: Falta stats en ataque", { attacker, defender });
+      return;
+  }
 
-      // --- 1. CÁLCULOS ---
-      const die1 = Math.floor(Math.random() * 6) + 1;
-      const die2 = Math.floor(Math.random() * 6) + 1;
-      const roll = die1 + die2;
-      
-      const { success, critical, isPifia, shouldCounter } = evaluateAttackRoll(
-        attackerStats, defenderStats, roll, distance, { allowCounter }
-      );
+  const attackerSquare = getPieceSquare(attacker);
+  const targetSquare = getPieceSquare(defender);
+  const distance = attackDistance(attackerSquare, targetSquare);
 
-      // SONIDOS
-      if (critical) playEffectSound(criticoSound);
-      if (isPifia) playEffectSound(pifiaSound);
+  // 1. CÁLCULOS
+  const die1 = Math.floor(Math.random() * 6) + 1;
+  const die2 = Math.floor(Math.random() * 6) + 1;
+  const roll = die1 + die2;
+  
+  const { success, critical, isPifia, shouldCounter } = evaluateAttackRoll(
+    attackerStats, defenderStats, roll, distance, { allowCounter }
+  );
 
-      const { totalDamage, clawsRoll, isMelee, resistance, rawDamage, baseDamageBeforeClaws, baseDamageAfterClaws } = 
-        calculateDamage(attackerStats, defenderStats, distance, critical);
+  // Sonidos de resultado
+  if (critical) playEffectSound(criticoSound);
+  if (isPifia) playEffectSound(pifiaSound);
 
-      const isStatusAttack = actionKey === 'incapacitar' || actionKey === 'control mental';
-      const damageApplied = success && !isStatusAttack ? totalDamage : 0;
+  const { totalDamage, clawsRoll, isMelee, resistance, rawDamage, baseDamageBeforeClaws, baseDamageAfterClaws } = 
+    calculateDamage(attackerStats, defenderStats, distance, critical);
 
-      // --- 2. APLICAR EFECTOS ---
-      let specialEffectMessage = ''; // Se queda vacío, el mensaje ahora lo genera buildAttackPopupMessage
+  const isStatusAttack = actionKey === 'incapacitar' || actionKey === 'control mental';
+  const damageApplied = success && !isStatusAttack ? totalDamage : 0;
 
-      if (success) {
-        if (actionKey === 'incapacitar') {
-          setIncapacitated(defender, 1);
-          if (isEnemy(attacker, defender)) addPoints(attacker, SCORE_PER_DAMAGE);
-          playEffectSound(incapacitarSound);
-        } 
-        else if (actionKey === 'control mental') {
-          const currentTeam = defender.dataset.team;
-          defenderStats.originalTeam = currentTeam; 
-          
-          const newTeam = currentTeam === 'aliado' ? 'enemigo' : 'aliado';
-          
-          defenderStats.team = newTeam;
-          defender.dataset.team = newTeam;
-          defenderStats.mindControlled = true;
-          
-          // ELIMINADO: specialEffectMessage = `...` (Ya no hace falta)
-          playEffectSound(controlMentalSound);
+  // 2. APLICAR EFECTOS
+  let specialEffectMessage = ''; 
+
+  if (success) {
+    if (actionKey === 'incapacitar') {
+      setIncapacitated(defender, 1);
+      if (isEnemy(attacker, defender)) addPoints(attacker, SCORE_PER_DAMAGE);
+      playEffectSound(incapacitarSound);
+    } 
+    else if (actionKey === 'control mental') {
+      const currentTeam = defender.dataset.team;
+      defenderStats.originalTeam = currentTeam; 
+      const newTeam = currentTeam === 'aliado' ? 'enemigo' : 'aliado';
+      defenderStats.team = newTeam;
+      defender.dataset.team = newTeam;
+      defenderStats.mindControlled = true;
+      playEffectSound(controlMentalSound);
+    }
+    else if (damageApplied > 0) {
+      defenderStats.currentVida = Math.max(defenderStats.currentVida - damageApplied, 0);
+      if (isEnemy(attacker, defender)) addPoints(attacker, damageApplied * SCORE_PER_DAMAGE);
+
+      if (hasPassive(attackerStats, 'robo de vida')) {
+        const missing = attackerStats.maxVida - attackerStats.currentVida;
+        const heal = Math.min(damageApplied, missing);
+        if (heal > 0) {
+          attackerStats.currentVida += heal;
+          specialEffectMessage = ` ${attackerStats.name} roba vida (+${heal}).`;
         }
-        else if (damageApplied > 0) {
-          defenderStats.currentVida = Math.max(defenderStats.currentVida - damageApplied, 0);
-          if (isEnemy(attacker, defender)) addPoints(attacker, damageApplied * SCORE_PER_DAMAGE);
-
-          if (hasPassive(attackerStats, 'robo de vida')) {
-            const missing = attackerStats.maxVida - attackerStats.currentVida;
-            const heal = Math.min(damageApplied, missing);
-            if (heal > 0) {
-              attackerStats.currentVida += heal;
-              specialEffectMessage = ` ${attackerStats.name} roba vida (+${heal}).`;
-            }
-          }
-        }
-      }
-
-      // --- 3. PREPARAR MENSAJE ---
-      const labelAccion = actionLabelOverride || (isSecondAttack ? '2º Ataque c/c' : actionLabel(actionKey));
-
-      let popupMessage = buildAttackPopupMessage({
-        attackerStats, defenderStats, roll, success, damage: damageApplied,
-        isMelee, resistance, rawDamage, actionKey, clawsRoll, critical,
-        baseDamageBeforeClaws, baseDamageAfterClaws
-      });
-      
-      popupMessage += specialEffectMessage; // Solo añade robo de vida si aplica
-
-      addHistoryEntry(attacker.dataset.team, popupMessage, { attacker, defenders: [defender] });
-
-      if (success && !isStatusAttack && defenderStats.currentVida <= 0) {
-        queueDeathMessage(`${defenderStats.name} eliminado por ${attackerStats.name}.`);
-        if (isEnemy(attacker, defender)) addPoints(attacker, SCORE_PER_KILL);
-        eliminatePiece(defender);
-      }
-
-      // Sonido Normal
-      const skipFailureSound = isPifia; 
-      const isZeroDamageHit = success && damageApplied === 0 && !isStatusAttack;
-      
-      registerTurnSound({ 
-        damageDealt: damageApplied, 
-        attackFailed: !success && !skipFailureSound, 
-        zeroDamageHit: isZeroDamageHit 
-      });
-
-      if (damageApplied > 0 && !pendingPopupSound) pendingPopupSound = 'punch';
-
-      renderLifeCards();
-      updateCombatInfo();
-
-      // --- 4. FLUJO DE PIFIA Y DOBLE ATAQUE ---
-      if (shouldCounter && defenderStats.currentVida > 0 && defender.dataset.eliminated !== 'true') {
-        await showTurnPopup(`¡PIFIA! ${attackerStats.name} ha fallado estrepitosamente.\n${defenderStats.name} prepara su contraataque.\n(Haz clic para resolver la réplica)`);
-        await sleep(300);
-        await resolveAttack(defender, attacker, 'attack', {
-          allowCounter: false,
-          skipTurnAdvance: true,
-          actionLabelOverride: 'Réplica',
-        });
-        if (!skipTurnAdvance) finishTurn(attacker);
-        return;
-      }
-
-      const hasDoubleAttack = hasPassive(attackerStats, 'doble ataque c/c');
-      if (isMelee && hasDoubleAttack && !isSecondAttack && !options.actionLabelOverride && !isStatusAttack &&
-          defenderStats.currentVida > 0 && defender.dataset.eliminated !== 'true' &&
-          attackerStats.currentVida > 0 && attacker.dataset.eliminated !== 'true') {
-        
-        await showTurnPopup(`${popupMessage}\n\n[DOBLE ATAQUE]\n(Clic para el segundo golpe)`);
-        await sleep(300);
-        await resolveAttack(attacker, defender, actionKey, {
-          ...options,
-          isSecondAttack: true, 
-          actionLabelOverride: '2º Ataque c/c'
-        });
-        return; 
-      }
-
-      if (!skipTurnAdvance) {
-        hideTooltip();
-        clearRangeHighlights();
-        selectedTarget = null;
-        attackButton.classList.remove('button--pulse');
-        finishTurn(attacker);
       }
     }
+  }
+
+  // 3. PREPARAR MENSAJE
+  const labelAccion = actionLabelOverride || (isSecondAttack ? '2º Ataque c/c' : actionLabel(actionKey));
+
+  let popupMessage = buildAttackPopupMessage({
+    attackerStats, defenderStats, roll, success, damage: damageApplied,
+    isMelee, resistance, rawDamage, actionKey, clawsRoll, critical,
+    baseDamageBeforeClaws, baseDamageAfterClaws
+  });
+  
+  popupMessage += specialEffectMessage; 
+  addHistoryEntry(attacker.dataset.team, popupMessage, { attacker, defenders: [defender] });
+
+  // Gestión de Muerte
+  if (success && !isStatusAttack && defenderStats.currentVida <= 0) {
+    if (defenderStats.mindControlled) {
+        defenderStats.team = defenderStats.originalTeam;
+        defender.dataset.team = defenderStats.originalTeam;
+        defenderStats.mindControlled = false;
+    }
+    queueDeathMessage(`${defenderStats.name} eliminado por ${attackerStats.name}.`);
+    if (isEnemy(attacker, defender)) addPoints(attacker, SCORE_PER_KILL);
+    eliminatePiece(defender);
+  }
+
+  // Sonido e Interfaz
+  const skipFailureSound = isPifia; 
+  const isZeroDamageHit = success && damageApplied === 0 && !isStatusAttack;
+  registerTurnSound({ 
+    damageDealt: damageApplied, 
+    attackFailed: !success && !skipFailureSound, 
+    zeroDamageHit: isZeroDamageHit 
+  });
+  if (damageApplied > 0 && !pendingPopupSound) pendingPopupSound = 'punch';
+
+  renderLifeCards();
+  updateCombatInfo();
+
+  // 4. FLUJO DE PIFIA Y DOBLE ATAQUE
+  if (shouldCounter && defenderStats.currentVida > 0 && defender.dataset.eliminated !== 'true') {
+    await showTurnPopup(`¡PIFIA! ${attackerStats.name} ha fallado estrepitosamente.\n${defenderStats.name} prepara su contraataque.\n(Haz clic para resolver la réplica)`);
+    await sleep(300);
+    await resolveAttack(defender, attacker, 'attack', {
+      allowCounter: false,
+      skipTurnAdvance: true,
+      actionLabelOverride: 'Réplica',
+    });
+    if (!skipTurnAdvance) finishTurn(attacker);
+    return;
+  }
+
+  const hasDoubleAttack = hasPassive(attackerStats, 'doble ataque c/c');
+  if (isMelee && hasDoubleAttack && !isSecondAttack && !options.actionLabelOverride && !isStatusAttack &&
+      defenderStats.currentVida > 0 && defender.dataset.eliminated !== 'true' &&
+      attackerStats.currentVida > 0 && attacker.dataset.eliminated !== 'true') {
     
+    await showTurnPopup(`${popupMessage}\n\n[DOBLE ATAQUE]\n(Clic para el segundo golpe)`);
+    await sleep(300);
+    await resolveAttack(attacker, defender, actionKey, {
+      ...options,
+      isSecondAttack: true, 
+      actionLabelOverride: '2º Ataque c/c'
+    });
+    return; 
+  }
 
-   async function resolveExplosion(attacker, defender) {
-      const attackerStats = pieceMap.get(attacker);
-      const attackerSquare = getPieceSquare(attacker);
-      const centerSquare = getPieceSquare(defender);
-      
-      const die1 = Math.floor(Math.random() * 6) + 1;
-      const die2 = Math.floor(Math.random() * 6) + 1;
-      const roll = die1 + die2;
-      const critical = isCriticalRoll(attackerStats, roll);
+  if (!skipTurnAdvance) {
+    hideTooltip();
+    clearRangeHighlights();
+    selectedTarget = null;
+    attackButton.classList.remove('button--pulse');
+    finishTurn(attacker);
+  }
+}
 
-      if (critical) playEffectSound(criticoSound);
-      
-      // --- 1. MENSAJE AJUSTADO (Daño Base) ---
-      let baseRaw = attackerStats.dano ?? 0;
-      if (critical) baseRaw *= 2; // Mostramos el base YA multiplicado si es crítico
-      const damageDescription = `${attackerStats.name} tiene un daño base para este ataque de ${baseRaw}`;
-      // ---------------------------------------
+async function resolveExplosion(attacker, defender) {
+  const attackerStats = pieceMap.get(attacker);
+  const attackerSquare = getPieceSquare(attacker);
+  const centerSquare = getPieceSquare(defender);
+  
+  const die1 = Math.floor(Math.random() * 6) + 1;
+  const die2 = Math.floor(Math.random() * 6) + 1;
+  const roll = die1 + die2;
+  const critical = isCriticalRoll(attackerStats, roll);
 
-      const affectedPieces = [];
-      const seenPieces = new Set();
-      let totalDamageDealt = 0;
-      let anySuccess = false;
+  if (critical) playEffectSound(criticoSound);
+  
+  let baseRaw = attackerStats.dano ?? 0;
+  if (critical) baseRaw *= 2; 
+  const damageDescription = `${attackerStats.name} tiene un daño base para este ataque de ${baseRaw}`;
 
-      const CROSS_OFFSETS = [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]];
+  const affectedPieces = [];
+  const seenPieces = new Set();
+  let totalDamageDealt = 0;
+  let anySuccess = false;
 
-      CROSS_OFFSETS.forEach(([dr, dc]) => {
-        const row = Number(centerSquare.dataset.row) + dr;
-        const col = Number(centerSquare.dataset.col) + dc;
-        const square = getSquareAt(row, col);
-        if (!square) return;
-        const piece = square.querySelector('.piece');
-        if (!piece || seenPieces.has(piece)) return;
-        seenPieces.add(piece);
-        affectedPieces.push({ piece, square });
-      });
+  // Centro + Cruz
+  const CROSS_OFFSETS = [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]];
 
-      const targetsSummary = [];
+  CROSS_OFFSETS.forEach(([dr, dc]) => {
+    const row = Number(centerSquare.dataset.row) + dr;
+    const col = Number(centerSquare.dataset.col) + dc;
+    const square = getSquareAt(row, col);
+    if (!square) return;
+    const piece = square.querySelector('.piece');
+    if (!piece || seenPieces.has(piece)) return;
+    seenPieces.add(piece);
+    affectedPieces.push({ piece, square });
+  });
 
-      affectedPieces.forEach(({ piece, square }) => {
-        const targetStats = pieceMap.get(piece);
-        const distanceToAttacker = attackDistance(attackerSquare, square);
-        
-        // Bloqueamos contraataque con allowCounter: false
-        const { success } = evaluateAttackRoll(attackerStats, targetStats, roll, distanceToAttacker, {
-          allowCounter: false, 
-        });
+  const targetsSummary = [];
 
-        let damage = 0;
-        if (success) {
-          // Usamos el baseRaw calculado arriba
-          let valDureza = 0;
-          let valInvulnerable = 0;
-          let valInvulnerableAD = 0;
-
-          if (hasPassive(targetStats, 'dureza')) valDureza = 1;
-          if (hasPassive(targetStats, 'invulnerable')) valInvulnerable = 2;
-          if (distanceToAttacker > 1 && hasPassive(targetStats, 'invulnerable a a/d')) {
-              valInvulnerableAD = 2;
-          }
-
-          const resistance = Math.max(valDureza, valInvulnerable, valInvulnerableAD);
-          damage = Math.max(baseRaw - resistance, 0);
-          
-          targetStats.currentVida = Math.max(targetStats.currentVida - damage, 0);
-          totalDamageDealt += damage;
-          if (isEnemy(attacker, piece)) addPoints(attacker, damage * SCORE_PER_DAMAGE);
-          anySuccess = true;
-        }
-
-        const eliminated = success && targetStats.currentVida <= 0;
-        targetsSummary.push({ name: targetStats.name, success, damage, eliminated });
-
-        if (eliminated) {
-          queueDeathMessage(`${targetStats.name} ha sido eliminado por ${attackerStats.name}.`);
-          if (isEnemy(attacker, piece)) addPoints(attacker, SCORE_PER_KILL);
-          eliminatePiece(piece);
-        }
-      });
-
-      // Formato de lista
-      const formatter = new Intl.ListFormat('es', { style: 'long', type: 'conjunction' });
-      const detailsList = targetsSummary.map(t => {
-        if (!t.success) return `${t.name} (esquiva)`;
-        let detail = `daño ${t.damage}`; // Ya no mostramos "daño recibido", solo "daño X"
-        if (t.eliminated) detail += ` y eliminado`;
-        return `${t.name} (${detail})`;
-      });
-
-      const affectedText = detailsList.length > 0 ? formatter.format(detailsList) : 'Ninguno';
-      
-      // Construcción exacta del mensaje solicitado
-      const logMessage = `${attackerStats.name} ejecuta Explosión (Tirada ${roll}). ${damageDescription}. Afectados: ${affectedText}.`;
-
-      pendingAttackInfo = {
-        action: actionLabel('explosion'),
-        attackerName: attackerStats.name,
-        roll,
-        critical,
-        targets: targetsSummary,
-      };
-
-      playEffectSound(explosionSound);
-      addHistoryEntry(attacker.dataset.team, logMessage, { attacker, defenders: affectedPieces.map(({ piece }) => piece) });
-      registerTurnSound({ damageDealt: totalDamageDealt, attackFailed: !anySuccess });
-      renderLifeCards();
-      hideTooltip();
-      clearRangeHighlights();
-      selectedTarget = null;
-      attackButton.classList.remove('button--pulse');
-      updateCombatInfo();
-      
-      await showTurnPopup(logMessage);
-      finishTurn(attacker, { showPopup: false });
-    }
+  affectedPieces.forEach(({ piece, square }) => {
+    const targetStats = pieceMap.get(piece);
+    const distanceToAttacker = attackDistance(attackerSquare, square);
     
+    const { success } = evaluateAttackRoll(attackerStats, targetStats, roll, distanceToAttacker, {
+      allowCounter: false, 
+    });
 
-   async function resolvePulse(attacker) { // Nota: Hazla async para ser consistente
-      const attackerStats = pieceMap.get(attacker);
-      const attackerSquare = getPieceSquare(attacker);
-      
-      const die1 = Math.floor(Math.random() * 6) + 1;
-      const die2 = Math.floor(Math.random() * 6) + 1;
-      const roll = die1 + die2;
-      const critical = isCriticalRoll(attackerStats, roll);
-      
-      if (critical) playEffectSound(criticoSound);
+    let damage = 0;
+    if (success) {
+      let valDureza = 0;
+      let valInvulnerable = 0;
+      if (hasPassive(targetStats, 'dureza')) valDureza = 1;
+      if (hasPassive(targetStats, 'invulnerable')) valInvulnerable = 2;
+      const resistance = Math.max(valDureza, valInvulnerable);
 
-      // --- 1. MENSAJE AJUSTADO ---
-      let baseRaw = attackerStats.dano ?? 0;
-      if (critical) baseRaw *= 2;
-      const damageDescription = `${attackerStats.name} tiene un daño base para este ataque de ${baseRaw}`;
-      // ---------------------------
-
-      const attackTotal = attackerStats.ataque + roll;
-      const affectedPieces = [];
-      let totalDamageDealt = 0;
-      const CROSS_OFFSETS = [[1, 0], [-1, 0], [0, 1], [0, -1]];
-
-      CROSS_OFFSETS.forEach(([dr, dc]) => {
-        const row = Number(attackerSquare.dataset.row) + dr;
-        const col = Number(attackerSquare.dataset.col) + dc;
-        const square = getSquareAt(row, col);
-        const occupant = square?.querySelector('.piece');
-        if (!occupant) return;
-        affectedPieces.push({ piece: occupant, square, distance: 1 });
-      });
-
-      const targetsSummary = [];
-      let anySuccess = false;
-
-      affectedPieces.forEach(({ piece, distance }) => {
-        const targetStats = pieceMap.get(piece);
-        const success = attackTotal >= targetStats.defensa;
-
-        let damage = 0;
-        if (success) {
-          // Mitigación (Pulso es distancia 1, a/d no aplica normalmente pero dejamos la lógica)
-          let valDureza = 0;
-          let valInvulnerable = 0;
-          let valInvulnerableAD = 0;
-
-          if (hasPassive(targetStats, 'dureza')) valDureza = 1;
-          if (hasPassive(targetStats, 'invulnerable')) valInvulnerable = 2;
-          if (distance > 1 && hasPassive(targetStats, 'invulnerable a a/d')) {
-              valInvulnerableAD = 2;
-          }
-          const resistance = Math.max(valDureza, valInvulnerable, valInvulnerableAD);
-          
-          damage = Math.max(baseRaw - resistance, 0);
-          
-          if (damage > 0) {
-            targetStats.currentVida = Math.max(targetStats.currentVida - damage, 0);
-            totalDamageDealt += damage;
-            if (isEnemy(attacker, piece)) addPoints(attacker, damage * SCORE_PER_DAMAGE);
-          }
-          anySuccess = true;
-        }
-
-        targetsSummary.push({
-          name: targetStats.name,
-          success,
-          damage,
-          eliminated: success && targetStats.currentVida <= 0
-        });
-
-        if (success && targetStats.currentVida <= 0) {
-          queueDeathMessage(`${targetStats.name} ha sido eliminado por el Pulso de ${attackerStats.name}.`);
-          if (isEnemy(attacker, piece)) addPoints(attacker, SCORE_PER_KILL);
-          eliminatePiece(piece);
-        }
-      });
-
-      // Formato de lista
-      const formatter = new Intl.ListFormat('es', { style: 'long', type: 'conjunction' });
-      const detailsList = targetsSummary.map(t => {
-        if (!t.success) return `${t.name} (esquiva)`;
-        let detail = `daño ${t.damage}`;
-        if (t.eliminated) detail += ` y eliminado`;
-        return `${t.name} (${detail})`;
-      });
-
-      const affectedText = detailsList.length > 0 ? formatter.format(detailsList) : 'Ninguno';
-
-      // Mensaje final ajustado
-      const logMessage = `${attackerStats.name} activa Pulso (Tirada ${roll}). ${damageDescription}. Afectados: ${affectedText}.`;
-
-      pendingAttackInfo = {
-        action: actionLabel('pulso'),
-        attackerName: attackerStats.name,
-        roll: roll,
-        critical: critical,
-        targets: targetsSummary,
-      };
-
-      playEffectSound(pulsoSound);
-      addHistoryEntry(attacker.dataset.team, logMessage, { attacker, defenders: affectedPieces.map(({ piece }) => piece) });
-
-      registerTurnSound({ damageDealt: totalDamageDealt, attackFailed: !anySuccess });
-
-      renderLifeCards();
-      hideTooltip();
-      clearRangeHighlights();
-      selectedTarget = null;
-      attackButton.classList.remove('button--pulse');
-      updateCombatInfo();
-      
-      // Hacemos await para que se vea el mensaje
-      if (affectedPieces.length > 0 || anySuccess) {
-         await showTurnPopup(logMessage);
-      }
-      
-      finishTurn(attacker, { showPopup: false }); // Ya mostramos el popup arriba
+      damage = Math.max(baseRaw - resistance, 0);
+      targetStats.currentVida = Math.max(targetStats.currentVida - damage, 0);
+      totalDamageDealt += damage;
+      if (isEnemy(attacker, piece)) addPoints(attacker, damage * SCORE_PER_DAMAGE);
+      anySuccess = true;
     }
+
+    const eliminated = success && targetStats.currentVida <= 0;
+    targetsSummary.push({ name: targetStats.name, success, damage, eliminated });
+
+    if (eliminated) {
+      queueDeathMessage(`${targetStats.name} ha sido eliminado por ${attackerStats.name}.`);
+      if (isEnemy(attacker, piece)) addPoints(attacker, SCORE_PER_KILL);
+      eliminatePiece(piece);
+    }
+  });
+
+  // Formateo del mensaje
+  const formatter = new Intl.ListFormat('es', { style: 'long', type: 'conjunction' });
+  const detailsList = targetsSummary.map(t => {
+    if (!t.success) return `${t.name} (esquiva)`;
+    let detail = `daño ${t.damage}`;
+    if (t.eliminated) detail += ` y eliminado`;
+    return `${t.name} (${detail})`;
+  });
+
+  const affectedText = detailsList.length > 0 ? formatter.format(detailsList) : 'Ninguno';
+  const logMessage = `${attackerStats.name} ejecuta Explosión. Ataca con ${attackerStats.ataque} y consigue en la tirada un ${roll}. ${damageDescription}. Afectados: ${affectedText}.`;
+
+  pendingAttackInfo = {
+    action: actionLabel('explosion'),
+    attackerName: attackerStats.name,
+    roll,
+    critical,
+    targets: targetsSummary,
+  };
+
+  playEffectSound(explosionSound);
+  addHistoryEntry(attacker.dataset.team, logMessage, { attacker, defenders: affectedPieces.map(({ piece }) => piece) });
+  registerTurnSound({ damageDealt: totalDamageDealt, attackFailed: !anySuccess });
+  renderLifeCards();
+  hideTooltip();
+  clearRangeHighlights();
+  selectedTarget = null;
+  attackButton.classList.remove('button--pulse');
+  updateCombatInfo();
+  
+  await showTurnPopup(logMessage);
+  finishTurn(attacker, { showPopup: false });
+}
+
+async function resolvePulse(attacker) {
+  const attackerStats = pieceMap.get(attacker);
+  const attackerSquare = getPieceSquare(attacker);
+  
+  const die1 = Math.floor(Math.random() * 6) + 1;
+  const die2 = Math.floor(Math.random() * 6) + 1;
+  const roll = die1 + die2;
+  const critical = isCriticalRoll(attackerStats, roll);
+  
+  if (critical) playEffectSound(criticoSound);
+
+  let baseRaw = attackerStats.dano ?? 0;
+  if (critical) baseRaw *= 2;
+  const damageDescription = `${attackerStats.name} tiene un daño base para este ataque de ${baseRaw}`;
+
+  const attackTotal = attackerStats.ataque + roll;
+  const affectedPieces = [];
+  let totalDamageDealt = 0;
+  
+  // Solo adyacentes (Cruz)
+  const CROSS_OFFSETS = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+
+  CROSS_OFFSETS.forEach(([dr, dc]) => {
+    const row = Number(attackerSquare.dataset.row) + dr;
+    const col = Number(attackerSquare.dataset.col) + dc;
+    const square = getSquareAt(row, col);
+    const occupant = square?.querySelector('.piece');
+    if (!occupant) return;
+    affectedPieces.push({ piece: occupant, square, distance: 1 });
+  });
+
+  const targetsSummary = [];
+  let anySuccess = false;
+
+  affectedPieces.forEach(({ piece, distance }) => {
+    const targetStats = pieceMap.get(piece);
+    const success = attackTotal >= targetStats.defensa;
+
+    let damage = 0;
+    if (success) {
+      let valDureza = 0;
+      let valInvulnerable = 0;
+      let valInvulnerableAD = 0;
+
+      if (hasPassive(targetStats, 'dureza')) valDureza = 1;
+      if (hasPassive(targetStats, 'invulnerable')) valInvulnerable = 2;
+      if (hasPassive(targetStats, 'invulnerable a a/d')) valInvulnerableAD = 2;
+      
+      const resistance = Math.max(valDureza, valInvulnerable, valInvulnerableAD);
+      damage = Math.max(baseRaw - resistance, 0);
+      
+      if (damage > 0) {
+        targetStats.currentVida = Math.max(targetStats.currentVida - damage, 0);
+        totalDamageDealt += damage;
+        if (isEnemy(attacker, piece)) addPoints(attacker, damage * SCORE_PER_DAMAGE);
+      }
+      anySuccess = true;
+    }
+
+    targetsSummary.push({
+      name: targetStats.name,
+      success,
+      damage,
+      eliminated: success && targetStats.currentVida <= 0
+    });
+
+    if (success && targetStats.currentVida <= 0) {
+      queueDeathMessage(`${targetStats.name} ha sido eliminado por el Pulso de ${attackerStats.name}.`);
+      if (isEnemy(attacker, piece)) addPoints(attacker, SCORE_PER_KILL);
+      eliminatePiece(piece);
+    }
+  });
+
+  const formatter = new Intl.ListFormat('es', { style: 'long', type: 'conjunction' });
+  const detailsList = targetsSummary.map(t => {
+    if (!t.success) return `${t.name} (esquiva)`;
+    let detail = `daño ${t.damage}`;
+    if (t.eliminated) detail += ` y eliminado`;
+    return `${t.name} (${detail})`;
+  });
+
+  const affectedText = detailsList.length > 0 ? formatter.format(detailsList) : 'Ninguno';
+  const logMessage = `${attackerStats.name} ejecuta Pulso. Ataca con ${attackerStats.ataque} y consigue en la tirada un ${roll}. ${damageDescription}. Afectados: ${affectedText}.`;
+
+  pendingAttackInfo = {
+    action: actionLabel('pulso'),
+    attackerName: attackerStats.name,
+    roll: roll,
+    critical: critical,
+    targets: targetsSummary,
+  };
+
+  playEffectSound(pulsoSound);
+  addHistoryEntry(attacker.dataset.team, logMessage, { attacker, defenders: affectedPieces.map(({ piece }) => piece) });
+  registerTurnSound({ damageDealt: totalDamageDealt, attackFailed: !anySuccess });
+
+  renderLifeCards();
+  hideTooltip();
+  clearRangeHighlights();
+  selectedTarget = null;
+  attackButton.classList.remove('button--pulse');
+  updateCombatInfo();
+  
+  if (affectedPieces.length > 0 || anySuccess) {
+     await showTurnPopup(logMessage);
+  }
+  
+  finishTurn(attacker, { showPopup: false });
+}
 
 
 
@@ -2834,9 +2052,99 @@ async function resolveHeal(attacker, target) {
       finishTurn(attacker, { showPopup: false });
     }
 
+    // --- 1. LIMPIEZA COMPLETA ---
+    function clearRangeHighlights() {
+      board.classList.remove('targeting');
+      
+      squares.forEach((square) => {
+          square.classList.remove('square--range', 'square--target', 'square--range-special');
+          
+          const piece = square.querySelector('.piece');
+          if (piece) {
+              // Quitamos TODAS las marcas posibles
+              piece.classList.remove('valid-target', 'valid-target-blue', 'valid-ally', 'piece--selected');
+          }
+      });
+    }
+
+    // --- 2. ILUMINAR OBJETIVOS (Lógica Rojo/Azul) ---
+    function highlightRange(piece) {
+      clearRangeHighlights();
+      const origin = getPieceSquare(piece);
+      if (!origin) return;
+      
+      const stats = pieceMap.get(piece);
+      const physRange = rangeForPiece(piece);
+      const mentalFloor = getMentalRangeFloor(piece);
+      const maxCheck = Math.max(physRange, mentalFloor);
+      const isSupport = isSupportPower(currentAction);
+      
+      board.classList.add('targeting'); // Activamos modo foco
+
+      let targetsFound = false;
+
+      squares.forEach((square) => {
+        const dist = attackDistance(origin, square);
+        
+        if (dist <= maxCheck && (dist > 0 || (dist === 0 && isSupport))) {
+            let isValidSquare = false;
+
+            if (dist <= physRange) {
+                square.classList.add('square--range');
+                isValidSquare = true;
+            } else {
+                square.classList.add('square--range-special');
+                isValidSquare = true;
+            }
+
+            if (isValidSquare) {
+                const targetPiece = square.querySelector('.piece');
+                if (targetPiece) {
+                    const isAlly = targetPiece.dataset.team === piece.dataset.team;
+                    
+                    // CASO A: Poder de Ayuda -> Siempre Verde
+                    if (isSupport && isAlly) {
+                        targetPiece.classList.add('valid-ally');
+                        targetsFound = true;
+                    }
+                    // CASO B: Ataque -> Depende de quién ataque
+                    else if (!isSupport && !isAlly) {
+                        // Si ataca un Aliado -> Objetivos Rojos
+                        if (piece.dataset.team === 'aliado') {
+                            targetPiece.classList.add('valid-target');
+                        } 
+                        // Si ataca un Enemigo -> Objetivos Azules
+                        else {
+                            targetPiece.classList.add('valid-target-blue');
+                        }
+                        targetsFound = true;
+                    }
+                    // CASO C: Control Mental (Fuego amigo) -> Tratamos como enemigo
+                    else if (!isSupport && isAlly && pieceMap.get(targetPiece)?.mindControlled) {
+                         if (piece.dataset.team === 'aliado') targetPiece.classList.add('valid-target');
+                         else targetPiece.classList.add('valid-target-blue');
+                         targetsFound = true;
+                    }
+                }
+            }
+        }
+      });
+      
+      if (!targetsFound) {
+          board.classList.remove('targeting');
+      }
+    }
+
+    // --- 3. LIMPIAR SELECCIÓN INDIVIDUAL ---
     function clearTargetSelection(preserveAttack = false) {
+      // Quitamos la clase visual potente de la pieza seleccionada anteriormente
+      if (selectedTarget) {
+          selectedTarget.classList.remove('piece--selected');
+      }
+      
       squares.forEach((square) => square.classList.remove('square--target'));
       selectedTarget = null;
+      
       if (!preserveAttack) {
         pendingAttackInfo = null;
       }
@@ -2848,80 +2156,123 @@ async function resolveHeal(attacker, target) {
       }
     }
 
+   
     board.addEventListener('click', async (event) => {
-      // Si no hay piezas o turno activo, no hacemos nada
       if (turnOrder.length === 0) return;
-
-      const activePiece = turnOrder[turnIndex];
       const square = event.target.closest('.square');
       if (!square) return;
 
+      // A) RESOLVER TELEKINESIS (Fase de soltar en casilla azul)
+      if (pendingTelekinesis && square.classList.contains('square--placement')) {
+          const { attacker, victim } = pendingTelekinesis;
+          const attackerStats = pieceMap.get(attacker);
+          const victimStats = pieceMap.get(victim);
+          
+          await animatePieceToSquare(victim, square);
+          
+          playEffectSound(telekinesisSound);
+          
+          if (isEnemy(attacker, victim)) {
+              addPoints(attacker, 20);
+          }
+
+          const msg = `${attackerStats.name} usa Telekinesis para mover a ${victimStats.name}.`;
+          addHistoryEntry(attacker.dataset.team, msg, { attacker, defenders: [victim] });
+          await showTurnPopup(msg);
+
+          cancelTelekinesis();
+          finishTurn(attacker, { showPopup: false });
+          return;
+      }
+      
+      // Cancelar TK si clicamos fuera de lo azul
+      if (pendingTelekinesis && !square.classList.contains('square--placement')) {
+          cancelTelekinesis();
+      }
+
+      const activePiece = turnOrder[turnIndex];
+      // Bloqueo IA
+      if (isPlayerVsAI && activePiece.dataset.team === 'enemigo') return;
+
       const targetPiece = square.querySelector('.piece');
 
-      // --- A) LÓGICA DE SELECCIÓN DE OBJETIVO (Click en personaje) ---
+      // B) SELECCIÓN DE OBJETIVO (Clic en personaje)
       if (targetPiece) {
         const isSamePiece = targetPiece === activePiece;
         const isAllyTarget = targetPiece.dataset.team === activePiece.dataset.team;
+        const supportAction = isSupportPower(currentAction); 
+        const targetStats = pieceMap.get(targetPiece);
 
-        // Determinamos si la acción actual busca aliados o enemigos
-        const supportAction = isSupportPower(currentAction);
-
-        if (supportAction) {
-          if (!isAllyTarget) return; // Poder de ayuda: solo a aliados
+        // --- 1. FILTRADO DE OBJETIVOS VÁLIDOS ---
+        if (currentAction === 'telekinesis') {
+            if (isSamePiece) {
+                 if (typeof showTurnPopup === 'function') showTurnPopup('No puedes usar Telekinesis sobre ti mismo.');
+                 return;
+            }
+        } 
+        else if (supportAction) {
+          if (!isAllyTarget) {
+             if (typeof showTurnPopup === 'function') showTurnPopup('Solo puedes usar este poder en aliados.');
+             return; 
+          }
         } else {
-          if (isAllyTarget || isSamePiece) return; // Ataque: solo a enemigos
+            // Ataques: Solo enemigos o marionetas (fuego amigo)
+            const isMindControlled = targetStats && targetStats.mindControlled;
+            if (isAllyTarget && !isMindControlled) return; 
+            if (isSamePiece) return;
         }
 
-        // Comprobamos rango
-        const attackerSquare = getPieceSquare(activePiece);
-        const maxRange = rangeForPiece(activePiece);
-        const includeOrigin = supportAction;
-
-        if (!isWithinAttackRange(attackerSquare, square, maxRange, { includeOrigin })) {
-          if (typeof showTurnPopup === 'function') showTurnPopup('El objetivo está fuera de rango.');
-          else alert('El objetivo está fuera de rango.');
-          
+        // --- 2. VALIDACIÓN DE RANGO ---
+        const isOrange = square.classList.contains('square--range');
+        const isPurple = square.classList.contains('square--range-special');
+        
+        if (!isOrange && !isPurple) {
+          const msg = 'El objetivo está fuera de rango.';
+          if (typeof showTurnPopup === 'function') showTurnPopup(msg);
+          else alert(msg);
           clearTargetSelection();
           return;
         }
 
-        // Marcamos el objetivo
+        // --- 3. SELECCIÓN ---
         clearTargetSelection();
         square.classList.add('square--target');
         selectedTarget = targetPiece;
+        targetPiece.classList.add('piece--selected');
 
-        // Actualizamos información visual
+        // --- 4. EJECUCIÓN INMEDIATA ---
+        if (currentAction === 'telekinesis' || supportAction) {
+            handleActionClick(currentAction);
+            return;
+        }
+
+        // Si es un ataque normal, mostramos la info y esperamos al botón "Atacar"
         const attackerStats = pieceMap.get(activePiece);
-        const targetStats = pieceMap.get(targetPiece);
         
+        let noteText = 'Objetivo seleccionado';
+        if (targetStats.mindControlled) noteText = 'Marioneta seleccionada (Fuego Amigo)';
+
         pendingAttackInfo = {
           action: actionLabel(currentAction),
           attackerName: attackerStats?.name,
           defenderName: targetStats?.name,
-          note: supportAction ? 'Aliado seleccionado' : 'Objetivo seleccionado',
+          note: noteText,
         };
         updateCombatInfo();
         attackButton.classList.add('button--pulse');
         return;
       }
 
-      // --- B) LÓGICA DE MOVIMIENTO (Click en cuadro vacío) ---
-      // Si tiene la clase 'square--move', es válido para mover
+      // C) MOVIMIENTO
       if (square.classList.contains('square--move')) {
-        // Doble comprobación de seguridad
         if (square.querySelector('.piece')) return;
 
         const distance = movementDistances.get(square);
 
-        // Verificamos que la distancia esté calculada y tengamos movimiento
         if (distance !== undefined && distance <= remainingMovement(activePiece)) {
-          // 1. Ejecutamos la animación de movimiento
           await animatePieceToSquare(activePiece, square);
-          
-          // 2. Restamos el movimiento gastado
           spendMovement(activePiece, distance);
           
-          // 3. Limpiamos y recalculamos luces (rango y nuevo movimiento posible)
           clearHighlights();
           highlightMovement(activePiece);
           highlightRange(activePiece);
@@ -2931,98 +2282,113 @@ async function resolveHeal(attacker, target) {
       }
     });
 
-function handleActionClick(actionKey) {
-      currentAction = actionKey;
-      const attacker = turnOrder[turnIndex];
-      
-      // 1. Acciones sin objetivo (Área)
-      if (actionKey === 'pulso') {
-        resolvePulse(attacker);
-        return;
-      }
+   function handleActionClick(actionKey) {
+  currentAction = actionKey;
+  const attacker = turnOrder[turnIndex];
 
-      // 2. Verificaciones básicas de objetivo
-      if (!selectedTarget) {
-        const supportAction = isSupportPower(actionKey);
-        alert(supportAction ? 'Selecciona primero un aliado dentro de tu rango.' : 'Selecciona primero un enemigo dentro de tu rango.');
-        return;
-      }
+  // 1. Acciones sin objetivo (Área inmediata)
+  if (actionKey === 'pulso') {
+    resolvePulse(attacker);
+    return;
+  }
 
-      const attackerSquare = getPieceSquare(attacker);
-      const targetSquare = getPieceSquare(selectedTarget);
-      const maxRange = rangeForPiece(attacker);
-      const includeOrigin = isSupportPower(actionKey);
-
-      if (!isWithinAttackRange(attackerSquare, targetSquare, maxRange, { includeOrigin })) {
-        alert('El objetivo está fuera de rango.');
-        clearTargetSelection();
-        return;
-      }
-
-      const supportAction = normalizePowerKey(actionKey);
-
-      // 3. Poderes de Apoyo
-      if (supportAction === 'probabilidad') {
-        applyProbabilidad(attacker, selectedTarget);
-        return;
-      }
-      if (supportAction === 'mejora de ataque') {
-        applyStatBuff(attacker, selectedTarget, { stat: 'ataque', label: 'Mejora de Ataque' });
-        return;
-      }
-      if (supportAction === 'mejora de defensa') {
-        applyStatBuff(attacker, selectedTarget, { stat: 'defensa', label: 'Mejora de Defensa' });
-        return;
-      }
-      if (supportAction === 'mejora de agilidad') {
-        applyStatBuff(attacker, selectedTarget, { stat: 'agilidad', label: 'Mejora de Agilidad' });
-        return;
-      }
-      if (supportAction === 'mejora de critico') {
-        applyStatBuff(attacker, selectedTarget, { stat: 'critico', label: 'Mejora de Crítico' });
-        return;
-      }
-      if (supportAction === 'curar') {
-        resolveHeal(attacker, selectedTarget);
-        return;
-      }
-
-      // --- 4. NUEVO: Lógica de Incapacitar ---
-      if (actionKey === 'incapacitar') {
-        const targetStats = pieceMap.get(selectedTarget);
-        if (targetStats.incapacitatedTurns > 0) {
-           if (typeof showTurnPopup === 'function') showTurnPopup(`¡${targetStats.name} ya está incapacitado!`);
-           else alert(`¡${targetStats.name} ya está incapacitado!`);
-           return;
-        }
-        // CAMBIO: Añadido allowCounter: false
-        resolveAttack(attacker, selectedTarget, 'incapacitar', { allowCounter: false });
-        return;
-      }
-
-      if (actionKey === 'control mental') {
-        const targetStats = pieceMap.get(selectedTarget);
-        // Evitamos controlar a alguien que ya está controlado para no liar el código
-        if (targetStats.mindControlled) {
-            showTurnPopup(`¡${targetStats.name} ya está bajo control mental!`);
-            return;
-        }
-        resolveAttack(attacker, selectedTarget, 'control mental');
-        return;
-      }
-      // ---------------------------------------
-
-      // 5. Resto de Ataques (Explosión y Normal)
-      prepareAttackInfo(attacker, selectedTarget, actionKey);
-      
-      if (actionKey === 'explosion') {
-        resolveExplosion(attacker, selectedTarget);
-      } else {
-        resolveAttack(attacker, selectedTarget, actionKey);
-      }
-    }
-
+  // 2. Modo "Armar poder" (Si no hay objetivo seleccionado)
+  if (!selectedTarget) {
+    highlightRange(attacker);
     
+    const combatBox = document.getElementById('combatInfo');
+    const labels = {
+      incapacitar: 'Incapacitar',
+      'control mental': 'Control Mental',
+      curar: 'Curar',
+      'mejora de ataque': 'Mejora de Ataque',
+      'mejora de defensa': 'Mejora de Defensa',
+      'mejora de agilidad': 'Mejora de Agilidad',
+      'mejora de critico': 'Mejora de Crítico',
+      'telekinesis': 'Telekinesis',
+      'explosion': 'Explosión'
+    };
+    const nombre = labels[actionKey] || actionKey;
+
+    if (combatBox) {
+         combatBox.style.display = 'block';
+         combatBox.textContent = `Modo [${nombre}] activo. Selecciona un objetivo.`;
+    }
+    return;
+  }
+
+  const targetSquare = getPieceSquare(selectedTarget);
+  
+  // 3. Validación de rango (Naranja/Púrpura)
+  const isInPurpleZone = targetSquare.classList.contains('square--range-special');
+  const isInOrangeZone = targetSquare.classList.contains('square--range');
+  
+  // Si el objetivo está en la zona Púrpura (lejos), solo permitimos poderes mentales
+  if (isInPurpleZone && !isInOrangeZone) {
+      const mentalActions = ['control mental', 'telekinesis']; 
+      const normalizedKey = normalizePowerKey(actionKey); 
+
+      if (!mentalActions.includes(normalizedKey)) {
+          if (typeof showTurnPopup === 'function') showTurnPopup('El objetivo está demasiado lejos. Solo puedes usar poderes mentales aquí.');
+          else alert('Demasiado lejos.');
+          return;
+      }
+  }
+  
+  // Si no hay luz, no hay ataque
+  if (!isInOrangeZone && !isInPurpleZone) {
+      alert('El objetivo está fuera de rango (Visual).');
+      clearTargetSelection();
+      return;
+  }
+
+  // 4. TELEKINESIS: Iniciar fase de colocación
+  if (actionKey === 'telekinesis') {
+      startTelekinesisPlacement(attacker, selectedTarget);
+      return; 
+  }
+
+  // 5. Resto de poderes
+  const supportAction = normalizePowerKey(actionKey);
+
+  if (supportAction === 'probabilidad') { applyProbabilidad(attacker, selectedTarget); return; }
+  if (supportAction === 'mejora de ataque') { applyStatBuff(attacker, selectedTarget, { stat: 'ataque', label: 'Mejora de Ataque' }); return; }
+  if (supportAction === 'mejora de defensa') { applyStatBuff(attacker, selectedTarget, { stat: 'defensa', label: 'Mejora de Defensa' }); return; }
+  if (supportAction === 'mejora de agilidad') { applyStatBuff(attacker, selectedTarget, { stat: 'agilidad', label: 'Mejora de Agilidad' }); return; }
+  if (supportAction === 'mejora de critico') { applyStatBuff(attacker, selectedTarget, { stat: 'critico', label: 'Mejora de Crítico' }); return; }
+  if (supportAction === 'curar') { resolveHeal(attacker, selectedTarget); return; }
+
+  if (actionKey === 'incapacitar') {
+    const tStats = pieceMap.get(selectedTarget);
+    if (tStats.incapacitatedTurns > 0) {
+       showTurnPopup(`¡${tStats.name} ya está incapacitado!`);
+       return;
+    }
+    resolveAttack(attacker, selectedTarget, 'incapacitar', { allowCounter: false });
+    return;
+  }
+
+  if (actionKey === 'control mental') {
+    const tStats = pieceMap.get(selectedTarget);
+    if (tStats.mindControlled) {
+        showTurnPopup(`¡${tStats.name} ya está bajo control mental!`);
+        return;
+    }
+    resolveAttack(attacker, selectedTarget, 'control mental');
+    return;
+  }
+
+  // 6. Ataque estándar y Explosión
+  prepareAttackInfo(attacker, selectedTarget, actionKey);
+  
+  if (actionKey === 'explosion') {
+    resolveExplosion(attacker, selectedTarget);
+  } else {
+    resolveAttack(attacker, selectedTarget, actionKey);
+  }
+}
+
+
 
     function sleep(ms) {
       return new Promise((resolve) => setTimeout(resolve, ms));
@@ -3067,9 +2433,28 @@ function handleActionClick(actionKey) {
     function findClosestEnemy(piece) {
       const origin = getPieceSquare(piece);
       if (!origin) return null;
+
+      // Equipo del que busca (normalmente 'enemigo' para la IA)
+      const seekerTeam = piece.dataset.team; 
+
       const opponents = pieces
         .map((p) => p.element)
-        .filter((p) => p && p.dataset.team === 'aliado' && p.dataset.eliminated !== 'true');
+        .filter((p) => {
+           // Filtros básicos: debe existir, ser del equipo contrario y estar vivo
+           if (!p || p.dataset.team === seekerTeam || p.dataset.eliminated === 'true') return false;
+
+           // --- PROTECCIÓN CONTRA FUEGO AMIGO (CONTROL MENTAL) ---
+           const stats = pieceMap.get(p);
+           // Si el objetivo está controlado mentalmente Y su equipo original era el mío...
+           // ¡NO LE ATAQUES! (Es un compañero secuestrado)
+           if (stats?.mindControlled && stats.originalTeam === seekerTeam) {
+               return false; 
+           }
+           // ------------------------------------------------------
+
+           return true;
+        });
+
       let best = null;
       let bestDistance = Infinity;
       opponents.forEach((candidate) => {
@@ -3124,7 +2509,10 @@ function handleActionClick(actionKey) {
       const targetStats = pieceMap.get(targetPiece);
       const targetSquare = getPieceSquare(targetPiece);
       const origin = getPieceSquare(piece);
+      
+      // Comprobamos rango visual
       const inRange = origin && targetSquare && isWithinAttackRange(origin, targetSquare, rangeForPiece(piece));
+      
       if (!inRange) return 'move';
 
       if (abilities.includes('explosion')) {
@@ -3154,6 +2542,7 @@ function handleActionClick(actionKey) {
 
       return 'attack';
     }
+
 
     async function performEnemyTurn(piece) {
       const target = findClosestEnemy(piece);
@@ -3268,26 +2657,37 @@ function handleActionClick(actionKey) {
       // 1. Regeneración
       const regenResult = skipRegeneration ? { regenerated: false, message: '' } : applyRegeneration(piece);
       
+      // --- CORRECCIÓN: ACTUALIZAR FOTO DEL POPUP SI HUBO REGENERACIÓN ---
+      if (regenResult.regenerated && latestPopupContext) {
+          // Buscamos al personaje en las listas del popup y actualizamos sus datos (vida nueva)
+          const updateList = (list) => {
+              for (let i = 0; i < list.length; i++) {
+                  if (list[i].key === piece.dataset.key) {
+                      // Hacemos una nueva foto conservando su rol
+                      list[i] = snapshotCharacter(piece, list[i].role);
+                  }
+              }
+          };
+          updateList(latestPopupContext.allies);
+          updateList(latestPopupContext.enemies);
+      }
+      // ------------------------------------------------------------------
+
       // 2. Probabilidad
       const probabilityResult = consumeProbabilidadTurn(piece);
       
       // 3. Buffos
       const buffMessages = consumeStatBuffs(piece);
 
-      // --- 4. RECUPERACIÓN DE CONTROL MENTAL (NUEVO) ---
+      // 4. Recuperación de Control Mental (Fin de turno normal)
       let mindControlMsg = '';
       if (stats && stats.mindControlled) {
-        // Revertimos al equipo original
         stats.team = stats.originalTeam;
-        piece.dataset.team = stats.originalTeam; // Devuelve el color original
-        
-        // Limpiamos las marcas
+        piece.dataset.team = stats.originalTeam;
         stats.mindControlled = false;
         delete stats.originalTeam;
-        
-        mindControlMsg = ` ${stats.name} se libera del control mental y vuelve a su equipo.`;
+        mindControlMsg = ` ${stats.name} se libera del control mental.`;
       }
-      // --------------------------------------------------
 
       // Construcción del mensaje final
       const summaryParts = [
@@ -3296,8 +2696,7 @@ function handleActionClick(actionKey) {
       if (regenResult?.regenerated) summaryParts.push(regenResult.message);
       if (probabilityResult?.expired) summaryParts.push(probabilityResult.message);
       buffMessages.forEach((msg) => summaryParts.push(msg));
-      
-      if (mindControlMsg) summaryParts.push(mindControlMsg); // Añadimos el mensaje de liberación
+      if (mindControlMsg) summaryParts.push(mindControlMsg);
 
       const summary = summaryParts.join(' ').trim();
       latestActionMessage = null;
@@ -3323,53 +2722,38 @@ function handleActionClick(actionKey) {
     }
 
 function startTurn(piece) {
-      if (!piece) return;
-      const stats = pieceMap.get(piece);
-      if (!stats) return;
+  if (!piece) return;
+  const stats = pieceMap.get(piece);
+  if (!stats) return;
 
-      // 1. Verificar Incapacitado
-      if (stats.incapacitatedTurns && stats.incapacitatedTurns > 0) {
-        const incapMessage = `${stats.name} pierde el turno por estar incapacitado.`;
-        addHistoryEntry(piece.dataset.team, incapMessage, { attacker: piece });
-        stats.incapacitatedTurns -= 1;
-        if (stats.incapacitatedTurns <= 0) {
-          piece.classList.remove('piece--incapacitated');
-        }
-        renderLifeCards();
-        finishTurn(piece, { summaryOverride: incapMessage });
-        return;
-      }
-
-      // 2. Configuración Estándar (Tu código original)
-      // Esto asegura que si eres TÚ quien controla la pieza (incluso por Control Mental), 
-      // los botones y luces se enciendan correctamente.
-      resetMovement(piece);
-      setActivePiece(piece); // Habilita botones Pass/Attack
-      clearTargetSelection(true);
-      clearHighlights();
-      highlightMovement(piece);
-      highlightRange(piece);
-
-      // 3. Bloqueo para IA (Solo si NO lo controlas tú)
-      // Si usaste Control Mental, el dataset.team será 'aliado', así que este IF fallará 
-      // y podrás jugar con el personaje. Si es un enemigo real, entra aquí.
-      if (isPlayerVsAI && piece.dataset.team === 'enemigo') {
-        passButton.disabled = true;
-        attackButton.disabled = true;
-        setTimeout(() => performEnemyTurn(piece), 1000);
-      }
+  // 1. Verificar Incapacitado
+  if (stats.incapacitatedTurns && stats.incapacitatedTurns > 0) {
+    const incapMessage = `${stats.name} pierde el turno por estar incapacitado.`;
+    addHistoryEntry(piece.dataset.team, incapMessage, { attacker: piece });
+    stats.incapacitatedTurns -= 1;
+    if (stats.incapacitatedTurns <= 0) {
+      piece.classList.remove('piece--incapacitated');
     }
+    renderLifeCards();
+    finishTurn(piece, { summaryOverride: incapMessage });
+    return;
+  }
 
-    // --- EVENTOS DE LOS BOTONES PRINCIPALES ---
+  // 2. Configuración Estándar
+  resetMovement(piece);
+  setActivePiece(piece); 
+  clearTargetSelection(true);
+  clearHighlights();
+  highlightMovement(piece);
+  highlightRange(piece);
 
-    passButton.addEventListener('click', () => {
-      const currentPiece = turnOrder[turnIndex];
-      playEffectSound(passTurnSound);
-      finishTurn(currentPiece, { showPopup: false });
-    });
-
-    // ¡ESTA LÍNEA ES CRUCIAL!
-    attackButton.addEventListener('click', () => handleActionClick('attack'));
+  // 3. Bloqueo para IA
+  if (isPlayerVsAI && piece.dataset.team === 'enemigo') {
+    passButton.disabled = true;
+    attackButton.disabled = true;
+    setTimeout(() => performEnemyTurn(piece), 1000);
+  }
+}
 
 
 
@@ -3410,6 +2794,9 @@ function startTurn(piece) {
         const card = document.createElement('button');
         card.type = 'button';
         card.className = 'draft-card';
+        // --- IMPORTANTE: Guardamos la clave para que el tooltip sepa qué buscar ---
+        card.dataset.key = key; 
+        
         card.innerHTML = `
           <img class="draft-card__image" src="${stats?.imagen || ''}" alt="${stats?.name || key}" loading="lazy" />
           <div class="draft-card__body">
@@ -3417,12 +2804,29 @@ function startTurn(piece) {
           </div>
         `;
 
+        // --- NUEVOS EVENTOS PARA EL TOOLTIP EN DRAFT ---
+        // Al pasar el ratón por encima
+        card.addEventListener('pointerenter', () => {
+             // Llamamos a showTooltip indicando true (esDraft)
+             showTooltip(card, true); 
+        });
+        
+        // Al quitar el ratón
+        card.addEventListener('pointerleave', () => {
+             hideTooltip();
+        });
+        // -----------------------------------------------
+
         if (ownership.has(key)) {
           card.classList.add('draft-card--taken');
           card.dataset.owner = ownerLabel(ownership.get(key));
           card.disabled = true;
         } else {
-          card.addEventListener('click', () => handleDraftPick(key));
+          card.addEventListener('click', () => {
+             // Al hacer clic también ocultamos el tooltip para que no moleste
+             hideTooltip(); 
+             handleDraftPick(key);
+          });
         }
 
         draftGrid.appendChild(card);
@@ -3687,11 +3091,75 @@ function startGame() {
       return initialPositions.length > 0;
     }
 
+    function startTelekinesisPlacement(attacker, victim) {
+      // 1. Guardamos quién lo hace y a quién mueve
+      pendingTelekinesis = { attacker, victim };
+      
+      // 2. Limpiamos las luces naranjas/púrpuras antiguas
+      clearHighlights();
+      clearTargetSelection(true); 
+      
+      // 3. Calculamos dónde se puede soltar
+      const origin = getPieceSquare(attacker);
+      
+      // --- CORRECCIÓN AQUÍ ---
+      // Antes estaba fijo: const tkRange = 3;
+      // Ahora: El rango es el MAYOR entre el rango físico del personaje y el mínimo de 3
+      const physRange = rangeForPiece(attacker);
+      const tkRange = Math.max(physRange, 3);
+      // -----------------------
+      
+      let validSquaresFound = 0;
+
+      squares.forEach(square => {
+         // Distancia desde el atacante hasta la casilla destino
+         const dist = attackDistance(origin, square);
+         
+         if (dist <= tkRange) {
+             const occupant = square.querySelector('.piece');
+             // Es válido si está vacío O si es la casilla donde ya está la víctima 
+             if (!occupant || occupant === victim) {
+                 square.classList.add('square--placement');
+                 validSquaresFound++;
+             }
+         }
+      });
+
+      // 4. Instrucciones al jugador
+      const combatBox = document.getElementById('combatInfo');
+      if (combatBox) {
+          combatBox.textContent = `TELEKINESIS: Selecciona una casilla vacía (azul) dentro de rango ${tkRange} para mover a ${pieceMap.get(victim).name}.`;
+          combatBox.style.display = 'block';
+      }
+      
+      if (typeof showTurnPopup === 'function' && validSquaresFound === 0) {
+          showTurnPopup("No hay casillas vacías cerca para usar Telekinesis.");
+          cancelTelekinesis();
+      }
+    }
+
+    function cancelTelekinesis() {
+      pendingTelekinesis = null;
+      squares.forEach(s => s.classList.remove('square--placement'));
+      clearHighlights();
+      // Restauramos la vista normal del turno
+      const active = turnOrder[turnIndex];
+      if (active) {
+          highlightMovement(active);
+          highlightRange(active);
+          updateStatusBar(active);
+      }
+      updateCombatInfo();
+    }
+
    // ... código anterior ...
 
   /* COMENTAMOS O BORRAMOS LA FUNCIÓN DE SALTAR MENÚS
      startWithoutMenus(); 
   */
+
+
+
 
   // Y AÑADIMOS ESTO PARA INICIAR NORMALMENTE:
   function initNormalGame() {
@@ -3713,9 +3181,43 @@ function startGame() {
       });
       // ------------------------------------------
   }
+  // --- REACTIVAR BOTONES (PEGA ESTO ANTES DE initNormalGame) ---
+
+    passButton.addEventListener('click', () => {
+      const activePiece = turnOrder[turnIndex];
+      if (!activePiece) return;
+      
+      // Bloqueo si es turno de la IA (para no pasarle el turno accidentalmente)
+      if (isPlayerVsAI && activePiece.dataset.team === 'enemigo') return;
+
+      playEffectSound(passTurnSound);
+      finishTurn(activePiece);
+    });
+
+    attackButton.addEventListener('click', () => {
+      const activePiece = turnOrder[turnIndex];
+      if (!activePiece) return;
+      
+      // Bloqueo IA
+      if (isPlayerVsAI && activePiece.dataset.team === 'enemigo') return;
+
+      if (!selectedTarget) return;
+
+      // Efecto visual del botón
+      attackButton.classList.remove('button--pulse');
+
+      // Ejecutar la acción según lo que esté seleccionado
+      if (currentAction === 'explosion') {
+        resolveExplosion(activePiece, selectedTarget);
+      } else {
+        // Ataques normales, Incapacitar, Control Mental, etc.
+        resolveAttack(activePiece, selectedTarget, currentAction);
+      }
+    });
+
+    // -----------------------------------------------------------
 
   initNormalGame();
 </script>
-  </script>
 </body>
 </html>
