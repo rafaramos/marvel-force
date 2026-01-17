@@ -854,49 +854,56 @@ function registerTurnSound({ damageDealt = 0, attackFailed = false, zeroDamageHi
     }
 
    function computeReachableSquares(piece) {
-      const origin = getPieceSquare(piece);
-      if (!origin) return;
-      const stats = pieceMap.get(piece);
+  const origin = getPieceSquare(piece);
+  if (!origin) return;
+  const stats = pieceMap.get(piece);
+  
+  const hasFlight = hasPassive(stats, 'volar') || hasPassive(stats, 'vuelo') || hasPassive(stats, 'alado');
+  const hasPhasing = hasPassive(stats, 'fase');
+  const hasJump = hasPassive(stats, 'saltar/trepar'); 
+
+  // CORRECCIÓN: Separamos los permisos
+  const canPassBarriers = hasFlight || hasPhasing; // Solo Volar y Fase pasan barreras
+  const canPassEnemies = hasFlight || hasPhasing || hasJump; // Saltar sirve para enemigos, pero no barreras
+
+  const maxMove = remainingMovement(piece);
+  const visited = new Map();
+  const queue = [{ row: Number(origin.dataset.row), col: Number(origin.dataset.col), cost: 0 }];
+  visited.set(`${origin.dataset.row},${origin.dataset.col}`, 0);
+
+  const deltas = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+
+  while (queue.length) {
+    const { row, col, cost } = queue.shift();
+    for (const [dr, dc] of deltas) {
+      const nr = row + dr;
+      const nc = col + dc;
+      const key = `${nr},${nc}`;
       
-      const hasFlight = hasPassive(stats, 'volar') || hasPassive(stats, 'vuelo') || hasPassive(stats, 'alado');
-      const hasPhasing = hasPassive(stats, 'fase');
-      const hasJump = hasPassive(stats, 'saltar/trepar'); 
+      if (nr < 1 || nr > BOARD_ROWS || nc < 1 || nc > BOARD_COLS) continue;
+      
+      const nextCost = cost + 1;
+      if (nextCost > maxMove) continue;
+      if (visited.has(key) && visited.get(key) <= nextCost) continue;
+      
+      const square = getSquareAt(nr, nc);
+      
+      // 1. CHEQUEO DE BARRERA: Solo usamos canPassBarriers (Volar/Fase)
+      if (isBarrierSquare(square) && !canPassBarriers) continue;
 
-      const canIgnoreEnemies = hasFlight || hasPhasing || hasJump;
-
-      const maxMove = remainingMovement(piece);
-      const visited = new Map();
-      const queue = [{ row: Number(origin.dataset.row), col: Number(origin.dataset.col), cost: 0 }];
-      visited.set(`${origin.dataset.row},${origin.dataset.col}`, 0);
-
-      const deltas = [[1, 0], [-1, 0], [0, 1], [0, -1]];
-
-      while (queue.length) {
-        const { row, col, cost } = queue.shift();
-        for (const [dr, dc] of deltas) {
-          const nr = row + dr;
-          const nc = col + dc;
-          const key = `${nr},${nc}`;
-          
-          if (nr < 1 || nr > BOARD_ROWS || nc < 1 || nc > BOARD_COLS) continue;
-          
-          const nextCost = cost + 1;
-          if (nextCost > maxMove) continue;
-          if (visited.has(key) && visited.get(key) <= nextCost) continue;
-          
-          const square = getSquareAt(nr, nc);
-          if (isBarrierSquare(square) && !canIgnoreEnemies) continue;
-          if (!square) continue;
-          
-          const occupant = square.querySelector('.piece');
-          if (occupant && occupant.dataset.team !== piece.dataset.team && !canIgnoreEnemies) {
-              continue;
-          }
-          
-          visited.set(key, nextCost);
-          queue.push({ row: nr, col: nc, cost: nextCost });
-        }
+      if (!square) continue;
+      
+      const occupant = square.querySelector('.piece');
+      // 2. CHEQUEO DE ENEMIGOS: Aquí sí permitimos canPassEnemies (incluye Saltar)
+      if (occupant && occupant.dataset.team !== piece.dataset.team && !canPassEnemies) {
+          continue;
       }
+      
+      visited.set(key, nextCost);
+      queue.push({ row: nr, col: nc, cost: nextCost });
+    }
+  }
+  // ... resto de la función igual ...
 
       movementDistances = new Map();
       visited.forEach((dist, key) => {
