@@ -195,7 +195,7 @@
       let barrierPreviewSquares = [];
       let pendingBarrierPlacement = null;
 
-
+let activeBarriers = []; // Nueva lista para rastrear barreras activas
 
 
 
@@ -347,8 +347,9 @@
     }
 
     function normalizePowerKey(power) {
+      if (!power) return ''; // Protección contra nulos/undefined
       return power
-        ?.toString()
+        .toString()
         .toLowerCase()
         .normalize('NFD')
         .replace(/[\u0300-\u036f]/g, '');
@@ -942,69 +943,95 @@ function registerTurnSound({ damageDealt = 0, attackFailed = false, zeroDamageHi
 
 
   function highlightRange(piece) {
-  clearRangeHighlights();
-  const origin = getPieceSquare(piece);
-  if (!origin) return;
+      clearRangeHighlights();
+      const origin = getPieceSquare(piece);
+      if (!origin) return;
+      
+      const stats = pieceMap.get(piece);
+      const physRange = rangeForPiece(piece);
+      const mentalFloor = getMentalRangeFloor(piece);
+      const maxCheck = Math.max(physRange, mentalFloor);
+      const isSupport = isSupportPower(currentAction);
+      
+      // Pre-calculamos si el atacante vuela
+      const attackerFlies = hasPassive(stats, 'volar') || hasPassive(stats, 'vuelo');
+      
+      board.classList.add('targeting');
 
-  const stats = pieceMap.get(piece);
-  const physRange = rangeForPiece(piece);
-  const mentalFloor = getMentalRangeFloor(piece);
-  const maxCheck = Math.max(physRange, mentalFloor);
-  const isSupport = isSupportPower(currentAction);
+      let targetsFound = false;
 
-  board.classList.add('targeting');
+      squares.forEach((square) => {
+        const dist = attackDistance(origin, square);
+        if (dist > maxCheck) return;
+        if (isBarrierSquare(square)) return;
+        if (dist === 0 && !isSupport) return;
+        
+        // --- LÓGICA DE VISIÓN AÉREA ---
+        const blockedByLOS = dist > 1 && !hasLineOfSight(origin, square);
+        let canSeeThroughBarrier = false;
 
-  let targetsFound = false;
-
-  squares.forEach((square) => {
-    const dist = attackDistance(origin, square);
-    if (dist > maxCheck) return;
-    if (isBarrierSquare(square)) return;
-    if (dist === 0 && !isSupport) return;
-    if (!isSupport && dist > 1 && !hasLineOfSight(origin, square)) return;
-
-    let isValidSquare = false;
-    if (dist <= physRange) {
-      square.classList.add('square--range');
-      isValidSquare = true;
-    } else if (dist <= maxCheck) {
-      square.classList.add('square--range-special');
-      isValidSquare = true;
-    }
-
-    if (isValidSquare) {
-      const targetPiece = square.querySelector('.piece');
-      if (targetPiece) {
-        const isAlly = targetPiece.dataset.team === piece.dataset.team;
-
-        // CASO A: Poder de Ayuda
-        if (isSupport && isAlly) {
-          targetPiece.classList.add('valid-ally');
-          targetsFound = true;
+        if (blockedByLOS && !isSupport && attackerFlies) {
+            const targetPiece = square.querySelector('.piece');
+            
+            if (!targetPiece) {
+                // Si la casilla está vacía y yo vuelo, veo el rango (grid naranja)
+                canSeeThroughBarrier = true;
+            } else {
+                // Si hay alguien, solo veo a través si él también vuela
+                const targetStats = pieceMap.get(targetPiece);
+                if (targetStats && (hasPassive(targetStats, 'volar') || hasPassive(targetStats, 'vuelo'))) {
+                    canSeeThroughBarrier = true;
+                }
+            }
         }
-        // CASO B: Ataque
-        else if (!isSupport && !isAlly) {
-          if (piece.dataset.team === 'aliado') {
-            targetPiece.classList.add('valid-target');
-          } else {
-            targetPiece.classList.add('valid-target-blue');
+        
+        // Si la visión está bloqueada y no se activa la excepción de vuelo, saltamos
+        if (blockedByLOS && !canSeeThroughBarrier) return;
+        // ------------------------------
+
+        let isValidSquare = false;
+
+        if (dist <= physRange) {
+          square.classList.add('square--range');
+          isValidSquare = true;
+        } else if (dist <= maxCheck) {
+          square.classList.add('square--range-special');
+          isValidSquare = true;
+        }
+
+        if (isValidSquare) {
+          const targetPiece = square.querySelector('.piece');
+          if (targetPiece) {
+            const isAlly = targetPiece.dataset.team === piece.dataset.team;
+            
+            // CASO A: Ayuda
+            if (isSupport && isAlly) {
+              targetPiece.classList.add('valid-ally');
+              targetsFound = true;
+            }
+            // CASO B: Ataque
+            else if (!isSupport && !isAlly) {
+              if (piece.dataset.team === 'aliado') targetPiece.classList.add('valid-target');
+              else targetPiece.classList.add('valid-target-blue');
+              targetsFound = true;
+            }
+            // CASO C: Fuego amigo (Control Mental)
+            else if (!isSupport && isAlly && pieceMap.get(targetPiece)?.mindControlled) {
+              if (piece.dataset.team === 'aliado') targetPiece.classList.add('valid-target');
+              else targetPiece.classList.add('valid-target-blue');
+              targetsFound = true;
+            }
           }
-          targetsFound = true;
         }
-        // CASO C: Control Mental (Fuego amigo)
-        else if (!isSupport && isAlly && pieceMap.get(targetPiece)?.mindControlled) {
-          if (piece.dataset.team === 'aliado') targetPiece.classList.add('valid-target');
-          else targetPiece.classList.add('valid-target-blue');
-          targetsFound = true;
-        }
+      });
+      
+      if (!targetsFound) {
+          board.classList.remove('targeting');
       }
     }
-  });
 
-  if (!targetsFound) {
-    board.classList.remove('targeting');
-  }
-}
+
+
     
 
     function clearHighlights() {
@@ -1568,173 +1595,184 @@ function attachTooltipEvents(piece) {
 // --- BLOQUE DE COMBATE OPTIMIZADO ---
 
 async function resolveAttack(attacker, defender, actionKey = 'attack', options = {}) {
-  const { 
-    allowCounter = true, 
-    skipTurnAdvance = false, 
-    actionLabelOverride = null, 
-    isSecondAttack = false 
-  } = options;
+      const { 
+        allowCounter = true, 
+        skipTurnAdvance = false, 
+        actionLabelOverride = null, 
+        isSecondAttack = false 
+      } = options;
 
-  const attackerStats = pieceMap.get(attacker);
-  const defenderStats = pieceMap.get(defender);
-  
-  // Validación de seguridad
-  if (!attackerStats || !defenderStats) {
-      console.error("Error: Falta stats en ataque", { attacker, defender });
-      return;
-  }
+      const attackerStats = pieceMap.get(attacker);
+      const defenderStats = pieceMap.get(defender);
+      
+      if (!attackerStats || !defenderStats) {
+          console.error("Error: Falta stats en ataque", { attacker, defender });
+          return;
+      }
 
-  const attackerSquare = getPieceSquare(attacker);
-  const targetSquare = getPieceSquare(defender);
-  const maxRange = rangeForAction(attacker, actionKey);
-  const distance = attackDistance(attackerSquare, targetSquare);
-  if (distance > maxRange) {
-    const blockedMessage = 'El objetivo está fuera de rango.';
-    addHistoryEntry(attacker.dataset.team, blockedMessage, { attacker, defenders: [defender] });
-    pendingAttackInfo = null;
-    updateCombatInfo();
-    if (!skipTurnAdvance) {
-      await showTurnPopup(blockedMessage);
-      finishTurn(attacker, { showPopup: false });
-    }
-    return;
-  }
-  if (distance > 1 && !hasLineOfSight(attackerSquare, targetSquare)) {
-    const blockedMessage = 'La barrera bloquea el ataque.';
-    addHistoryEntry(attacker.dataset.team, blockedMessage, { attacker, defenders: [defender] });
-    pendingAttackInfo = null;
-    updateCombatInfo();
-    if (!skipTurnAdvance) {
-      await showTurnPopup(blockedMessage);
-      finishTurn(attacker, { showPopup: false });
-    }
-    return;
-  }
-  // 1. CÁLCULOS
-  const die1 = Math.floor(Math.random() * 6) + 1;
-  const die2 = Math.floor(Math.random() * 6) + 1;
-  const roll = die1 + die2;
-  
-  const { success, critical, isPifia, shouldCounter } = evaluateAttackRoll(
-    attackerStats, defenderStats, roll, distance, { allowCounter }
-  );
+      const attackerSquare = getPieceSquare(attacker);
+      const targetSquare = getPieceSquare(defender);
+      const maxRange = rangeForAction(attacker, actionKey);
+      const distance = attackDistance(attackerSquare, targetSquare);
 
-  // Sonidos de resultado
-  if (critical) playEffectSound(criticoSound);
-  if (isPifia) playEffectSound(pifiaSound);
+      // 1. Chequeo de Distancia Máxima
+      if (distance > maxRange) {
+        const blockedMessage = 'El objetivo está fuera de rango.';
+        addHistoryEntry(attacker.dataset.team, blockedMessage, { attacker, defenders: [defender] });
+        pendingAttackInfo = null;
+        updateCombatInfo();
+        if (!skipTurnAdvance) {
+          await showTurnPopup(blockedMessage);
+          finishTurn(attacker, { showPopup: false });
+        }
+        return;
+      }
 
-  const { totalDamage, clawsRoll, isMelee, resistance, rawDamage, baseDamageBeforeClaws, baseDamageAfterClaws } = 
-    calculateDamage(attackerStats, defenderStats, distance, critical);
-
-  const isStatusAttack = actionKey === 'incapacitar' || actionKey === 'control mental';
-  const damageApplied = success && !isStatusAttack ? totalDamage : 0;
-
-  // 2. APLICAR EFECTOS
-  let specialEffectMessage = ''; 
-
-  if (success) {
-    if (actionKey === 'incapacitar') {
-      setIncapacitated(defender, 1);
-      if (isEnemy(attacker, defender)) addPoints(attacker, SCORE_PER_DAMAGE);
-      playEffectSound(incapacitarSound);
-    } 
-    else if (actionKey === 'control mental') {
-      const currentTeam = defender.dataset.team;
-      defenderStats.originalTeam = currentTeam; 
-      const newTeam = currentTeam === 'aliado' ? 'enemigo' : 'aliado';
-      defenderStats.team = newTeam;
-      defender.dataset.team = newTeam;
-      defenderStats.mindControlled = true;
-      playEffectSound(controlMentalSound);
-    }
-    else if (damageApplied > 0) {
-      defenderStats.currentVida = Math.max(defenderStats.currentVida - damageApplied, 0);
-      if (isEnemy(attacker, defender)) addPoints(attacker, damageApplied * SCORE_PER_DAMAGE);
-
-      if (hasPassive(attackerStats, 'robo de vida')) {
-        const missing = attackerStats.maxVida - attackerStats.currentVida;
-        const heal = Math.min(damageApplied, missing);
-        if (heal > 0) {
-          attackerStats.currentVida += heal;
-          specialEffectMessage = ` ${attackerStats.name} roba vida (+${heal}).`;
+      // 2. Chequeo de Barreras (Con excepción de Vuelo)
+      const lineOfSightBlocked = distance > 1 && !hasLineOfSight(attackerSquare, targetSquare);
+      
+      if (lineOfSightBlocked) {
+        const attackerFlies = hasPassive(attackerStats, 'volar') || hasPassive(attackerStats, 'vuelo');
+        const defenderFlies = hasPassive(defenderStats, 'volar') || hasPassive(defenderStats, 'vuelo');
+        
+        // La regla estricta: AMBOS deben volar para interactuar a través de la barrera
+        if (!attackerFlies || !defenderFlies) {
+            const blockedMessage = 'La barrera bloquea el ataque (se requiere Volar vs Volar).';
+            addHistoryEntry(attacker.dataset.team, blockedMessage, { attacker, defenders: [defender] });
+            pendingAttackInfo = null;
+            updateCombatInfo();
+            if (!skipTurnAdvance) {
+              await showTurnPopup(blockedMessage);
+              finishTurn(attacker, { showPopup: false });
+            }
+            return;
         }
       }
+
+      // 3. CÁLCULOS
+      const die1 = Math.floor(Math.random() * 6) + 1;
+      const die2 = Math.floor(Math.random() * 6) + 1;
+      const roll = die1 + die2;
+      
+      const { success, critical, isPifia, shouldCounter } = evaluateAttackRoll(
+        attackerStats, defenderStats, roll, distance, { allowCounter }
+      );
+
+      if (critical) playEffectSound(criticoSound);
+      if (isPifia) playEffectSound(pifiaSound);
+
+      const { totalDamage, clawsRoll, isMelee, resistance, rawDamage, baseDamageBeforeClaws, baseDamageAfterClaws } = 
+        calculateDamage(attackerStats, defenderStats, distance, critical);
+
+      const isStatusAttack = actionKey === 'incapacitar' || actionKey === 'control mental';
+      const damageApplied = success && !isStatusAttack ? totalDamage : 0;
+
+      // 4. APLICAR EFECTOS
+      let specialEffectMessage = ''; 
+
+      if (success) {
+        if (actionKey === 'incapacitar') {
+          setIncapacitated(defender, 1);
+          if (isEnemy(attacker, defender)) addPoints(attacker, SCORE_PER_DAMAGE);
+          playEffectSound(incapacitarSound);
+        } 
+        else if (actionKey === 'control mental') {
+          const currentTeam = defender.dataset.team;
+          defenderStats.originalTeam = currentTeam; 
+          const newTeam = currentTeam === 'aliado' ? 'enemigo' : 'aliado';
+          defenderStats.team = newTeam;
+          defender.dataset.team = newTeam;
+          defenderStats.mindControlled = true;
+          playEffectSound(controlMentalSound);
+        }
+        else if (damageApplied > 0) {
+          defenderStats.currentVida = Math.max(defenderStats.currentVida - damageApplied, 0);
+          if (isEnemy(attacker, defender)) addPoints(attacker, damageApplied * SCORE_PER_DAMAGE);
+
+          if (hasPassive(attackerStats, 'robo de vida')) {
+            const missing = attackerStats.maxVida - attackerStats.currentVida;
+            const heal = Math.min(damageApplied, missing);
+            if (heal > 0) {
+              attackerStats.currentVida += heal;
+              specialEffectMessage = ` ${attackerStats.name} roba vida (+${heal}).`;
+            }
+          }
+        }
+      }
+
+      // 5. PREPARAR MENSAJE
+      const labelAccion = actionLabelOverride || (isSecondAttack ? '2º Ataque c/c' : actionLabel(actionKey));
+
+      let popupMessage = buildAttackPopupMessage({
+        attackerStats, defenderStats, roll, success, damage: damageApplied,
+        isMelee, resistance, rawDamage, actionKey, clawsRoll, critical,
+        baseDamageBeforeClaws, baseDamageAfterClaws
+      });
+      
+      popupMessage += specialEffectMessage; 
+      addHistoryEntry(attacker.dataset.team, popupMessage, { attacker, defenders: [defender] });
+
+      // Gestión de Muerte
+      if (success && !isStatusAttack && defenderStats.currentVida <= 0) {
+        if (defenderStats.mindControlled) {
+            defenderStats.team = defenderStats.originalTeam;
+            defender.dataset.team = defenderStats.originalTeam;
+            defenderStats.mindControlled = false;
+        }
+        queueDeathMessage(`${defenderStats.name} eliminado por ${attackerStats.name}.`);
+        if (isEnemy(attacker, defender)) addPoints(attacker, SCORE_PER_KILL);
+        eliminatePiece(defender);
+      }
+
+      // Sonido e Interfaz
+      const skipFailureSound = isPifia; 
+      const isZeroDamageHit = success && damageApplied === 0 && !isStatusAttack;
+      registerTurnSound({ 
+        damageDealt: damageApplied, 
+        attackFailed: !success && !skipFailureSound, 
+        zeroDamageHit: isZeroDamageHit 
+      });
+      if (damageApplied > 0 && !pendingPopupSound) pendingPopupSound = 'punch';
+
+      renderLifeCards();
+      updateCombatInfo();
+
+      // 6. FLUJO DE PIFIA Y DOBLE ATAQUE
+      if (shouldCounter && defenderStats.currentVida > 0 && defender.dataset.eliminated !== 'true') {
+        await showTurnPopup(`¡PIFIA! ${attackerStats.name} ha fallado estrepitosamente.\n${defenderStats.name} prepara su contraataque.\n(Haz clic para resolver la réplica)`);
+        await sleep(300);
+        await resolveAttack(defender, attacker, 'attack', {
+          allowCounter: false,
+          skipTurnAdvance: true,
+          actionLabelOverride: 'Réplica',
+        });
+        if (!skipTurnAdvance) finishTurn(attacker);
+        return;
+      }
+
+      const hasDoubleAttack = hasPassive(attackerStats, 'doble ataque c/c');
+      if (isMelee && hasDoubleAttack && !isSecondAttack && !options.actionLabelOverride && !isStatusAttack &&
+          defenderStats.currentVida > 0 && defender.dataset.eliminated !== 'true' &&
+          attackerStats.currentVida > 0 && attacker.dataset.eliminated !== 'true') {
+        
+        await showTurnPopup(`${popupMessage}\n\n[DOBLE ATAQUE]\n(Clic para el segundo golpe)`);
+        await sleep(300);
+        await resolveAttack(attacker, defender, actionKey, {
+          ...options,
+          isSecondAttack: true, 
+          actionLabelOverride: '2º Ataque c/c'
+        });
+        return; 
+      }
+
+      if (!skipTurnAdvance) {
+        hideTooltip();
+        clearRangeHighlights();
+        selectedTarget = null;
+        attackButton.classList.remove('button--pulse');
+        finishTurn(attacker);
+      }
     }
-  }
-
-  // 3. PREPARAR MENSAJE
-  const labelAccion = actionLabelOverride || (isSecondAttack ? '2º Ataque c/c' : actionLabel(actionKey));
-
-  let popupMessage = buildAttackPopupMessage({
-    attackerStats, defenderStats, roll, success, damage: damageApplied,
-    isMelee, resistance, rawDamage, actionKey, clawsRoll, critical,
-    baseDamageBeforeClaws, baseDamageAfterClaws
-  });
-  
-  popupMessage += specialEffectMessage; 
-  addHistoryEntry(attacker.dataset.team, popupMessage, { attacker, defenders: [defender] });
-
-  // Gestión de Muerte
-  if (success && !isStatusAttack && defenderStats.currentVida <= 0) {
-    if (defenderStats.mindControlled) {
-        defenderStats.team = defenderStats.originalTeam;
-        defender.dataset.team = defenderStats.originalTeam;
-        defenderStats.mindControlled = false;
-    }
-    queueDeathMessage(`${defenderStats.name} eliminado por ${attackerStats.name}.`);
-    if (isEnemy(attacker, defender)) addPoints(attacker, SCORE_PER_KILL);
-    eliminatePiece(defender);
-  }
-
-  // Sonido e Interfaz
-  const skipFailureSound = isPifia; 
-  const isZeroDamageHit = success && damageApplied === 0 && !isStatusAttack;
-  registerTurnSound({ 
-    damageDealt: damageApplied, 
-    attackFailed: !success && !skipFailureSound, 
-    zeroDamageHit: isZeroDamageHit 
-  });
-  if (damageApplied > 0 && !pendingPopupSound) pendingPopupSound = 'punch';
-
-  renderLifeCards();
-  updateCombatInfo();
-
-  // 4. FLUJO DE PIFIA Y DOBLE ATAQUE
-  if (shouldCounter && defenderStats.currentVida > 0 && defender.dataset.eliminated !== 'true') {
-    await showTurnPopup(`¡PIFIA! ${attackerStats.name} ha fallado estrepitosamente.\n${defenderStats.name} prepara su contraataque.\n(Haz clic para resolver la réplica)`);
-    await sleep(300);
-    await resolveAttack(defender, attacker, 'attack', {
-      allowCounter: false,
-      skipTurnAdvance: true,
-      actionLabelOverride: 'Réplica',
-    });
-    if (!skipTurnAdvance) finishTurn(attacker);
-    return;
-  }
-
-  const hasDoubleAttack = hasPassive(attackerStats, 'doble ataque c/c');
-  if (isMelee && hasDoubleAttack && !isSecondAttack && !options.actionLabelOverride && !isStatusAttack &&
-      defenderStats.currentVida > 0 && defender.dataset.eliminated !== 'true' &&
-      attackerStats.currentVida > 0 && attacker.dataset.eliminated !== 'true') {
-    
-    await showTurnPopup(`${popupMessage}\n\n[DOBLE ATAQUE]\n(Clic para el segundo golpe)`);
-    await sleep(300);
-    await resolveAttack(attacker, defender, actionKey, {
-      ...options,
-      isSecondAttack: true, 
-      actionLabelOverride: '2º Ataque c/c'
-    });
-    return; 
-  }
-
-  if (!skipTurnAdvance) {
-    hideTooltip();
-    clearRangeHighlights();
-    selectedTarget = null;
-    attackButton.classList.remove('button--pulse');
-    finishTurn(attacker);
-  }
-}
 
 async function resolveExplosion(attacker, defender) {
   const attackerStats = pieceMap.get(attacker);
@@ -1950,15 +1988,28 @@ async function resolvePulse(attacker) {
   finishTurn(attacker, { showPopup: false });
 }
 
-function placeBarrierBlock(targetSquare) {
-  if (!targetSquare || targetSquare.querySelector('.piece') || isBarrierSquare(targetSquare)) return false;
-  const barrier = document.createElement('div');
-  barrier.className = 'barrier';
-  targetSquare.classList.add('square--barrier');
-  targetSquare.appendChild(barrier);
-  playEffectSound(barrierSound);
-  return true;
-}
+function placeBarrierBlock(targetSquare, creator) {
+      if (!targetSquare || targetSquare.querySelector('.piece') || isBarrierSquare(targetSquare)) return false;
+      
+      const barrier = document.createElement('div');
+      barrier.className = 'barrier';
+      targetSquare.classList.add('square--barrier');
+      targetSquare.appendChild(barrier);
+      playEffectSound(barrierSound);
+      
+      // REGISTRO: Guardamos quién creó este bloque
+      if (creator) {
+          activeBarriers.push({ 
+              creator: creator, 
+              element: barrier, 
+              square: targetSquare 
+          });
+      }
+      
+      return true;
+    }
+
+    
 
 async function finalizeBarrierPlacement(attacker, created) {
   const attackerStats = pieceMap.get(attacker);
@@ -1976,29 +2027,31 @@ async function finalizeBarrierPlacement(attacker, created) {
 }
 
 async function resolveBarrier(attacker, targetSquare) {
-  const attackerStats = pieceMap.get(attacker);
-  if (!attackerStats || !targetSquare) return;
-  if (!placeBarrierBlock(targetSquare)) {
-    if (typeof showTurnPopup === 'function') await showTurnPopup('No se pudo colocar la barrera.');
-    return;
-  }
+      const attackerStats = pieceMap.get(attacker);
+      if (!attackerStats || !targetSquare) return;
+      
+      // CAMBIO: Pasamos 'attacker' como segundo argumento
+      if (!placeBarrierBlock(targetSquare, attacker)) {
+        if (typeof showTurnPopup === 'function') await showTurnPopup('No se pudo colocar la barrera.');
+        return;
+      }
 
-  pendingBarrierPlacement = {
-    attacker,
-    remaining: BARRIER_SEGMENTS - 1,
-    lastSquare: targetSquare,
-    created: 1,
-  };
-  clearRangeHighlights();
-  clearTargetSelection(true);
-  updateBarrierPreview(targetSquare);
-  attackButton.classList.add('button--pulse');
-  updateCombatInfo();
+      pendingBarrierPlacement = {
+        attacker,
+        remaining: BARRIER_SEGMENTS - 1,
+        lastSquare: targetSquare,
+        created: 1,
+      };
+      clearRangeHighlights();
+      clearTargetSelection(true);
+      updateBarrierPreview(targetSquare);
+      attackButton.classList.add('button--pulse');
+      updateCombatInfo();
 
-  if (pendingBarrierPlacement.remaining <= 0 || barrierPreviewSquares.length === 0) {
-    await finalizeBarrierPlacement(attacker, pendingBarrierPlacement.created);
-  }
-}
+      if (pendingBarrierPlacement.remaining <= 0 || barrierPreviewSquares.length === 0) {
+        await finalizeBarrierPlacement(attacker, pendingBarrierPlacement.created);
+      }
+    }
 
 
 
@@ -2264,8 +2317,7 @@ async function resolveHeal(attacker, target) {
       });
     }
 
-    // --- 2. ILUMINAR OBJETIVOS (Lógica Rojo/Azul) ---
-    function highlightRange(piece) {
+   function highlightRange(piece) {
       clearRangeHighlights();
       const origin = getPieceSquare(piece);
       if (!origin) return;
@@ -2276,7 +2328,10 @@ async function resolveHeal(attacker, target) {
       const maxCheck = Math.max(physRange, mentalFloor);
       const isSupport = isSupportPower(currentAction);
       
-      board.classList.add('targeting'); // Activamos modo foco
+      // Pre-calculamos si el atacante vuela
+      const attackerFlies = hasPassive(stats, 'volar') || hasPassive(stats, 'vuelo');
+      
+      board.classList.add('targeting');
 
       let targetsFound = false;
 
@@ -2285,7 +2340,29 @@ async function resolveHeal(attacker, target) {
         if (dist > maxCheck) return;
         if (isBarrierSquare(square)) return;
         if (dist === 0 && !isSupport) return;
-        if (!isSupport && dist > 1 && !hasLineOfSight(origin, square)) return;
+        
+        // --- LÓGICA DE VISIÓN AÉREA ---
+        const blockedByLOS = dist > 1 && !hasLineOfSight(origin, square);
+        let canSeeThroughBarrier = false;
+
+        if (blockedByLOS && !isSupport && attackerFlies) {
+            const targetPiece = square.querySelector('.piece');
+            
+            if (targetPiece) {
+                // Si hay alguien, SOLO vemos a través si él también vuela
+                const targetStats = pieceMap.get(targetPiece);
+                if (targetStats && (hasPassive(targetStats, 'volar') || hasPassive(targetStats, 'vuelo'))) {
+                    canSeeThroughBarrier = true;
+                }
+            } else {
+                // CORRECCIÓN: Si la casilla está vacía y yo vuelo, veo el rango (grid naranja)
+                canSeeThroughBarrier = true;
+            }
+        }
+        
+        // Si está bloqueado y no se cumple la excepción aérea, saltamos esta casilla
+        if (blockedByLOS && !canSeeThroughBarrier) return;
+        // ------------------------------
 
         let isValidSquare = false;
 
@@ -2302,24 +2379,18 @@ async function resolveHeal(attacker, target) {
           if (targetPiece) {
             const isAlly = targetPiece.dataset.team === piece.dataset.team;
             
-            // CASO A: Poder de Ayuda -> Siempre Verde
             if (isSupport && isAlly) {
               targetPiece.classList.add('valid-ally');
               targetsFound = true;
             }
-            // CASO B: Ataque -> Depende de quién ataque
             else if (!isSupport && !isAlly) {
-              // Si ataca un Aliado -> Objetivos Rojos
               if (piece.dataset.team === 'aliado') {
                 targetPiece.classList.add('valid-target');
-              } 
-              // Si ataca un Enemigo -> Objetivos Azules
-              else {
+              } else {
                 targetPiece.classList.add('valid-target-blue');
               }
               targetsFound = true;
             }
-            // CASO C: Control Mental (Fuego amigo) -> Tratamos como enemigo
             else if (!isSupport && isAlly && pieceMap.get(targetPiece)?.mindControlled) {
               if (piece.dataset.team === 'aliado') targetPiece.classList.add('valid-target');
               else targetPiece.classList.add('valid-target-blue');
@@ -2334,7 +2405,8 @@ async function resolveHeal(attacker, target) {
       }
     }
 
-    // --- 3. LIMPIAR SELECCIÓN INDIVIDUAL ---
+
+
     function clearTargetSelection(preserveAttack = false) {
       // Quitamos la clase visual potente de la pieza seleccionada anteriormente
       if (selectedTarget) {
@@ -2403,12 +2475,15 @@ async function resolveHeal(attacker, target) {
           else alert(msg);
           return;
         }
-        if (!placeBarrierBlock(square)) {
+        
+        // CAMBIO: Pasamos 'pendingBarrierPlacement.attacker' aquí también
+        if (!placeBarrierBlock(square, pendingBarrierPlacement.attacker)) {
           const msg = 'No se puede colocar la barrera en esa casilla.';
           if (typeof showTurnPopup === 'function') showTurnPopup(msg);
           else alert(msg);
           return;
         }
+        
         pendingBarrierPlacement.created += 1;
         pendingBarrierPlacement.remaining -= 1;
         pendingBarrierPlacement.lastSquare = square;
@@ -2985,42 +3060,52 @@ async function resolveHeal(attacker, target) {
     }
 
 function startTurn(piece) {
-  if (!piece) return;
-  const stats = pieceMap.get(piece);
-  if (!stats) return;
+      if (!piece) return;
+      const stats = pieceMap.get(piece);
+      if (!stats) return;
 
-  pendingBarrierPlacement = null;
-  clearBarrierPreview();
+      // --- NUEVO: Limpieza de barreras del turno anterior ---
+      activeBarriers = activeBarriers.filter(b => {
+        if (b.creator === piece) {
+          b.element.remove();
+          b.square.classList.remove('square--barrier');
+          return false; // Lo sacamos de la lista
+        }
+        return true; // Lo mantenemos
+      });
+      // -----------------------------------------------------
 
-  // 1. Verificar Incapacitado
-  if (stats.incapacitatedTurns && stats.incapacitatedTurns > 0) {
-    const incapMessage = `${stats.name} pierde el turno por estar incapacitado.`;
-    addHistoryEntry(piece.dataset.team, incapMessage, { attacker: piece });
-    stats.incapacitatedTurns -= 1;
-    if (stats.incapacitatedTurns <= 0) {
-      piece.classList.remove('piece--incapacitated');
+      pendingBarrierPlacement = null;
+      clearBarrierPreview();
+
+      // 1. Verificar Incapacitado
+      if (stats.incapacitatedTurns && stats.incapacitatedTurns > 0) {
+        const incapMessage = `${stats.name} pierde el turno por estar incapacitado.`;
+        addHistoryEntry(piece.dataset.team, incapMessage, { attacker: piece });
+        stats.incapacitatedTurns -= 1;
+        if (stats.incapacitatedTurns <= 0) {
+          piece.classList.remove('piece--incapacitated');
+        }
+        renderLifeCards();
+        finishTurn(piece, { summaryOverride: incapMessage });
+        return;
+      }
+
+      // 2. Configuración Estándar
+      resetMovement(piece);
+      setActivePiece(piece); 
+      clearTargetSelection(true);
+      clearHighlights();
+      highlightMovement(piece);
+      highlightRange(piece);
+
+      // 3. Bloqueo para IA
+      if (isPlayerVsAI && piece.dataset.team === 'enemigo') {
+        passButton.disabled = true;
+        attackButton.disabled = true;
+        setTimeout(() => performEnemyTurn(piece), 1000);
+      }
     }
-    renderLifeCards();
-    finishTurn(piece, { summaryOverride: incapMessage });
-    return;
-  }
-
-  // 2. Configuración Estándar
-  resetMovement(piece);
-  setActivePiece(piece); 
-  clearTargetSelection(true);
-  clearHighlights();
-  highlightMovement(piece);
-  highlightRange(piece);
-
-  // 3. Bloqueo para IA
-  if (isPlayerVsAI && piece.dataset.team === 'enemigo') {
-    passButton.disabled = true;
-    attackButton.disabled = true;
-    setTimeout(() => performEnemyTurn(piece), 1000);
-  }
-}
-
 
 
     function ownerLabel(playerId) {

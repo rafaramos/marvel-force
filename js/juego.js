@@ -273,6 +273,8 @@ function highlightRange(piece) {
   squares.forEach(s => s.classList.remove('square--range'));
   const origin = getPieceSquare(piece);
   const stats = getEffectiveStats(piece);
+  const canFly = hasPassive(stats, 'Volar');
+  const isFlyingAttack = canFly && currentAction === 'Ataque';
   let range = stats.rango === 0 ? 1 : stats.rango;
 
   // Modificadores de rango por acción
@@ -283,7 +285,8 @@ function highlightRange(piece) {
     const dist = getDistance(origin, square);
     if (dist <= 0 || dist > range) return;
     if (square.classList.contains('square--barrier')) return;
-    if (dist > 1 && !hasLineOfSight(origin, square)) return;
+    const lineBlocked = dist > 1 && !hasLineOfSight(origin, square);
+    if (lineBlocked && !isFlyingAttack) return;
     square.classList.add('square--range');
   });
 
@@ -376,6 +379,10 @@ board.addEventListener('click', (e) => {
 
     // Lógica de filtrado de objetivos
     let valid = false;
+    const attackerStats = getEffectiveStats(activePiece);
+    const targetStats = getEffectiveStats(targetPiece);
+    const attackerCanFly = hasPassive(attackerStats, 'Volar');
+    const targetCanFly = hasPassive(targetStats, 'Volar');
     
     if (currentAction === 'Curar' || currentAction.includes('Mejora')) {
       if (isAlly || isSelf) valid = true;
@@ -385,6 +392,10 @@ board.addEventListener('click', (e) => {
       valid = true; // Afecta a todos, permite seleccionar centro
     } else if (currentAction === 'Superfuerza' || currentAction === 'Telekinesis') {
       if (!isAlly) valid = true; // Lanzar cosas al enemigo
+    }
+
+    if (valid && attackerCanFly && currentAction === 'Ataque' && !targetCanFly) {
+      valid = false;
     }
 
     if (valid) selectTarget(targetPiece);
@@ -482,15 +493,23 @@ function applyDamage(target, amount) {
 
 function resolveAttack(attacker, defender) {
   const attStats = getEffectiveStats(attacker);
+  const defStats = getEffectiveStats(defender);
+  const attackerCanFly = hasPassive(attStats, 'Volar');
+  const defenderCanFly = hasPassive(defStats, 'Volar');
   const attackerSquare = getPieceSquare(attacker);
   const defenderSquare = getPieceSquare(defender);
   const maxRange = attStats.rango === 0 ? 1 : attStats.rango;
   const distance = getDistance(attackerSquare, defenderSquare);
+  if (attackerCanFly && !defenderCanFly) {
+    logCombat('Un volador solo puede atacar a otro volador.');
+    return;
+  }
   if (distance > maxRange) {
     logCombat('El objetivo está fuera de rango.');
     return;
   }
-  if (distance > 1 && !hasLineOfSight(attackerSquare, defenderSquare)) {
+  const lineBlocked = distance > 1 && !hasLineOfSight(attackerSquare, defenderSquare);
+  if (lineBlocked && !attackerCanFly) {
     logCombat('Ataque bloqueado por una barrera.');
     return;
   }
