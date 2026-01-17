@@ -147,7 +147,11 @@ function updateBarrierPreview(originSq) {
 }
 
 function hasPassive(stats, partialName) {
-  return stats.pasivos && stats.pasivos.some(p => p.nombre.includes(partialName));
+  const rawEntries = [
+    ...(stats?.pasivos || []),
+    ...(stats?.habilidades?.pasivas || []),
+  ];
+  return rawEntries.some(p => (p?.nombre ?? p)?.toString().includes(partialName));
 }
 
 // --- GESTIÓN DE STATS Y BUFFS ---

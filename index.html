@@ -356,8 +356,13 @@
 
     function hasPassive(stats, key) {
       const search = normalizePowerKey(key);
-      const list = stats?.poderes?.pasivos || [];
-      return list.map((entry) => normalizePowerKey(entry?.nombre ?? entry)).includes(search);
+      const powerList = stats?.poderes?.pasivos || [];
+      const legacyList = stats?.habilidades?.pasivas || [];
+      const normalized = [
+        ...powerList.map((entry) => normalizePowerKey(entry?.nombre ?? entry)),
+        ...legacyList.map((entry) => normalizePowerKey(entry?.nombre ?? entry)),
+      ];
+      return normalized.includes(search);
     }
 
     function hasActive(stats, key) {
