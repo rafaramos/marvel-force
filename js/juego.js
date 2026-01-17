@@ -269,18 +269,12 @@ function highlightMovement(piece) {
 }
 
 // --- RANGO Y TARGETING ---
-const FLYING_ATTACK_ACTIONS = new Set(['Ataque', 'Incapacitar', 'Control Mental', 'Superfuerza', 'Telekinesis']);
-
-function isFlyingAttackAction(action) {
-  return FLYING_ATTACK_ACTIONS.has(action);
-}
-
 function highlightRange(piece) {
   squares.forEach(s => s.classList.remove('square--range'));
   const origin = getPieceSquare(piece);
   const stats = getEffectiveStats(piece);
   const canFly = hasPassive(stats, 'Volar');
-  const isFlyingAttack = canFly && isFlyingAttackAction(currentAction);
+  const isFlyingAttack = canFly && currentAction === 'Ataque';
   let range = stats.rango === 0 ? 1 : stats.rango;
   const ignoreBarrierForAttack = isFlyingAttack;
 
@@ -407,7 +401,7 @@ board.addEventListener('click', (e) => {
       if (!isAlly) valid = true; // Lanzar cosas al enemigo
     }
 
-    if (valid && attackerCanFly && isFlyingAttackAction(currentAction) && !targetCanFly) {
+    if (valid && attackerCanFly && currentAction === 'Ataque' && !targetCanFly) {
       valid = false;
     }
 
