@@ -211,7 +211,7 @@ function tickBuffs(piece) {
 // --- MOVIMIENTO ---
 function canTraverse(piece) {
   const stats = getEffectiveStats(piece);
-  return hasPassive(stats, 'Volar') || hasPassive(stats, 'Fase') || hasPassive(stats, 'Saltar');
+  return hasPassive(stats, 'Volar') || hasPassive(stats, 'Fase');
 }
 
 function remainingMovement(piece) { return Number(piece.dataset.movesLeft ?? 0); }
