@@ -33,6 +33,8 @@ let turnIndex = 0;
 let selectedTarget = null;
 let currentAction = 'Ataque'; // Acción seleccionada
 let activeBarriers = []; // Lista de barreras activas
+let barrierDirection = null;
+let barrierPreviewSquares = [];
 
 // --- SISTEMA DE SONIDOS (Placeholders) ---
 const sounds = {
@@ -40,7 +42,8 @@ const sounds = {
   fail: new Audio('sonido/Failure.mp3'),
   click: new Audio('sonido/click.wav'),
   pass: new Audio('sonido/pasar.wav'),
-  explode: new Audio('sonido/explosion.mp3')
+  explode: new Audio('sonido/explosion.mp3'),
+  barrier: new Audio('sonidos/efectos/barrera.wav')
 };
 function playSound(name) {
   if (sounds[name]) {
@@ -57,6 +60,39 @@ function getDistance(sq1, sq2) {
   if (!sq1 || !sq2) return 999;
   return Math.abs(Number(sq1.dataset.row) - Number(sq2.dataset.row)) + 
          Math.abs(Number(sq1.dataset.col) - Number(sq2.dataset.col));
+}
+
+function getCardinalDirection(fromSq, toSq) {
+  const rowDiff = Number(toSq.dataset.row) - Number(fromSq.dataset.row);
+  const colDiff = Number(toSq.dataset.col) - Number(fromSq.dataset.col);
+  if (Math.abs(rowDiff) >= Math.abs(colDiff)) {
+    return [rowDiff >= 0 ? 1 : -1, 0];
+  }
+  return [0, colDiff >= 0 ? 1 : -1];
+}
+
+function getAdjacentDirection(fromSq, toSq) {
+  const rowDiff = Number(toSq.dataset.row) - Number(fromSq.dataset.row);
+  const colDiff = Number(toSq.dataset.col) - Number(fromSq.dataset.col);
+  if (Math.abs(rowDiff) + Math.abs(colDiff) !== 1) return null;
+  return [rowDiff, colDiff];
+}
+
+function clearBarrierPreview() {
+  barrierPreviewSquares.forEach(sq => sq.classList.remove('square--barrier-preview'));
+  barrierPreviewSquares = [];
+}
+
+function updateBarrierPreview(originSq, direction) {
+  clearBarrierPreview();
+  if (!originSq || !direction) return;
+  const [dRow, dCol] = direction;
+  for (let i = 0; i < 4; i++) {
+    const sq = getSquareAt(Number(originSq.dataset.row) + dRow * i, Number(originSq.dataset.col) + dCol * i);
+    if (!sq) break;
+    sq.classList.add('square--barrier-preview');
+    barrierPreviewSquares.push(sq);
+  }
 }
 
 function hasPassive(stats, partialName) {
@@ -154,7 +190,7 @@ function highlightMovement(piece) {
       if (!neighbor || visited.has(neighbor)) return;
 
       const occupant = neighbor.querySelector('.piece');
-      const isBarrier = neighbor.classList.contains('barrier');
+      const isBarrier = neighbor.classList.contains('square--barrier');
       
       // Lógica de Bloqueo
       let blocked = false;
@@ -183,16 +219,40 @@ function highlightRange(piece) {
   const origin = getPieceSquare(piece);
   const stats = getEffectiveStats(piece);
   let range = stats.rango === 0 ? 1 : stats.rango;
-  
+
   // Modificadores de rango por acción
   if (currentAction === 'Superfuerza' || currentAction === 'Telekinesis') range = 3; // Rango para lanzar objetos
   if (currentAction === 'Control Mental') range = 5; // Rango típico mental
-  
-  squares.forEach(sq => {
-    const dist = getDistance(origin, sq);
-    if (dist <= range && dist > 0) sq.classList.add('square--range');
-    if (dist === 0 && (currentAction === 'Pulso' || currentAction.includes('Mejora'))) sq.classList.add('square--range');
-  });
+
+  const queue = [{ square: origin, distance: 0 }];
+  const visited = new Map();
+  visited.set(origin, 0);
+
+  while (queue.length > 0) {
+    const { square, distance } = queue.shift();
+    if (distance >= range) continue;
+
+    const row = Number(square.dataset.row);
+    const col = Number(square.dataset.col);
+    const neighbors = [[row + 1, col], [row - 1, col], [row, col + 1], [row, col - 1]];
+
+    neighbors.forEach(([r, c]) => {
+      const neighbor = getSquareAt(r, c);
+      if (!neighbor || visited.has(neighbor)) return;
+      if (neighbor.classList.contains('square--barrier')) return;
+
+      const newDist = distance + 1;
+      visited.set(neighbor, newDist);
+      if (newDist <= range) {
+        neighbor.classList.add('square--range');
+        queue.push({ square: neighbor, distance: newDist });
+      }
+    });
+  }
+
+  if (origin && (currentAction === 'Pulso' || currentAction.includes('Mejora'))) {
+    origin.classList.add('square--range');
+  }
 }
 
 // --- ACCIONES Y PODERES ---
@@ -248,7 +308,7 @@ board.addEventListener('click', (e) => {
   const targetPiece = sq.querySelector('.piece');
   
   // Caso especial: Barrera (target es una casilla vacía)
-  if (currentAction === 'Barrera' && sq.classList.contains('square--range') && !targetPiece) {
+  if (currentAction === 'Barrera' && sq.classList.contains('square--range') && !targetPiece && !sq.classList.contains('square--barrier')) {
     selectSquareTarget(sq);
     return;
   }
@@ -277,6 +337,16 @@ board.addEventListener('click', (e) => {
   }
 });
 
+board.addEventListener('mousemove', (e) => {
+  if (currentAction !== 'Barrera' || !selectedTarget || !selectedTarget.classList?.contains('square')) return;
+  const hoverSq = e.target.closest('.square');
+  if (!hoverSq) return;
+  const direction = getAdjacentDirection(selectedTarget, hoverSq);
+  if (!direction) return;
+  barrierDirection = direction;
+  updateBarrierPreview(selectedTarget, barrierDirection);
+});
+
 function selectTarget(piece) {
   clearTargetSelection();
   selectedTarget = piece;
@@ -289,12 +359,17 @@ function selectSquareTarget(sq) {
   selectedTarget = sq; // Target es el DIV, no una pieza
   sq.classList.add('square--target');
   attackButton.classList.add('button--pulse');
+  const attacker = turnOrder[turnIndex];
+  barrierDirection = getCardinalDirection(getPieceSquare(attacker), sq);
+  updateBarrierPreview(sq, barrierDirection);
 }
 
 function clearTargetSelection() {
   selectedTarget = null;
   squares.forEach(s => s.classList.remove('square--target'));
   attackButton.classList.remove('button--pulse');
+  barrierDirection = null;
+  clearBarrierPreview();
 }
 
 // --- EJECUCIÓN DE ACCIÓN (BOTÓN PRINCIPAL) ---
@@ -497,23 +572,24 @@ function resolveThrow(attacker, defender) {
 }
 
 function resolveBarrier(attacker, square) {
-  // Crear barrera de 3 casillas verticales
-  const row = Number(square.dataset.row);
-  const col = Number(square.dataset.col);
-  const coords = [[row,col], [row+1,col], [row-1,col]];
-  
+  if (!square) return;
+  const direction = barrierDirection || getCardinalDirection(getPieceSquare(attacker), square);
+  if (!direction) return;
+  const [dRow, dCol] = direction;
   let created = 0;
-  coords.forEach(([r, c]) => {
-    const sq = getSquareAt(r, c);
-    if (sq && !sq.querySelector('.piece')) {
-      const barrier = document.createElement('div');
-      barrier.className = 'barrier'; // CSS needed: .barrier { background: gray; ... }
-      barrier.style.cssText = "position:absolute; inset:5px; background:rgba(200,200,200,0.5); border:2px solid white; pointer-events:none;";
-      sq.appendChild(barrier);
-      activeBarriers.push({ element: barrier, turns: BARRIER_DURATION });
-      created++;
-    }
-  });
+
+  for (let i = 0; i < 4; i++) {
+    const sq = getSquareAt(Number(square.dataset.row) + dRow * i, Number(square.dataset.col) + dCol * i);
+    if (!sq || sq.querySelector('.piece') || sq.classList.contains('square--barrier')) break;
+    const barrier = document.createElement('div');
+    barrier.className = 'barrier';
+    sq.classList.add('square--barrier');
+    sq.appendChild(barrier);
+    activeBarriers.push({ element: barrier, square: sq, turns: BARRIER_DURATION });
+    created++;
+  }
+
+  playSound('barrier');
   logCombat(`Barrera creada (${created} segmentos).`);
 }
 
@@ -578,7 +654,10 @@ function endTurn() {
   // Tick Barreras (Global o por turno, simplificamos a reducir en cada turno global)
   activeBarriers.forEach(b => {
     b.turns--;
-    if (b.turns <= 0) b.element.remove();
+    if (b.turns <= 0) {
+      b.element.remove();
+      b.square.classList.remove('square--barrier');
+    }
   });
   activeBarriers = activeBarriers.filter(b => b.turns > 0);
 

@@ -208,7 +208,7 @@ const poderes = {
   ventisca: {
     activos: [
       { nombre: 'Pulso', descripcion: 'El personaje realiza un ataque contra sí mismo y contra todos los personajes en las casillas adyacentes al objetivo, incluido los aliados. El personaje compara su tirada con todos los personajes y se resuelven los daños de manera individual. El personaje atacante no sufre daños por el ataque, ya que no se ataca a sí mismo. Cuidado porque puedes matar a tus compañeros.' },
-      { nombre: 'Barrera', descripcion: 'El personaje crea un obstáculo de tres casillas verticales. La casila objetivo es la casilla central.' }
+      { nombre: 'Barrera', descripcion: 'El personaje crea una barrera de 4 bloques adyacentes en línea. El primer bloque debe estar en rango y los demás crecen en una dirección elegida, aunque queden fuera del rango.' }
     ],
     pasivos: [],
   },
@@ -267,7 +267,7 @@ const poderes = {
   klaw: {
     activos: [
       { nombre: 'Incapacitar', descripcion: 'El personaje selecciona un enemigo al que incapacitar. Si la tirada de ataque es exitosa, el defensor queda incapacitado y no podrá hacer otra acción salvo pasar, en el siguiente turno. No se puede incapacitar a un personaje incapacitado.' },
-      { nombre: 'Barrera', descripcion: 'El personaje crea un obstáculo de tres casillas verticales. La casila objetivo es la casilla central.' }
+      { nombre: 'Barrera', descripcion: 'El personaje crea una barrera de 4 bloques adyacentes en línea. El primer bloque debe estar en rango y los demás crecen en una dirección elegida, aunque queden fuera del rango.' }
     ],
     pasivos: [
       { nombre: 'Experto a/d', descripcion: 'El daño base del personaje en los ataques a distancia se aumenta en 2.' }
@@ -303,7 +303,7 @@ const poderes = {
       { nombre: 'Incapacitar', descripcion: 'El personaje selecciona un enemigo al que incapacitar. Si la tirada de ataque es exitosa, el defensor queda incapacitado y no podrá hacer otra acción salvo pasar, en el siguiente turno. No se puede incapacitar a un personaje incapacitado.' },
       { nombre: 'Telekinesis', descripcion: 'El personaje puede agarrar y usar objetos pesados o livianos. Los debe agarrar cuando esté dentro de su rango. Los podrá usar c/c o a/d, dentro de su rango normal.' },
       { nombre: 'Pulso', descripcion: 'El personaje realiza un ataque contra sí mismo y contra todos los personajes en las casillas adyacentes al objetivo, incluido los aliados. El personaje compara su tirada con todos los personajes y se resuelven los daños de manera individual. El personaje atacante no sufre daños por el ataque, ya que no se ataca a sí mismo. Cuidado porque puedes matar a tus compañeros.' },
-      { nombre: 'Barrera', descripcion: 'El personaje crea un obstáculo de tres casillas verticales. La casila objetivo es la casilla central.' },
+      { nombre: 'Barrera', descripcion: 'El personaje crea una barrera de 4 bloques adyacentes en línea. El primer bloque debe estar en rango y los demás crecen en una dirección elegida, aunque queden fuera del rango.' },
       { nombre: 'Curar', descripcion: 'El personaje selecciona un compañero al que curar. Es como un ataque cuerpo a cuerpo con el modificador de los puntos de daño recibidos. Los puntos de daño recibidos es la diferencia entre los puntos de vida base y los actuales. Así que la tirada es ataque del atacante + daño recibido por el defensor + 2d6 deben ser iguales o mayores que la defensa del defensor. Si la tirada es acertada, el atacante tirará un 1d6 para calcular los puntos de vida que recupera el defensor, que nunca podrán ser superiores al daño recibido por el defensor.' },
       { nombre: 'Mejora de Crítico', descripcion: 'El personaje elige como objetivo un compañero, o a sí mismo, y resultan afectados dicho compañero, y los compañeros de las casillas adyacentes. Todos ellos obtienen durante dos turnos el poder de Astucia. En caso se tener el poder de Astucia, consiguen crítico incluso sacando un 10. La Probabilidad no se acumula, es decir, un personaje que consiga Astucia por Probabilidad, no tendrá efecto si en el siguiente turno vuelve a recibir Probabilidad, sólo renovará los dos turnos con mejora, pero seguirá siendo la misma mejora.' },
       { nombre: 'Mejora de Ataque', descripcion: 'El personaje elige como objetivo un compañero, o a sí mismo, y resultan afectados dicho compañero, y los compañeros de las casillas adyacentes. Todos ellos obtienen una mejora de Ataque de 1 durante 2 turnos. Lo máximo que se puede mejorar con respecto al ataque base es 1, es decir, que si le aplican dos veces seguidas mejora de ataque, renovará los dos turnos con mejora, pero seguira siendo una mejora de 1.' }
@@ -349,7 +349,7 @@ const poderes = {
     activos: [
       { nombre: 'Explosión', descripcion: 'El personaje realiza un ataque contra un objetivo y contra todos los personajes en las casillas adyacentes al objetivo, incluido los aliados y el propio atacante, si estuviera entre los objetivos. El personaje compara su tirada con todos los personajes y se resuelven los daños de manera individual. Cuidado porque puedes matarte a ti mismo y a tus compañeros.' },
       { nombre: 'Pulso', descripcion: 'El personaje realiza un ataque contra sí mismo y contra todos los personajes en las casillas adyacentes al objetivo, incluido los aliados. El personaje compara su tirada con todos los personajes y se resuelven los daños de manera individual. El personaje atacante no sufre daños por el ataque, ya que no se ataca a sí mismo. Cuidado porque puedes matar a tus compañeros.' },
-      { nombre: 'Barrera', descripcion: 'El personaje crea un obstáculo de tres casillas verticales. La casila objetivo es la casilla central.' }
+      { nombre: 'Barrera', descripcion: 'El personaje crea una barrera de 4 bloques adyacentes en línea. El primer bloque debe estar en rango y los demás crecen en una dirección elegida, aunque queden fuera del rango.' }
     ],
     pasivos: [
       { nombre: 'Defensa a/d', descripcion: 'La resistencia del personaje en los ataques sufridos a distancia es de 2.' },
@@ -370,7 +370,7 @@ const poderes = {
     activos: [
       { nombre: 'Incapacitar', descripcion: 'El personaje selecciona un enemigo al que incapacitar. Si la tirada de ataque es exitosa, el defensor queda incapacitado y no podrá hacer otra acción salvo pasar, en el siguiente turno. No se puede incapacitar a un personaje incapacitado.' },
       { nombre: 'Telekinesis', descripcion: 'El personaje puede agarrar y usar objetos pesados o livianos. Los debe agarrar cuando esté dentro de su rango. Los podrá usar c/c o a/d, dentro de su rango normal.' },
-      { nombre: 'Barrera', descripcion: 'El personaje crea un obstáculo de tres casillas verticales. La casila objetivo es la casilla central.' },
+      { nombre: 'Barrera', descripcion: 'El personaje crea una barrera de 4 bloques adyacentes en línea. El primer bloque debe estar en rango y los demás crecen en una dirección elegida, aunque queden fuera del rango.' },
       { nombre: 'Mejora de Defensa', descripcion: 'El personaje elige como objetivo un compañero, o a sí mismo, y resultan afectados dicho compañero, y los compañeros de las casillas adyacentes. Todos ellos obtienen una mejora de Defensa de 1 durante 2 turnos. Lo máximo que se puede mejorar con respecto a la defensa base es 1, es decir, que si le aplican dos veces seguidas mejora de defensa, renovará los dos turnos con mejora, pero seguira siendo una mejora de 1.' }
     ],
     pasivos: [

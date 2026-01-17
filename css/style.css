@@ -477,6 +477,25 @@ body {
   box-shadow: inset 0 0 0 4px rgba(255, 171, 64, 0.9), inset 0 0 0 7px rgba(255, 171, 64, 0.35);
 }
 
+.square--barrier-preview::after {
+  opacity: 1;
+  box-shadow: inset 0 0 0 4px rgba(0, 210, 255, 0.9);
+  background: rgba(0, 210, 255, 0.18);
+}
+
+.square--barrier {
+  background-color: #1b6f33;
+}
+
+.barrier {
+  position: absolute;
+  inset: 6px;
+  background: url('../objetos/barrera.webp') center / contain no-repeat;
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.35));
+  pointer-events: none;
+  z-index: 2;
+}
+
 /* Casilla válida para Telekinesis */
 .square--placement::before {
   content: '';

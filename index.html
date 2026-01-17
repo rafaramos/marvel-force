@@ -157,6 +157,7 @@
       const incapacitarSound = new Audio('sonidos/efectos/incapacitar.wav');
       const pulsoSound = new Audio('sonidos/efectos/pulso.wav');
       const telekinesisSound = new Audio('sonidos/efectos/telekinesis.wav');
+      const barrierSound = new Audio('sonidos/efectos/barrera.wav');
       
       let pendingPopupSound = null;
       const BOARD_ROWS = 10;
@@ -190,6 +191,9 @@
 
       // --- NUEVA VARIABLE DE ESTADO ---
     let pendingTelekinesis = null; // Guardará { attacker, victim } mientras eliges destino
+      const BARRIER_SEGMENTS = 4;
+      let barrierDirection = null;
+      let barrierPreviewSquares = [];
 
 
 
@@ -754,6 +758,7 @@ function registerTurnSound({ damageDealt = 0, attackFailed = false, zeroDamageHi
           incapacitar: 'Incapacitar',
           explosion: 'Explosión',
           pulso: 'Pulso',
+          barrera: 'Barrera',
           probabilidad: 'Probabilidad',
           'mejora de ataque': 'Mejora de Ataque',
           'mejora de defensa': 'Mejora de Defensa',
@@ -784,6 +789,71 @@ function registerTurnSound({ damageDealt = 0, attackFailed = false, zeroDamageHi
 
     function getSquareAt(row, col) {
       return squaresByCoord.get(`${row},${col}`);
+    }
+
+    function isBarrierSquare(square) {
+      return Boolean(square?.classList.contains('square--barrier'));
+    }
+
+    function getCardinalDirection(fromSquare, toSquare) {
+      const rowDiff = Number(toSquare.dataset.row) - Number(fromSquare.dataset.row);
+      const colDiff = Number(toSquare.dataset.col) - Number(fromSquare.dataset.col);
+      if (Math.abs(rowDiff) >= Math.abs(colDiff)) {
+        return [rowDiff >= 0 ? 1 : -1, 0];
+      }
+      return [0, colDiff >= 0 ? 1 : -1];
+    }
+
+    function getAdjacentDirection(fromSquare, toSquare) {
+      const rowDiff = Number(toSquare.dataset.row) - Number(fromSquare.dataset.row);
+      const colDiff = Number(toSquare.dataset.col) - Number(fromSquare.dataset.col);
+      if (Math.abs(rowDiff) + Math.abs(colDiff) !== 1) return null;
+      return [rowDiff, colDiff];
+    }
+
+    function clearBarrierPreview() {
+      barrierPreviewSquares.forEach((square) => square.classList.remove('square--barrier-preview'));
+      barrierPreviewSquares = [];
+    }
+
+    function updateBarrierPreview(originSquare, direction) {
+      clearBarrierPreview();
+      if (!originSquare || !direction) return;
+      const [dr, dc] = direction;
+      for (let i = 0; i < BARRIER_SEGMENTS; i += 1) {
+        const square = getSquareAt(
+          Number(originSquare.dataset.row) + dr * i,
+          Number(originSquare.dataset.col) + dc * i
+        );
+        if (!square) break;
+        square.classList.add('square--barrier-preview');
+        barrierPreviewSquares.push(square);
+      }
+    }
+
+    function computeRangeDistances(originSquare, maxRange) {
+      const distances = new Map();
+      if (!originSquare) return distances;
+      const queue = [{ square: originSquare, distance: 0 }];
+      distances.set(originSquare, 0);
+      const deltas = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+
+      while (queue.length) {
+        const { square, distance } = queue.shift();
+        if (distance >= maxRange) continue;
+        for (const [dr, dc] of deltas) {
+          const nr = Number(square.dataset.row) + dr;
+          const nc = Number(square.dataset.col) + dc;
+          if (nr < 1 || nr > BOARD_ROWS || nc < 1 || nc > BOARD_COLS) continue;
+          const neighbor = getSquareAt(nr, nc);
+          if (!neighbor || distances.has(neighbor)) continue;
+          if (isBarrierSquare(neighbor)) continue;
+          const nextDistance = distance + 1;
+          distances.set(neighbor, nextDistance);
+          queue.push({ square: neighbor, distance: nextDistance });
+        }
+      }
+      return distances;
     }
 
    function computeReachableSquares(piece) {
@@ -818,6 +888,7 @@ function registerTurnSound({ damageDealt = 0, attackFailed = false, zeroDamageHi
           if (visited.has(key) && visited.get(key) <= nextCost) continue;
           
           const square = getSquareAt(nr, nc);
+          if (isBarrierSquare(square)) continue;
           if (!square) continue;
           
           const occupant = square.querySelector('.piece');
@@ -850,7 +921,7 @@ function registerTurnSound({ damageDealt = 0, attackFailed = false, zeroDamageHi
     // --- 1. LIMPIEZA COMPLETA ---
     function clearRangeHighlights() {
       board.classList.remove('targeting');
-      
+      clearBarrierPreview();
       squares.forEach((square) => {
           square.classList.remove('square--range', 'square--target', 'square--range-special');
           
@@ -880,46 +951,44 @@ function registerTurnSound({ damageDealt = 0, attackFailed = false, zeroDamageHi
   board.classList.add('targeting');
 
   let targetsFound = false;
+  const rangeDistances = computeRangeDistances(origin, maxCheck);
 
-  squares.forEach((square) => {
-    const dist = attackDistance(origin, square);
+  rangeDistances.forEach((dist, square) => {
+    if (dist === 0 && !isSupport) return;
 
-    if (dist <= maxCheck && (dist > 0 || (dist === 0 && isSupport))) {
-      let isValidSquare = false;
+    let isValidSquare = false;
+    if (dist <= physRange) {
+      square.classList.add('square--range');
+      isValidSquare = true;
+    } else if (dist <= maxCheck) {
+      square.classList.add('square--range-special');
+      isValidSquare = true;
+    }
 
-      if (dist <= physRange) {
-        square.classList.add('square--range');
-        isValidSquare = true;
-      } else {
-        square.classList.add('square--range-special');
-        isValidSquare = true;
-      }
+    if (isValidSquare) {
+      const targetPiece = square.querySelector('.piece');
+      if (targetPiece) {
+        const isAlly = targetPiece.dataset.team === piece.dataset.team;
 
-      if (isValidSquare) {
-        const targetPiece = square.querySelector('.piece');
-        if (targetPiece) {
-          const isAlly = targetPiece.dataset.team === piece.dataset.team;
-
-          // CASO A: Poder de Ayuda
-          if (isSupport && isAlly) {
-            targetPiece.classList.add('valid-ally');
-            targetsFound = true;
+        // CASO A: Poder de Ayuda
+        if (isSupport && isAlly) {
+          targetPiece.classList.add('valid-ally');
+          targetsFound = true;
+        }
+        // CASO B: Ataque
+        else if (!isSupport && !isAlly) {
+          if (piece.dataset.team === 'aliado') {
+            targetPiece.classList.add('valid-target');
+          } else {
+            targetPiece.classList.add('valid-target-blue');
           }
-          // CASO B: Ataque
-          else if (!isSupport && !isAlly) {
-            if (piece.dataset.team === 'aliado') {
-              targetPiece.classList.add('valid-target');
-            } else {
-              targetPiece.classList.add('valid-target-blue');
-            }
-            targetsFound = true;
-          }
-          // CASO C: Control Mental (Fuego amigo)
-          else if (!isSupport && isAlly && pieceMap.get(targetPiece)?.mindControlled) {
-            if (piece.dataset.team === 'aliado') targetPiece.classList.add('valid-target');
-            else targetPiece.classList.add('valid-target-blue');
-            targetsFound = true;
-          }
+          targetsFound = true;
+        }
+        // CASO C: Control Mental (Fuego amigo)
+        else if (!isSupport && isAlly && pieceMap.get(targetPiece)?.mindControlled) {
+          if (piece.dataset.team === 'aliado') targetPiece.classList.add('valid-target');
+          else targetPiece.classList.add('valid-target-blue');
+          targetsFound = true;
         }
       }
     }
@@ -947,12 +1016,10 @@ function registerTurnSound({ damageDealt = 0, attackFailed = false, zeroDamageHi
     }
 
     function isWithinAttackRange(attackerSquare, targetSquare, maxRange, { includeOrigin = false } = {}) {
-      const attackerRow = Number(attackerSquare.dataset.row);
-      const attackerCol = Number(attackerSquare.dataset.col);
-      const targetRow = Number(targetSquare.dataset.row);
-      const targetCol = Number(targetSquare.dataset.col);
-      const distance = Math.abs(targetRow - attackerRow) + Math.abs(targetCol - attackerCol);
-      return distance <= maxRange && (includeOrigin ? distance >= 0 : distance > 0);
+      const distances = computeRangeDistances(attackerSquare, maxRange);
+      const distance = distances.get(targetSquare);
+      if (distance === undefined) return false;
+      return includeOrigin ? distance >= 0 : distance > 0;
     }
 
     
@@ -1275,6 +1342,7 @@ function attachTooltipEvents(piece) {
         'incapacitar': 'Incapacitar',
         'explosion': 'Explosión',
         'pulso': 'Pulso',
+        'barrera': 'Barrera',
         'probabilidad': 'Probabilidad',
         'mejora de ataque': 'Mejora de Ataque',
         'mejora de defensa': 'Mejora de Defensa',
@@ -1803,6 +1871,57 @@ async function resolvePulse(attacker) {
   finishTurn(attacker, { showPopup: false });
 }
 
+async function resolveBarrier(attacker, targetSquare) {
+  const attackerStats = pieceMap.get(attacker);
+  if (!attackerStats || !targetSquare) return;
+
+  const originSquare = getPieceSquare(attacker);
+  const direction = barrierDirection || (originSquare ? getCardinalDirection(originSquare, targetSquare) : null);
+  if (!direction) return;
+
+  const [dr, dc] = direction;
+  let created = 0;
+
+  for (let i = 0; i < BARRIER_SEGMENTS; i += 1) {
+    const square = getSquareAt(
+      Number(targetSquare.dataset.row) + dr * i,
+      Number(targetSquare.dataset.col) + dc * i
+    );
+    if (!square || square.querySelector('.piece') || isBarrierSquare(square)) break;
+    const barrier = document.createElement('div');
+    barrier.className = 'barrier';
+    square.classList.add('square--barrier');
+    square.appendChild(barrier);
+    created += 1;
+  }
+
+  playEffectSound(barrierSound);
+  const message = `${attackerStats.name} crea una barrera (${created} bloques).`;
+
+  pendingAttackInfo = {
+    action: actionLabel('barrera'),
+    attackerName: attackerStats.name,
+    roll: '-',
+    targets: [
+      {
+        name: `Barrera (${created})`,
+        success: true,
+        damage: 0,
+        vida: '-',
+      },
+    ],
+  };
+
+  addHistoryEntry(attacker.dataset.team, message, { attacker });
+  hideTooltip();
+  clearRangeHighlights();
+  clearTargetSelection(true);
+  attackButton.classList.remove('button--pulse');
+  updateCombatInfo();
+  await showTurnPopup(message);
+  finishTurn(attacker, { showPopup: false });
+}
+
 
 
     function alliedPiecesInRange1(centerSquare, team) {
@@ -2055,7 +2174,7 @@ async function resolveHeal(attacker, target) {
     // --- 1. LIMPIEZA COMPLETA ---
     function clearRangeHighlights() {
       board.classList.remove('targeting');
-      
+      clearBarrierPreview();
       squares.forEach((square) => {
           square.classList.remove('square--range', 'square--target', 'square--range-special');
           
@@ -2082,51 +2201,50 @@ async function resolveHeal(attacker, target) {
       board.classList.add('targeting'); // Activamos modo foco
 
       let targetsFound = false;
+      const rangeDistances = computeRangeDistances(origin, maxCheck);
 
-      squares.forEach((square) => {
-        const dist = attackDistance(origin, square);
-        
-        if (dist <= maxCheck && (dist > 0 || (dist === 0 && isSupport))) {
-            let isValidSquare = false;
+      rangeDistances.forEach((dist, square) => {
+        if (dist === 0 && !isSupport) return;
 
-            if (dist <= physRange) {
-                square.classList.add('square--range');
-                isValidSquare = true;
-            } else {
-                square.classList.add('square--range-special');
-                isValidSquare = true;
+        let isValidSquare = false;
+
+        if (dist <= physRange) {
+          square.classList.add('square--range');
+          isValidSquare = true;
+        } else if (dist <= maxCheck) {
+          square.classList.add('square--range-special');
+          isValidSquare = true;
+        }
+
+        if (isValidSquare) {
+          const targetPiece = square.querySelector('.piece');
+          if (targetPiece) {
+            const isAlly = targetPiece.dataset.team === piece.dataset.team;
+            
+            // CASO A: Poder de Ayuda -> Siempre Verde
+            if (isSupport && isAlly) {
+              targetPiece.classList.add('valid-ally');
+              targetsFound = true;
             }
-
-            if (isValidSquare) {
-                const targetPiece = square.querySelector('.piece');
-                if (targetPiece) {
-                    const isAlly = targetPiece.dataset.team === piece.dataset.team;
-                    
-                    // CASO A: Poder de Ayuda -> Siempre Verde
-                    if (isSupport && isAlly) {
-                        targetPiece.classList.add('valid-ally');
-                        targetsFound = true;
-                    }
-                    // CASO B: Ataque -> Depende de quién ataque
-                    else if (!isSupport && !isAlly) {
-                        // Si ataca un Aliado -> Objetivos Rojos
-                        if (piece.dataset.team === 'aliado') {
-                            targetPiece.classList.add('valid-target');
-                        } 
-                        // Si ataca un Enemigo -> Objetivos Azules
-                        else {
-                            targetPiece.classList.add('valid-target-blue');
-                        }
-                        targetsFound = true;
-                    }
-                    // CASO C: Control Mental (Fuego amigo) -> Tratamos como enemigo
-                    else if (!isSupport && isAlly && pieceMap.get(targetPiece)?.mindControlled) {
-                         if (piece.dataset.team === 'aliado') targetPiece.classList.add('valid-target');
-                         else targetPiece.classList.add('valid-target-blue');
-                         targetsFound = true;
-                    }
-                }
+            // CASO B: Ataque -> Depende de quién ataque
+            else if (!isSupport && !isAlly) {
+              // Si ataca un Aliado -> Objetivos Rojos
+              if (piece.dataset.team === 'aliado') {
+                targetPiece.classList.add('valid-target');
+              } 
+              // Si ataca un Enemigo -> Objetivos Azules
+              else {
+                targetPiece.classList.add('valid-target-blue');
+              }
+              targetsFound = true;
             }
+            // CASO C: Control Mental (Fuego amigo) -> Tratamos como enemigo
+            else if (!isSupport && isAlly && pieceMap.get(targetPiece)?.mindControlled) {
+              if (piece.dataset.team === 'aliado') targetPiece.classList.add('valid-target');
+              else targetPiece.classList.add('valid-target-blue');
+              targetsFound = true;
+            }
+          }
         }
       });
       
@@ -2144,6 +2262,8 @@ async function resolveHeal(attacker, target) {
       
       squares.forEach((square) => square.classList.remove('square--target'));
       selectedTarget = null;
+      barrierDirection = null;
+      clearBarrierPreview();
       
       if (!preserveAttack) {
         pendingAttackInfo = null;
@@ -2196,8 +2316,31 @@ async function resolveHeal(attacker, target) {
 
       const targetPiece = square.querySelector('.piece');
 
+      if (currentAction === 'barrera' && !targetPiece) {
+        const isOrange = square.classList.contains('square--range');
+        if (!isOrange || isBarrierSquare(square)) {
+          const msg = 'La casilla está fuera de rango o bloqueada.';
+          if (typeof showTurnPopup === 'function') showTurnPopup(msg);
+          else alert(msg);
+          return;
+        }
+        clearTargetSelection();
+        square.classList.add('square--target');
+        selectedTarget = square;
+        barrierDirection = getCardinalDirection(getPieceSquare(activePiece), square);
+        updateBarrierPreview(square, barrierDirection);
+        attackButton.classList.add('button--pulse');
+        return;
+      }
+
       // B) SELECCIÓN DE OBJETIVO (Clic en personaje)
       if (targetPiece) {
+        if (currentAction === 'barrera') {
+          const msg = 'La barrera solo se puede colocar en casillas vacías.';
+          if (typeof showTurnPopup === 'function') showTurnPopup(msg);
+          else alert(msg);
+          return;
+        }
         const isSamePiece = targetPiece === activePiece;
         const isAllyTarget = targetPiece.dataset.team === activePiece.dataset.team;
         const supportAction = isSupportPower(currentAction); 
@@ -2282,6 +2425,17 @@ async function resolveHeal(attacker, target) {
       }
     });
 
+    board.addEventListener('mousemove', (event) => {
+      if (currentAction !== 'barrera') return;
+      if (!selectedTarget || !selectedTarget.classList?.contains('square')) return;
+      const hoverSquare = event.target.closest('.square');
+      if (!hoverSquare) return;
+      const direction = getAdjacentDirection(selectedTarget, hoverSquare);
+      if (!direction) return;
+      barrierDirection = direction;
+      updateBarrierPreview(selectedTarget, barrierDirection);
+    });
+
    function handleActionClick(actionKey) {
   currentAction = actionKey;
   const attacker = turnOrder[turnIndex];
@@ -2297,7 +2451,7 @@ async function resolveHeal(attacker, target) {
     highlightRange(attacker);
     
     const combatBox = document.getElementById('combatInfo');
-    const labels = {
+      const labels = {
       incapacitar: 'Incapacitar',
       'control mental': 'Control Mental',
       curar: 'Curar',
@@ -2306,7 +2460,8 @@ async function resolveHeal(attacker, target) {
       'mejora de agilidad': 'Mejora de Agilidad',
       'mejora de critico': 'Mejora de Crítico',
       'telekinesis': 'Telekinesis',
-      'explosion': 'Explosión'
+      'explosion': 'Explosión',
+      'barrera': 'Barrera'
     };
     const nombre = labels[actionKey] || actionKey;
 
@@ -2314,6 +2469,21 @@ async function resolveHeal(attacker, target) {
          combatBox.style.display = 'block';
          combatBox.textContent = `Modo [${nombre}] activo. Selecciona un objetivo.`;
     }
+    return;
+  }
+
+  if (actionKey === 'barrera') {
+    const targetSquare = selectedTarget.classList?.contains('square')
+      ? selectedTarget
+      : getPieceSquare(selectedTarget);
+    const isInOrangeZone = targetSquare?.classList.contains('square--range');
+    if (!isInOrangeZone) {
+      if (typeof showTurnPopup === 'function') showTurnPopup('El objetivo está fuera de rango.');
+      else alert('El objetivo está fuera de rango.');
+      clearTargetSelection();
+      return;
+    }
+    resolveBarrier(attacker, targetSquare);
     return;
   }
 
