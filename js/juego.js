@@ -62,6 +62,30 @@ function getDistance(sq1, sq2) {
          Math.abs(Number(sq1.dataset.col) - Number(sq2.dataset.col));
 }
 
+function computeRangeDistances(originSquare, maxRange) {
+  const distances = new Map();
+  if (!originSquare) return distances;
+  const queue = [{ square: originSquare, distance: 0 }];
+  distances.set(originSquare, 0);
+  const deltas = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+
+  while (queue.length) {
+    const { square, distance } = queue.shift();
+    if (distance >= maxRange) continue;
+    deltas.forEach(([dr, dc]) => {
+      const nr = Number(square.dataset.row) + dr;
+      const nc = Number(square.dataset.col) + dc;
+      const neighbor = getSquareAt(nr, nc);
+      if (!neighbor || distances.has(neighbor)) return;
+      if (neighbor.classList.contains('square--barrier')) return;
+      const nextDistance = distance + 1;
+      distances.set(neighbor, nextDistance);
+      queue.push({ square: neighbor, distance: nextDistance });
+    });
+  }
+  return distances;
+}
+
 function areAdjacentSquares(fromSq, toSq) {
   if (!fromSq || !toSq) return false;
   const rowDiff = Math.abs(Number(toSq.dataset.row) - Number(fromSq.dataset.row));
@@ -436,6 +460,14 @@ function applyDamage(target, amount) {
 
 function resolveAttack(attacker, defender) {
   const attStats = getEffectiveStats(attacker);
+  const attackerSquare = getPieceSquare(attacker);
+  const defenderSquare = getPieceSquare(defender);
+  const maxRange = attStats.rango === 0 ? 1 : attStats.rango;
+  const reachableSquares = computeRangeDistances(attackerSquare, maxRange);
+  if (!reachableSquares.has(defenderSquare)) {
+    logCombat('Ataque bloqueado por una barrera.');
+    return;
+  }
   const dmgCalc = calculateDamage(attacker, defender);
   
   // Tirada
@@ -573,13 +605,13 @@ function placeBarrierBlock(square) {
   square.classList.add('square--barrier');
   square.appendChild(barrier);
   activeBarriers.push({ element: barrier, square, turns: BARRIER_DURATION });
+  playSound('barrier');
   return true;
 }
 
 function resolveBarrier(attacker, square) {
   if (!square) return;
   if (!placeBarrierBlock(square)) return;
-  playSound('barrier');
   pendingBarrierPlacement = { attacker, remaining: 3, lastSquare: square, created: 1 };
   updateBarrierPreview(square);
 }

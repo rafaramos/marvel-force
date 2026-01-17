@@ -1046,10 +1046,19 @@ function registerTurnSound({ damageDealt = 0, attackFailed = false, zeroDamageHi
       );
     }
 
-    function effectiveRangeFromStats(stats) {
-      const raw = Number(stats?.rango ?? 0);
-      return raw === 0 ? 1 : raw;
-    }
+function effectiveRangeFromStats(stats) {
+  const raw = Number(stats?.rango ?? 0);
+  return raw === 0 ? 1 : raw;
+}
+
+function rangeForAction(attacker, actionKey) {
+  const stats = pieceMap.get(attacker);
+  const baseRange = effectiveRangeFromStats(stats);
+  if (actionKey === 'control mental' || actionKey === 'telekinesis') {
+    return Math.max(baseRange, getMentalRangeFloor(attacker));
+  }
+  return baseRange;
+}
 
    function calculateDamage(attackerStats, defenderStats, distance, isCritical) {
       const isMelee = distance <= 1;
@@ -1522,6 +1531,19 @@ async function resolveAttack(attacker, defender, actionKey = 'attack', options =
 
   const attackerSquare = getPieceSquare(attacker);
   const targetSquare = getPieceSquare(defender);
+  const maxRange = rangeForAction(attacker, actionKey);
+  const reachableSquares = computeRangeDistances(attackerSquare, maxRange);
+  if (!reachableSquares.has(targetSquare)) {
+    const blockedMessage = 'La barrera bloquea el ataque.';
+    addHistoryEntry(attacker.dataset.team, blockedMessage, { attacker, defenders: [defender] });
+    pendingAttackInfo = null;
+    updateCombatInfo();
+    if (!skipTurnAdvance) {
+      await showTurnPopup(blockedMessage);
+      finishTurn(attacker, { showPopup: false });
+    }
+    return;
+  }
   const distance = attackDistance(attackerSquare, targetSquare);
 
   // 1. CÁLCULOS
@@ -1870,36 +1892,22 @@ function placeBarrierBlock(targetSquare) {
   barrier.className = 'barrier';
   targetSquare.classList.add('square--barrier');
   targetSquare.appendChild(barrier);
+  playEffectSound(barrierSound);
   return true;
 }
 
 async function finalizeBarrierPlacement(attacker, created) {
   const attackerStats = pieceMap.get(attacker);
   const message = `${attackerStats.name} crea una barrera (${created} bloques).`;
-
-  pendingAttackInfo = {
-    action: actionLabel('barrera'),
-    attackerName: attackerStats.name,
-    roll: '-',
-    targets: [
-      {
-        name: `Barrera (${created})`,
-        success: true,
-        damage: 0,
-        vida: '-',
-      },
-    ],
-  };
-
   addHistoryEntry(attacker.dataset.team, message, { attacker });
   pendingBarrierPlacement = null;
+  pendingAttackInfo = null;
   clearBarrierPreview();
   hideTooltip();
   clearRangeHighlights();
   clearTargetSelection(true);
   attackButton.classList.remove('button--pulse');
   updateCombatInfo();
-  await showTurnPopup(message);
   finishTurn(attacker, { showPopup: false });
 }
 
@@ -1911,7 +1919,6 @@ async function resolveBarrier(attacker, targetSquare) {
     return;
   }
 
-  playEffectSound(barrierSound);
   pendingBarrierPlacement = {
     attacker,
     remaining: BARRIER_SEGMENTS - 1,
