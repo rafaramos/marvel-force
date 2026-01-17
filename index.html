@@ -880,7 +880,7 @@ function registerTurnSound({ damageDealt = 0, attackFailed = false, zeroDamageHi
           if (visited.has(key) && visited.get(key) <= nextCost) continue;
           
           const square = getSquareAt(nr, nc);
-          if (isBarrierSquare(square)) continue;
+          if (isBarrierSquare(square) && !canIgnoreEnemies) continue;
           if (!square) continue;
           
           const occupant = square.querySelector('.piece');
@@ -900,7 +900,7 @@ function registerTurnSound({ damageDealt = 0, attackFailed = false, zeroDamageHi
         
         // Destino final debe estar vacío (salvo que sea aliado para curar, pero en movimiento básico no se permite solapamiento final)
         const occupied = square.querySelector('.piece');
-        if (!occupied && dist > 0) {
+        if (!occupied && dist > 0 && !isBarrierSquare(square)) {
           movementDistances.set(square, dist);
         }
       });

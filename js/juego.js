@@ -255,7 +255,7 @@ function highlightMovement(piece) {
         visited.set(neighbor, newDist);
         // Solo iluminar si está vacía para terminar el movimiento
         if ((!occupant && !isBarrier) || canFly) { 
-           // Nota: Si vuela, puede pasar, pero validamos que no termine encima de otro en el click
+           // Nota: Si vuela/fase, puede pasar, pero no termina encima de barreras o piezas.
            if (!occupant && !isBarrier) neighbor.classList.add('square--move');
            queue.push({ square: neighbor, distance: newDist });
         }
