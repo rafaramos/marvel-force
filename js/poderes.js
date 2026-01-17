@@ -125,7 +125,7 @@ const poderes = {
   hulk: {
     activos: [],
     pasivos: [
-      { nombre: 'Trepar/Saltar', descripcion: 'El personaje puede pasar por encima de obstáculos y enemigos para mover.' },
+      { nombre: 'Saltar/Trepar', descripcion: 'El personaje puede pasar por encima de obstáculos y enemigos para mover.' },
       { nombre: 'Superfuerza', descripcion: 'El personaje puede agarrar y usar objetos pesados y livianos. Los debe agarrar cuando esté adyacente (perderá el turno). Los podrá usar c/c o a/d. Los ataques a/d tienen un rango de 2 casillas para los objetos pesados y 3 para los livianos. Los objetos se podrán utilizar 2 veces c/c y una vez a/d.' },
       { nombre: 'Invulnerable', descripcion: 'La resistencia del personaje en los ataques sufridos c/c y a/d se aumenta en 2.' },
       { nombre: 'Regeneración', descripcion: 'El personaje recupera un 1 punto de vida tras finalizar su turno, siempre que esté por debajo de sus puntos de vida base.' }
@@ -161,7 +161,7 @@ const poderes = {
       { nombre: 'Mejora de Defensa', descripcion: 'El personaje elige como objetivo un compañero, o a sí mismo, y resultan afectados dicho compañero, y los compañeros de las casillas adyacentes. Todos ellos obtienen una mejora de Defensa de 1 durante 2 turnos. Lo máximo que se puede mejorar con respecto a la defensa base es 1, es decir, que si le aplican dos veces seguidas mejora de defensa, renovará los dos turnos con mejora, pero seguira siendo una mejora de 1.' }
     ],
     pasivos: [
-      { nombre: 'Trepar/Saltar', descripcion: 'El personaje puede pasar por encima de obstáculos y enemigos para mover.' },
+      { nombre: 'Saltar/Trepar', descripcion: 'El personaje puede pasar por encima de obstáculos y enemigos para mover.' },
       { nombre: 'Astucia', descripcion: 'Estos personajes obtienen un crítico no sólo sacando un 12 en una tirada de 2d6, también lo consiguen con 11.' },
       { nombre: 'Doble ataque c/c', descripcion: 'Estos personajes tienen dos ataques c/c contra el mismo objetivo. Realizan una tirada de ataque, resuelven el daño en caso de éxito; y vuelven otra vez a realizar na tirada de ataque y vuelven a resolver el daño en caso de éxito. Siempre sobre el mismo personaje, así que sólo ejecutan en segundo ataque si el defensor sigue vivo.' }
     ],
@@ -200,7 +200,7 @@ const poderes = {
   panteraNegra: {
     activos: [],
     pasivos: [
-      { nombre: 'Trepar/Saltar', descripcion: 'El personaje puede pasar por encima de obstáculos y enemigos para mover.' },
+      { nombre: 'Saltar/Trepar', descripcion: 'El personaje puede pasar por encima de obstáculos y enemigos para mover.' },
       { nombre: 'Astucia', descripcion: 'Estos personajes obtienen un crítico no sólo sacando un 12 en una tirada de 2d6, también lo consiguen con 11.' },
       { nombre: 'Cuchillas/Garras/Colmillos', descripcion: 'Si el personaje consigue una tirada de ataque exitosa, su daño base para este turno se actualizará con una nueva tirada de 1d6. El nuevo daño base no podrá ser menor que el daño base del personaje. Tras pasar el turno, el personaje recupera su daño base antiguo.' }
     ],
