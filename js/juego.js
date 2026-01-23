@@ -1127,6 +1127,7 @@ function highlightRange(piece) {
       piece.classList.add('piece--active');
       passButton.disabled = false;
       attackButton.disabled = false;
+      renderLifeCards();
       updateStatusBar(piece);
       updateCombatInfo();
       currentAction = 'attack';
