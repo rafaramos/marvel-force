@@ -224,46 +224,266 @@ function selectBestEnemyAction(piece, targetPiece) {
 }
 
 async function performEnemyTurn(piece) {
-    const target = findClosestEnemy(piece);
-
-    // Si no hay enemigos (muy raro), pasa turno con sonido
-    if (!target) {
+    const stats = pieceMap.get(piece);
+    if (!stats) {
         playEffectSound(passTurnSound);
         finishTurn(piece);
         return;
     }
 
-    const targetSquare = getPieceSquare(target);
-    const chosenAction = selectBestEnemyAction(piece, target);
-
-    if (chosenAction === 'move') {
-        const moveSquare = chooseEnemyMoveSquare(piece, targetSquare);
-        if (moveSquare) {
-            const distance = movementDistances.get(moveSquare) ?? 0;
-            clearHighlights();
-            highlightMovement(piece);
-            moveSquare.classList.add('square--target');
-            await sleep(ENEMY_ACTION_DELAY_MS);
-            await animatePieceToSquare(piece, moveSquare);
-            spendMovement(piece, distance);
-            clearHighlights();
-            highlightMovement(piece);
-            highlightRange(piece);
-            updateStatusBar(piece);
-        }
-    }
-
-    await sleep(ENEMY_ACTION_DELAY_MS);
-    const refreshedTarget = findClosestEnemy(piece) || target;
-    const action = selectBestEnemyAction(piece, refreshedTarget);
-
-    // Si decide moverse otra vez o no atacar, pasa turno con sonido
-    if (action === 'move') {
-        playEffectSound(passTurnSound); // <--- AÑADIDO SONIDO AQUÍ
+    const role = getAIRole(stats);
+    if (role !== 'francotirador') {
+        playEffectSound(passTurnSound);
         finishTurn(piece);
         return;
     }
 
-    selectedTarget = refreshedTarget;
-    handleActionClick(action);
+    if (shouldTriggerSniperPulse(piece, stats)) {
+        handleActionClick('pulso');
+        return;
+    }
+
+    const initialTarget = chooseSniperTarget(piece, stats);
+    if (initialTarget && canShootTarget(piece, initialTarget)) {
+        const action = chooseSniperAction(piece, stats, initialTarget);
+        selectedTarget = initialTarget;
+        handleActionClick(action);
+        return;
+    }
+
+    const moveToShoot = findSniperMoveSquare(piece, stats);
+    if (moveToShoot) {
+        const { square, target } = moveToShoot;
+        const distance = movementDistances.get(square) ?? 0;
+        clearHighlights();
+        highlightMovement(piece);
+        square.classList.add('square--target');
+        await sleep(ENEMY_ACTION_DELAY_MS);
+        await animatePieceToSquare(piece, square);
+        spendMovement(piece, distance);
+        clearHighlights();
+        highlightMovement(piece);
+        highlightRange(piece);
+        updateStatusBar(piece);
+
+        await sleep(ENEMY_ACTION_DELAY_MS);
+        const refreshedTarget = chooseSniperTarget(piece, stats);
+        if (refreshedTarget && canShootTarget(piece, refreshedTarget)) {
+            const action = chooseSniperAction(piece, stats, refreshedTarget);
+            selectedTarget = refreshedTarget;
+            handleActionClick(action);
+            return;
+        }
+    }
+
+    const chaseSquare = chooseSniperChaseSquare(piece, stats);
+    if (chaseSquare) {
+        const distance = movementDistances.get(chaseSquare) ?? 0;
+        clearHighlights();
+        highlightMovement(piece);
+        chaseSquare.classList.add('square--target');
+        await sleep(ENEMY_ACTION_DELAY_MS);
+        await animatePieceToSquare(piece, chaseSquare);
+        spendMovement(piece, distance);
+        clearHighlights();
+        highlightMovement(piece);
+        highlightRange(piece);
+        updateStatusBar(piece);
+    }
+
+    playEffectSound(passTurnSound);
+    finishTurn(piece);
+}
+
+function shouldTriggerSniperPulse(piece, stats) {
+    if (!hasPower(stats, 'Pulso')) return false;
+    const origin = getPieceSquare(piece);
+    if (!origin) return false;
+    let adjacentEnemies = 0;
+    const deltas = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+    deltas.forEach(([dr, dc]) => {
+        const square = getSquareAt(
+            Number(origin.dataset.row) + dr,
+            Number(origin.dataset.col) + dc
+        );
+        const occupant = square?.querySelector?.('.piece');
+        if (!occupant) return;
+        if (occupant.dataset.team === piece.dataset.team) return;
+        const occStats = pieceMap.get(occupant);
+        if (occStats?.mindControlled && occStats.originalTeam === piece.dataset.team) return;
+        adjacentEnemies += 1;
+    });
+    return adjacentEnemies >= 2;
+}
+
+function isVisibleTarget(attacker, target, originSquare = null) {
+    const attackerSquare = originSquare ?? getPieceSquare(attacker);
+    const targetSquare = getPieceSquare(target);
+    if (!attackerSquare || !targetSquare) return false;
+    if (target.dataset.eliminated === 'true') return false;
+    if (target.dataset.team === attacker.dataset.team) return false;
+    const targetStats = pieceMap.get(target);
+    if (targetStats?.mindControlled && targetStats.originalTeam === attacker.dataset.team) return false;
+    const distance = attackDistance(attackerSquare, targetSquare);
+    if (distance > 1 && !hasLineOfSight(attackerSquare, targetSquare)) return false;
+    if (distance > 3 && hasPassive(targetStats, 'sigilo')) return false;
+    return true;
+}
+
+function canShootTarget(attacker, target, originSquare = null) {
+    const attackerSquare = originSquare ?? getPieceSquare(attacker);
+    const targetSquare = getPieceSquare(target);
+    if (!attackerSquare || !targetSquare) return false;
+    if (!isVisibleTarget(attacker, target, attackerSquare)) return false;
+    const distance = attackDistance(attackerSquare, targetSquare);
+    return distance <= rangeForPiece(attacker);
+}
+
+function hasExplosionOpportunity(attacker, target) {
+    const targetSquare = getPieceSquare(target);
+    if (!targetSquare) return false;
+    const deltas = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+    return deltas.some(([dr, dc]) => {
+        const square = getSquareAt(
+            Number(targetSquare.dataset.row) + dr,
+            Number(targetSquare.dataset.col) + dc
+        );
+        const occupant = square?.querySelector?.('.piece');
+        if (!occupant) return false;
+        if (occupant.dataset.team !== target.dataset.team) return false;
+        if (occupant.dataset.eliminated === 'true') return false;
+        return true;
+    });
+}
+
+function chooseSniperAction(piece, stats, target) {
+    if (hasPower(stats, 'Explosión') && hasExplosionOpportunity(piece, target)) {
+        return 'explosion';
+    }
+    return 'attack';
+}
+
+function chooseSniperTarget(piece, stats, originSquare = null) {
+    const attackerSquare = originSquare ?? getPieceSquare(piece);
+    if (!attackerSquare) return null;
+
+    const visibleEnemies = pieces
+        .map((p) => p.element)
+        .filter((candidate) => isVisibleTarget(piece, candidate, attackerSquare));
+
+    if (visibleEnemies.length === 0) return null;
+
+    const hasExplosion = hasPower(stats, 'Explosión');
+
+    const sorted = visibleEnemies.slice().sort((a, b) => {
+        const aExplosion = hasExplosion && hasExplosionOpportunity(piece, a);
+        const bExplosion = hasExplosion && hasExplosionOpportunity(piece, b);
+        if (aExplosion !== bExplosion) return aExplosion ? -1 : 1;
+
+        const aVida = pieceMap.get(a)?.currentVida ?? 0;
+        const bVida = pieceMap.get(b)?.currentVida ?? 0;
+        if (aVida !== bVida) return aVida - bVida;
+
+        const aDist = attackDistance(attackerSquare, getPieceSquare(a));
+        const bDist = attackDistance(attackerSquare, getPieceSquare(b));
+        return aDist - bDist;
+    });
+
+    return sorted[0];
+}
+
+function findSniperMoveSquare(piece, stats) {
+    computeReachableSquares(piece);
+    if (movementDistances.size === 0) return null;
+
+    let best = null;
+    movementDistances.forEach((moveCost, square) => {
+        const target = chooseSniperTarget(piece, stats, square);
+        if (!target) return;
+        if (!canShootTarget(piece, target, square)) return;
+
+        const candidate = {
+            square,
+            target,
+            moveCost,
+            explosion: hasPower(stats, 'Explosión') && hasExplosionOpportunity(piece, target),
+            vida: pieceMap.get(target)?.currentVida ?? 0,
+            distance: attackDistance(square, getPieceSquare(target)),
+        };
+
+        if (!best) {
+            best = candidate;
+            return;
+        }
+
+        if (candidate.moveCost !== best.moveCost) {
+            if (candidate.moveCost < best.moveCost) best = candidate;
+            return;
+        }
+
+        if (candidate.explosion !== best.explosion) {
+            if (candidate.explosion) best = candidate;
+            return;
+        }
+
+        if (candidate.vida !== best.vida) {
+            if (candidate.vida < best.vida) best = candidate;
+            return;
+        }
+
+        if (candidate.distance < best.distance) {
+            best = candidate;
+        }
+    });
+
+    if (!best) return null;
+    return { square: best.square, target: best.target };
+}
+
+function chooseSniperChaseSquare(piece, stats) {
+    const target = findClosestEnemy(piece);
+    if (!target) return null;
+    const targetSquare = getPieceSquare(target);
+    if (!targetSquare) return null;
+
+    computeReachableSquares(piece);
+    if (movementDistances.size === 0) return null;
+
+    const maxSteps = Math.min(4, remainingMovement(piece));
+    let best = null;
+    let bestObject = null;
+    const hasSuperStrength = hasPower(stats, 'Superfuerza');
+
+    movementDistances.forEach((moveCost, square) => {
+        if (moveCost > maxSteps) return;
+        const distance = attackDistance(square, targetSquare);
+        const occupant = square.querySelector('.object-token');
+        const candidate = { square, moveCost, distance };
+
+        if (hasSuperStrength && occupant) {
+            if (!bestObject) {
+                bestObject = candidate;
+                return;
+            }
+            if (candidate.distance !== bestObject.distance) {
+                if (candidate.distance < bestObject.distance) bestObject = candidate;
+                return;
+            }
+            if (candidate.moveCost < bestObject.moveCost) bestObject = candidate;
+            return;
+        }
+
+        if (!best) {
+            best = candidate;
+            return;
+        }
+
+        if (candidate.distance !== best.distance) {
+            if (candidate.distance < best.distance) best = candidate;
+            return;
+        }
+        if (candidate.moveCost < best.moveCost) best = candidate;
+    });
+
+    return (bestObject || best)?.square ?? null;
 }
