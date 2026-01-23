@@ -107,24 +107,6 @@ function getAIRole(stats) {
 }
 
 
-
-
-Es una decisión sabia. A veces, cuando el código se complica tanto y empiezan a aparecer comportamientos erráticos (fuego amigo, bucles), lo mejor es limpiar el tablero, asegurar lo que funciona y dejar "aparcado" lo que falla hasta tener la mente fresca.
-
-Aquí tienes el archivo ia.js completamente saneado.
-
-Cambios realizados:
-
-Eliminado getSupportAction (Bloque A) y resolvePower (Bloque D). Ya no existen.
-
-Supports y Comodines: Ahora la IA detecta su rol y simplemente dice "Paso turno", ejecutando finishTurn inmediatamente. No hacen nada.
-
-Francotiradores y Fajadores: Mantienen intacta su lógica agresiva (Pulse, Explosión, Move & Attack, Persecución), que era la que funcionaba bien.
-
-Copia y pega esto para sustituir tu código actual:
-
-JavaScript
-
 /* ==========================================================================
    1. LÓGICA DE DRAFT
    ========================================================================== */
