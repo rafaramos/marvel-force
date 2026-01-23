@@ -188,6 +188,10 @@ let activeBarriers = []; // Nueva lista para rastrear barreras activas
     piece.className = `piece ${className}`;
     piece.dataset.team = team;
     piece.dataset.key = key;
+    if (typeof getAIRole === 'function') {
+      const role = getAIRole(stats);
+      if (role) piece.classList.add(`piece--role-${role}`);
+    }
     piece.setAttribute('role', 'img');
     piece.setAttribute('aria-label', stats?.name || key);
     piece.innerHTML = `
