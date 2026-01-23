@@ -74,19 +74,24 @@ function performAIPick() {
 }
 
 /* ==========================================================================
-   2. LÓGICA DE CEREBRO (4 ROLES)
+   2. LÓGICA DE CEREBRO (4 ROLES: FRANCOTIRADOR, FAJADOR, SUPPORT, COMODÍN)
    ========================================================================== */
 
 function getAIRole(stats) {
+
     const rango = stats.rango || 1; 
     const vida = stats.vida || 1; 
     const daño = stats.dano || 0; 
 
-    const sniperPowers = ['Experto a/d', 'Pulso', 'Explosión'];
+    const sniperPowers = ['Experto a/d', 'Pulso', 'Explosión'
+    ];
+
     const hasSniper = sniperPowers.some(p => hasPower(stats, p));
     
     const supportPowers = ['Curar','Mejora de Ataque','Mejora de Defensa','Mejora de Crítico', 'Mejora de Agilidad',
-                           'Control Mental','Telekinesis'];
+                           'Control Mental','Telekinesis',
+    ];
+    
     const hasSupport = supportPowers.some(p => hasPower(stats, p));
 
     if (daño <= 1 && !hasSniper) return 'support';
