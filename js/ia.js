@@ -304,24 +304,39 @@ async function performWildcardTurn(piece, stats) {
         return;
     }
 
-    const controlMentalTarget = findEnemyForControl(piece, stats, 'control mental');
-    if (controlMentalTarget) {
-        await performSupportActionFlow(piece, {
-            actionKey: 'control mental',
-            target: controlMentalTarget,
-            targetType: 'enemy',
-        });
+    const enemiesInRange = Boolean(findEnemyInRange(piece));
+    const damage = stats.dano || 0;
+
+    if (damage >= 3 && enemiesInRange) {
+        await performSniperFlow(piece, stats);
         return;
     }
 
-    const incapacitateTarget = findEnemyForControl(piece, stats, 'incapacitar');
-    if (incapacitateTarget) {
-        await performSupportActionFlow(piece, {
-            actionKey: 'incapacitar',
-            target: incapacitateTarget,
-            targetType: 'enemy',
-        });
-        return;
+    if (enemiesInRange) {
+        const controlMentalTarget = findEnemyForControl(piece, stats, 'control mental');
+        if (controlMentalTarget) {
+            await performSupportActionFlow(piece, {
+                actionKey: 'control mental',
+                target: controlMentalTarget,
+                targetType: 'enemy',
+            });
+            return;
+        }
+
+        if (damage >= 3) {
+            await performSniperFlow(piece, stats);
+            return;
+        }
+
+        const incapacitateTarget = findEnemyForControl(piece, stats, 'incapacitar');
+        if (incapacitateTarget) {
+            await performSupportActionFlow(piece, {
+                actionKey: 'incapacitar',
+                target: incapacitateTarget,
+                targetType: 'enemy',
+            });
+            return;
+        }
     }
 
     if (hasPower(stats, 'Curar')) {
@@ -349,6 +364,16 @@ async function performWildcardTurn(piece, stats) {
     const buffDecision = chooseSupportBuffTarget(stats, getAllies(piece));
     if (buffDecision) {
         await performSupportActionFlow(piece, buffDecision);
+        return;
+    }
+
+    const selfBuffAction = chooseSelfBuffAction(stats);
+    if (selfBuffAction) {
+        await performSupportActionFlow(piece, {
+            actionKey: selfBuffAction,
+            target: piece,
+            targetType: 'ally',
+        });
         return;
     }
 
@@ -401,6 +426,7 @@ async function performSupportActionFlow(piece, decision) {
     }
 
     if (canUseSupportAction(piece, target, actionKey, targetType)) {
+        await sleep(ENEMY_ACTION_DELAY_MS);
         await executeSupportAction(piece, target, actionKey);
         return;
     }
@@ -421,6 +447,7 @@ async function performSupportActionFlow(piece, decision) {
 
         await sleep(ENEMY_ACTION_DELAY_MS);
         if (canUseSupportAction(piece, target, actionKey, targetType)) {
+            await sleep(ENEMY_ACTION_DELAY_MS);
             await executeSupportAction(piece, target, actionKey);
             return;
         }
