@@ -232,6 +232,10 @@ async function performEnemyTurn(piece) {
     }
 
     const role = getAIRole(stats);
+    if (role === 'support') {
+        await performSupportTurn(piece, stats);
+        return;
+    }
     if (role !== 'francotirador' && role !== 'fajador') {
         playEffectSound(passTurnSound);
         finishTurn(piece);
@@ -293,6 +297,238 @@ async function performEnemyTurn(piece) {
 
     playEffectSound(passTurnSound);
     finishTurn(piece);
+}
+
+async function performSupportTurn(piece, stats) {
+    const decision = chooseSupportAction(piece, stats);
+    if (!decision) {
+        playEffectSound(passTurnSound);
+        finishTurn(piece);
+        return;
+    }
+
+    const { actionKey, target, targetType } = decision;
+    const targetSquare = getPieceSquare(target);
+    if (!targetSquare) {
+        playEffectSound(passTurnSound);
+        finishTurn(piece);
+        return;
+    }
+
+    if (canUseSupportAction(piece, target, actionKey, targetType)) {
+        await executeSupportAction(piece, target, actionKey);
+        return;
+    }
+
+    const moveSquare = findSupportMoveSquare(piece, target, actionKey, targetType);
+    if (moveSquare) {
+        const distance = movementDistances.get(moveSquare) ?? 0;
+        clearHighlights();
+        highlightMovement(piece);
+        moveSquare.classList.add('square--target');
+        await sleep(ENEMY_ACTION_DELAY_MS);
+        await animatePieceToSquare(piece, moveSquare);
+        spendMovement(piece, distance);
+        clearHighlights();
+        highlightMovement(piece);
+        highlightRange(piece);
+        updateStatusBar(piece);
+
+        await sleep(ENEMY_ACTION_DELAY_MS);
+        if (canUseSupportAction(piece, target, actionKey, targetType)) {
+            await executeSupportAction(piece, target, actionKey);
+            return;
+        }
+    }
+
+    const chaseSquare = chooseSupportChaseSquare(piece, target, targetType);
+    if (chaseSquare) {
+        const distance = movementDistances.get(chaseSquare) ?? 0;
+        clearHighlights();
+        highlightMovement(piece);
+        chaseSquare.classList.add('square--target');
+        await sleep(ENEMY_ACTION_DELAY_MS);
+        await animatePieceToSquare(piece, chaseSquare);
+        spendMovement(piece, distance);
+        clearHighlights();
+        highlightMovement(piece);
+        highlightRange(piece);
+        updateStatusBar(piece);
+    }
+
+    playEffectSound(passTurnSound);
+    finishTurn(piece);
+}
+
+function chooseSupportAction(piece, stats) {
+    const team = piece.dataset.team;
+    const allies = pieces
+        .map((p) => p.element)
+        .filter((candidate) => candidate && candidate.dataset.team === team && candidate.dataset.eliminated !== 'true');
+
+    if (hasPower(stats, 'Curar')) {
+        const damagedAllies = allies.filter((ally) => {
+            const allyStats = pieceMap.get(ally);
+            return allyStats && allyStats.currentVida < allyStats.maxVida;
+        });
+        if (damagedAllies.length > 0) {
+            damagedAllies.sort((a, b) => {
+                const aVida = pieceMap.get(a)?.currentVida ?? 0;
+                const bVida = pieceMap.get(b)?.currentVida ?? 0;
+                return aVida - bVida;
+            });
+            return { actionKey: 'curar', target: damagedAllies[0], targetType: 'ally' };
+        }
+    }
+
+    const buffDecision = chooseSupportBuffTarget(stats, allies);
+    if (buffDecision) {
+        return buffDecision;
+    }
+
+    const enemies = getVisibleEnemies(piece, { requireVisibility: false });
+    if (enemies.length === 0) return null;
+
+    enemies.sort((a, b) => {
+        const scoreA = enemyDangerScore(pieceMap.get(a));
+        const scoreB = enemyDangerScore(pieceMap.get(b));
+        return scoreB - scoreA;
+    });
+
+    const target = enemies[0];
+    if (hasPower(stats, 'Incapacitar')) {
+        const targetStats = pieceMap.get(target);
+        if (targetStats?.incapacitatedTurns === 0) {
+            return { actionKey: 'incapacitar', target, targetType: 'enemy' };
+        }
+    }
+    if (hasPower(stats, 'Control Mental')) {
+        const targetStats = pieceMap.get(target);
+        if (!targetStats?.mindControlled) {
+            return { actionKey: 'control mental', target, targetType: 'enemy' };
+        }
+    }
+
+    return { actionKey: 'attack', target, targetType: 'enemy' };
+}
+
+function chooseSupportBuffTarget(stats, allies) {
+    const buffs = [
+        { key: 'mejora de ataque', stat: 'ataque' },
+        { key: 'mejora de defensa', stat: 'defensa' },
+        { key: 'mejora de agilidad', stat: 'agilidad' },
+        { key: 'mejora de critico', stat: 'critico' },
+    ];
+
+    let best = null;
+    buffs.forEach(({ key, stat }) => {
+        if (!hasPower(stats, key)) return;
+        allies.forEach((ally) => {
+            const allyStats = pieceMap.get(ally);
+            if (!allyStats) return;
+            const alreadyBuffed = stat === 'critico'
+                ? Boolean(allyStats.critBuff)
+                : Boolean(allyStats.statBuffs?.[stat]);
+            if (alreadyBuffed) return;
+            const strength = allyStrengthScore(allyStats);
+            if (!best || strength > best.strength) {
+                best = { actionKey: key, target: ally, targetType: 'ally', strength };
+            }
+        });
+    });
+
+    if (!best) return null;
+    return { actionKey: best.actionKey, target: best.target, targetType: best.targetType };
+}
+
+function allyStrengthScore(stats) {
+    if (!stats) return 0;
+    return (stats.dano || 0) * 4 + (stats.ataque || 0) * 3 + (stats.vida || 0) * 2 + (stats.defensa || 0) * 2 + (stats.agilidad || 0);
+}
+
+function enemyDangerScore(stats) {
+    if (!stats) return 0;
+    return (stats.ataque || 0) * 2 + (stats.dano || 0) * 3 + (stats.vida || 0) + (stats.rango || 0);
+}
+
+function getVisibleEnemies(piece, { requireVisibility = true } = {}) {
+    const seekerTeam = piece.dataset.team;
+    return pieces
+        .map((p) => p.element)
+        .filter((candidate) => {
+            if (!candidate || candidate.dataset.team === seekerTeam || candidate.dataset.eliminated === 'true') return false;
+            const stats = pieceMap.get(candidate);
+            if (stats?.mindControlled && stats.originalTeam === seekerTeam) return false;
+            if (!requireVisibility) return true;
+            return isVisibleTarget(piece, candidate);
+        });
+}
+
+function canUseSupportAction(attacker, target, actionKey, targetType) {
+    if (targetType === 'ally' && attacker === target) {
+        return true;
+    }
+    if (targetType === 'ally') {
+        return canUseSupportActionFromSquare(attacker, target, actionKey, getPieceSquare(attacker), false);
+    }
+    return canUseSupportActionFromSquare(attacker, target, actionKey, getPieceSquare(attacker), true);
+}
+
+function canUseSupportActionFromSquare(attacker, target, actionKey, originSquare, requireVisibility) {
+    const targetSquare = getPieceSquare(target);
+    if (!originSquare || !targetSquare) return false;
+    const range = actionKey === 'attack' ? rangeForPiece(attacker) : rangeForAction(attacker, actionKey);
+    const distance = attackDistance(originSquare, targetSquare);
+    if (distance > range || distance === 0) return false;
+    if (requireVisibility && !isVisibleTarget(attacker, target, originSquare)) return false;
+    return true;
+}
+
+function findSupportMoveSquare(attacker, target, actionKey, targetType) {
+    computeReachableSquares(attacker);
+    if (movementDistances.size === 0) return null;
+    const requireVisibility = targetType === 'enemy';
+    let best = null;
+    movementDistances.forEach((moveCost, square) => {
+        if (!canUseSupportActionFromSquare(attacker, target, actionKey, square, requireVisibility)) return;
+        if (!best || moveCost < best.moveCost) {
+            best = { square, moveCost };
+        }
+    });
+    return best?.square ?? null;
+}
+
+function chooseSupportChaseSquare(attacker, target, targetType) {
+    const targetSquare = getPieceSquare(target);
+    if (!targetSquare) return null;
+    computeReachableSquares(attacker);
+    if (movementDistances.size === 0) return null;
+
+    const maxSteps = targetType === 'enemy'
+        ? Math.min(4, remainingMovement(attacker))
+        : remainingMovement(attacker);
+
+    let best = null;
+    movementDistances.forEach((moveCost, square) => {
+        if (moveCost > maxSteps) return;
+        const distance = attackDistance(square, targetSquare);
+        if (!best || distance < best.distance || (distance === best.distance && moveCost > best.moveCost)) {
+            best = { square, distance, moveCost };
+        }
+    });
+
+    return best?.square ?? null;
+}
+
+async function executeSupportAction(attacker, target, actionKey) {
+    if (actionKey === 'attack') {
+        selectedTarget = target;
+        handleActionClick('attack');
+        return;
+    }
+
+    selectedTarget = target;
+    handleActionClick(actionKey);
 }
 
 function shouldTriggerSniperPulse(piece, stats) {
