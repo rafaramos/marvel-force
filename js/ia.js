@@ -251,7 +251,7 @@ async function performEnemyTurn(piece) {
 
 async function performSniperFlow(piece, stats) {
     if (shouldTriggerSniperPulse(piece, stats)) {
-        handleActionClick('pulso');
+        handleActionClick('pulso', { bypassVisuals: true });
         return;
     }
 
@@ -259,7 +259,7 @@ async function performSniperFlow(piece, stats) {
     if (initialTarget && canShootTarget(piece, initialTarget)) {
         const action = chooseSniperAction(piece, stats, initialTarget);
         selectedTarget = initialTarget;
-        handleActionClick(action);
+        handleActionClick(action, { bypassVisuals: true });
         return;
     }
 
@@ -283,7 +283,7 @@ async function performSniperFlow(piece, stats) {
         if (refreshedTarget && canShootTarget(piece, refreshedTarget)) {
             const action = chooseSniperAction(piece, stats, refreshedTarget);
             selectedTarget = refreshedTarget;
-            handleActionClick(action);
+            handleActionClick(action, { bypassVisuals: true });
             return;
         }
     }
@@ -308,7 +308,7 @@ async function performSniperFlow(piece, stats) {
 }
 async function performWildcardTurn(piece, stats) {
     if (hasPower(stats, 'Pulso') && countAdjacentEnemies(piece) > 2) {
-        handleActionClick('pulso');
+        handleActionClick('pulso', { bypassVisuals: true });
         return;
     }
 
