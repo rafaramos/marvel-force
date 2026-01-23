@@ -1691,6 +1691,7 @@ async function resolveAttack(attacker, defender, actionKey = 'attack', options =
       defenderStats.team = newTeam;
       defender.dataset.team = newTeam;
       defenderStats.mindControlled = true;
+      if (isEnemy(attacker, defender)) addPoints(attacker, 10);
       playEffectSound(controlMentalSound);
     }
     else if (damageApplied > 0) {
@@ -2007,6 +2008,7 @@ function placeBarrierBlock(targetSquare) {
 }
 
 async function finalizeBarrierPlacement(attacker, created) {
+  addPoints(attacker, 10);
   const attackerStats = pieceMap.get(attacker);
   const message = `${attackerStats.name} crea una barrera (${created} bloques).`;
   addHistoryEntry(attacker.dataset.team, message, { attacker });
@@ -2018,6 +2020,7 @@ async function finalizeBarrierPlacement(attacker, created) {
   clearTargetSelection(true);
   attackButton.classList.remove('button--pulse');
   updateCombatInfo();
+  renderLifeCards();
   finishTurn(attacker, { showPopup: false });
 }
 
@@ -2426,9 +2429,7 @@ async function resolveHeal(attacker, target) {
           
           playEffectSound(telekinesisSound);
           
-          if (isEnemy(attacker, victim)) {
-              addPoints(attacker, 20);
-          }
+          addPoints(attacker, 10);
 
           const msg = `${attackerStats.name} usa Telekinesis para mover a ${victimStats.name}.`;
           addHistoryEntry(attacker.dataset.team, msg, { attacker, defenders: [victim] });
