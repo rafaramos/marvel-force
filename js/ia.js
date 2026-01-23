@@ -315,13 +315,18 @@ async function performWildcardTurn(piece, stats) {
     if (hasPower(stats, 'Curar')) {
         const criticalAlly = findCriticalAlly(piece);
         if (criticalAlly) {
-            await executeSupportAction(piece, criticalAlly, 'curar');
+            await performSupportActionFlow(piece, {
+                actionKey: 'curar',
+                target: criticalAlly,
+                targetType: 'ally',
+            });
             return;
         }
     }
 
     const preferAttackOverBuffs = (stats.dano || 0) > 3;
-    const controlOrBuff = chooseSupportControlOrBuff(piece, stats, { preferAttackOverBuffs });
+    const allowBuffs = !preferAttackOverBuffs || !hasSniperAttackOpportunity(piece, stats);
+    const controlOrBuff = chooseSupportControlOrBuff(piece, stats, { allowBuffs });
     if (controlOrBuff) {
         await performSupportActionFlow(piece, controlOrBuff);
         return;
@@ -447,7 +452,7 @@ function chooseSupportAction(piece, stats) {
     return { actionKey: 'attack', target, targetType: 'enemy' };
 }
 
-function chooseSupportControlOrBuff(piece, stats, { preferAttackOverBuffs = false } = {}) {
+function chooseSupportControlOrBuff(piece, stats, { allowBuffs = true } = {}) {
     const team = piece.dataset.team;
     const allies = pieces
         .map((p) => p.element)
@@ -476,7 +481,7 @@ function chooseSupportControlOrBuff(piece, stats, { preferAttackOverBuffs = fals
         }
     }
 
-    if (preferAttackOverBuffs) {
+    if (!allowBuffs) {
         return null;
     }
 
@@ -486,6 +491,12 @@ function chooseSupportControlOrBuff(piece, stats, { preferAttackOverBuffs = fals
     }
 
     return null;
+}
+
+function hasSniperAttackOpportunity(piece, stats) {
+    const target = chooseSniperTarget(piece, stats);
+    if (target && canShootTarget(piece, target)) return true;
+    return Boolean(findSniperMoveSquare(piece, stats));
 }
 
 function chooseSupportBuffTarget(stats, allies) {

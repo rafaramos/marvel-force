@@ -2179,7 +2179,13 @@ async function resolveBarrier(attacker, targetSquare) {
       });
 
       const validAffected = affected.filter(Boolean);
-      const recipientNames = validAffected.map(({ stats }) => stats.name).join(', ');
+      const details = validAffected.map(({ stats }) => {
+        const statBuff = stats.statBuffs?.[stat];
+        const isCrit = stat === 'critico';
+        if (isCrit) return stats.name;
+        if (statBuff) return `${stats.name} (${stats[stat]})`;
+        return stats.name;
+      });
 
       // --- 2. PUNTOS (+10 por personaje afectado) ---
       if (validAffected.length > 0) {
@@ -2192,8 +2198,10 @@ async function resolveBarrier(attacker, targetSquare) {
       }
 
       // --- 3. MENSAJES E HISTORIAL ---
+      const formatter = new Intl.ListFormat('es', { style: 'long', type: 'conjunction' });
+      const lista = details.length > 0 ? formatter.format(details) : '';
       const message = validAffected.length
-        ? `${attackerStats.name} aplica ${label} sobre: ${recipientNames}.`
+        ? `${attackerStats.name} aplica ${label} sobre: ${lista}.`
         : `${attackerStats.name} intenta aplicar ${label}, pero nadie se beneficia.`;
 
       addHistoryEntry(attacker.dataset.team, message, {
