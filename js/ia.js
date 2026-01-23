@@ -305,9 +305,21 @@ async function performWildcardTurn(piece, stats) {
     }
 
     const enemiesInRange = Boolean(findEnemyInRange(piece));
+    const attackOpportunity = hasAttackOpportunity(piece, stats);
     const damage = stats.dano || 0;
 
-    if (damage >= 3 && enemiesInRange) {
+    if (damage >= 3 && attackOpportunity) {
+        await performSniperFlow(piece, stats);
+        return;
+    }
+
+    const weakTargetInRange = findWeakEnemyInRange(piece);
+    if (weakTargetInRange && attackOpportunity) {
+        await performSniperFlow(piece, stats);
+        return;
+    }
+
+    if (damage >= 2 && enemiesInRange) {
         await performSniperFlow(piece, stats);
         return;
     }
@@ -320,11 +332,6 @@ async function performWildcardTurn(piece, stats) {
                 target: controlMentalTarget,
                 targetType: 'enemy',
             });
-            return;
-        }
-
-        if (damage >= 3) {
-            await performSniperFlow(piece, stats);
             return;
         }
 
@@ -639,6 +646,26 @@ function findEnemyInRange(piece) {
         if (!origin || !targetSquare) return false;
         return isWithinAttackRange(origin, targetSquare, rangeForPiece(piece));
     });
+}
+
+function findWeakEnemyInRange(piece) {
+    const enemies = getVisibleEnemies(piece, { requireVisibility: true });
+    const origin = getPieceSquare(piece);
+    if (!origin) return null;
+    return enemies.find((enemy) => {
+        const targetSquare = getPieceSquare(enemy);
+        if (!targetSquare) return false;
+        if (!isWithinAttackRange(origin, targetSquare, rangeForPiece(piece))) return false;
+        return isEnemyWeak(pieceMap.get(enemy));
+    });
+}
+
+function isEnemyWeak(stats) {
+    if (!stats) return false;
+    const maxVida = stats.maxVida ?? stats.vida ?? 0;
+    const currentVida = stats.currentVida ?? maxVida;
+    if (maxVida <= 0) return false;
+    return currentVida <= Math.max(2, Math.ceil(maxVida * 0.4));
 }
 
 function findEnemyForControl(piece, stats, actionKey) {
