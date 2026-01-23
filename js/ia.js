@@ -224,29 +224,8 @@ function selectBestEnemyAction(piece, targetPiece) {
 }
 
 async function performEnemyTurn(piece) {
-    const stats = pieceMap.get(piece);
-    if (!stats) {
-        playEffectSound(passTurnSound);
-        finishTurn(piece);
-        return;
-    }
-
-    const role = getAIRole(stats);
-    if (role === 'support') {
-        await performSupportTurn(piece, stats);
-        return;
-    }
-    if (role === 'comodin') {
-        await performWildcardTurn(piece, stats);
-        return;
-    }
-    if (role !== 'francotirador' && role !== 'fajador') {
-        playEffectSound(passTurnSound);
-        finishTurn(piece);
-        return;
-    }
-
-    await performSniperFlow(piece, stats);
+    playEffectSound(passTurnSound);
+    finishTurn(piece);
 }
 
 async function performSniperFlow(piece, stats) {
