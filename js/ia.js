@@ -232,7 +232,7 @@ async function performEnemyTurn(piece) {
     }
 
     const role = getAIRole(stats);
-    if (role !== 'francotirador') {
+    if (role !== 'francotirador' && role !== 'fajador') {
         playEffectSound(passTurnSound);
         finishTurn(piece);
         return;
