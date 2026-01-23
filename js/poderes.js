@@ -200,6 +200,7 @@ const poderes = {
   panteraNegra: {
     activos: [],
     pasivos: [
+      { nombre: 'Sigilo', descripcion: 'El personaje tiene +2 a la defensa si está detrás de un objeto o detrás de un arbusto, en una tirada de ataque contra él.' },
       { nombre: 'Saltar/Trepar', descripcion: 'El personaje puede pasar por encima de obstáculos y enemigos para mover.' },
       { nombre: 'Astucia', descripcion: 'Estos personajes obtienen un crítico no sólo sacando un 12 en una tirada de 2d6, también lo consiguen con 11.' },
       { nombre: 'Cuchillas/Garras/Colmillos', descripcion: 'Si el personaje consigue una tirada de ataque exitosa, su daño base para este turno se actualizará con una nueva tirada de 1d6. El nuevo daño base no podrá ser menor que el daño base del personaje. Tras pasar el turno, el personaje recupera su daño base antiguo.' }

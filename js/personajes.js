@@ -331,7 +331,7 @@ const personajes = {
     ataque: 12,
     defensa: 18,
     dano: 2,
-    rango: 4,
+    rango: 3,
     vida: 9,
     agilidad: 50,
     imagen: 'imagenes/spiderMan.webp',
@@ -407,7 +407,7 @@ const personajes = {
     imagen: 'imagenes/panteraNegra.webp',
     animacion: 'animaciones/panteraNegra.webp',
     poderes: poderesFuente.panteraNegra,
-    habilidades: { activas: [], pasivas: ['Saltar/Trepar','Astucia','Cuchillas/Garras/Colmillos'] }
+    habilidades: { activas: [], pasivas: ['Saltar/Trepar','Astucia','Cuchillas/Garras/Colmillos','Sigilo'] }
   },
   ventisca: {
     nombre: 'Ventisca',
