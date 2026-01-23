@@ -236,12 +236,20 @@ async function performEnemyTurn(piece) {
         await performSupportTurn(piece, stats);
         return;
     }
+    if (role === 'comodin') {
+        await performWildcardTurn(piece, stats);
+        return;
+    }
     if (role !== 'francotirador' && role !== 'fajador') {
         playEffectSound(passTurnSound);
         finishTurn(piece);
         return;
     }
 
+    await performSniperFlow(piece, stats);
+}
+
+async function performSniperFlow(piece, stats) {
     if (shouldTriggerSniperPulse(piece, stats)) {
         handleActionClick('pulso');
         return;
@@ -257,7 +265,7 @@ async function performEnemyTurn(piece) {
 
     const moveToShoot = findSniperMoveSquare(piece, stats);
     if (moveToShoot) {
-        const { square, target } = moveToShoot;
+        const { square } = moveToShoot;
         const distance = movementDistances.get(square) ?? 0;
         clearHighlights();
         highlightMovement(piece);
@@ -298,6 +306,29 @@ async function performEnemyTurn(piece) {
     playEffectSound(passTurnSound);
     finishTurn(piece);
 }
+async function performWildcardTurn(piece, stats) {
+    if (hasPower(stats, 'Pulso') && countAdjacentEnemies(piece) > 2) {
+        handleActionClick('pulso');
+        return;
+    }
+
+    if (hasPower(stats, 'Curar')) {
+        const criticalAlly = findCriticalAlly(piece);
+        if (criticalAlly) {
+            await executeSupportAction(piece, criticalAlly, 'curar');
+            return;
+        }
+    }
+
+    const preferAttackOverBuffs = (stats.dano || 0) > 3;
+    const controlOrBuff = chooseSupportControlOrBuff(piece, stats, { preferAttackOverBuffs });
+    if (controlOrBuff) {
+        await performSupportActionFlow(piece, controlOrBuff);
+        return;
+    }
+
+    await performSniperFlow(piece, stats);
+}
 
 async function performSupportTurn(piece, stats) {
     const decision = chooseSupportAction(piece, stats);
@@ -307,6 +338,10 @@ async function performSupportTurn(piece, stats) {
         return;
     }
 
+    await performSupportActionFlow(piece, decision);
+}
+
+async function performSupportActionFlow(piece, decision) {
     const { actionKey, target, targetType } = decision;
     const targetSquare = getPieceSquare(target);
     if (!targetSquare) {
@@ -412,6 +447,47 @@ function chooseSupportAction(piece, stats) {
     return { actionKey: 'attack', target, targetType: 'enemy' };
 }
 
+function chooseSupportControlOrBuff(piece, stats, { preferAttackOverBuffs = false } = {}) {
+    const team = piece.dataset.team;
+    const allies = pieces
+        .map((p) => p.element)
+        .filter((candidate) => candidate && candidate.dataset.team === team && candidate.dataset.eliminated !== 'true');
+
+    const enemies = getVisibleEnemies(piece, { requireVisibility: false });
+    if (enemies.length > 0) {
+        enemies.sort((a, b) => {
+            const scoreA = enemyDangerScore(pieceMap.get(a));
+            const scoreB = enemyDangerScore(pieceMap.get(b));
+            return scoreB - scoreA;
+        });
+
+        const target = enemies[0];
+        if (hasPower(stats, 'Incapacitar')) {
+            const targetStats = pieceMap.get(target);
+            if (targetStats?.incapacitatedTurns === 0) {
+                return { actionKey: 'incapacitar', target, targetType: 'enemy' };
+            }
+        }
+        if (hasPower(stats, 'Control Mental')) {
+            const targetStats = pieceMap.get(target);
+            if (!targetStats?.mindControlled) {
+                return { actionKey: 'control mental', target, targetType: 'enemy' };
+            }
+        }
+    }
+
+    if (preferAttackOverBuffs) {
+        return null;
+    }
+
+    const buffDecision = chooseSupportBuffTarget(stats, allies);
+    if (buffDecision) {
+        return buffDecision;
+    }
+
+    return null;
+}
+
 function chooseSupportBuffTarget(stats, allies) {
     const buffs = [
         { key: 'mejora de ataque', stat: 'ataque' },
@@ -439,6 +515,47 @@ function chooseSupportBuffTarget(stats, allies) {
 
     if (!best) return null;
     return { actionKey: best.actionKey, target: best.target, targetType: best.targetType };
+}
+
+function findCriticalAlly(piece) {
+    const team = piece.dataset.team;
+    const allies = pieces
+        .map((p) => p.element)
+        .filter((candidate) => candidate && candidate.dataset.team === team && candidate.dataset.eliminated !== 'true');
+
+    const criticalAllies = allies.filter((ally) => {
+        const allyStats = pieceMap.get(ally);
+        if (!allyStats) return false;
+        return allyStats.currentVida / allyStats.maxVida < 0.5;
+    });
+
+    if (criticalAllies.length === 0) return null;
+    criticalAllies.sort((a, b) => {
+        const aVida = pieceMap.get(a)?.currentVida ?? 0;
+        const bVida = pieceMap.get(b)?.currentVida ?? 0;
+        return aVida - bVida;
+    });
+    return criticalAllies[0];
+}
+
+function countAdjacentEnemies(piece) {
+    const origin = getPieceSquare(piece);
+    if (!origin) return 0;
+    const deltas = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+    let count = 0;
+    deltas.forEach(([dr, dc]) => {
+        const square = getSquareAt(
+            Number(origin.dataset.row) + dr,
+            Number(origin.dataset.col) + dc
+        );
+        const occupant = square?.querySelector?.('.piece');
+        if (!occupant) return;
+        if (occupant.dataset.team === piece.dataset.team) return;
+        const occStats = pieceMap.get(occupant);
+        if (occStats?.mindControlled && occStats.originalTeam === piece.dataset.team) return;
+        count += 1;
+    });
+    return count;
 }
 
 function allyStrengthScore(stats) {
