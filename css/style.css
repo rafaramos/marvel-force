@@ -62,7 +62,7 @@ body {
   text-align: center;
   background: 
     linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.8)),
-    url('../portada.webp'); /* Ruta corregida para salir de la carpeta css */
+    url('../portada.webp');
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
@@ -436,7 +436,9 @@ body {
   z-index: 2;
 }
 
-/* Indicadores de Movimiento */
+/* --- Modificadores de Casilla --- */
+
+/* Movimiento */
 .square--move::before {
   content: '';
   position: absolute;
@@ -453,19 +455,20 @@ body {
   animation: pulseDot 1.5s infinite ease-in-out;
 }
 
-/* Indicadores de Rango y Selección */
+/* Rango Normal (Naranja) */
 .square--range::after {
   opacity: 1;
   box-shadow: inset 0 0 0 5px rgba(255, 132, 0, 0.85);
   background: none;
 }
 
+/* Rango Especial (Púrpura) */
 .square--range-special::after {
   content: '';
   position: absolute;
   inset: 0;
   opacity: 1;
-  box-shadow: inset 0 0 0 4px #9b59b6; /* Borde púrpura */
+  box-shadow: inset 0 0 0 4px #9b59b6;
   z-index: 2;
 }
 
@@ -473,18 +476,20 @@ body {
   box-shadow: inset 0 0 0 5px rgba(255, 132, 0, 0.85); 
 }
 
+/* Objetivo Seleccionado */
 .square--target {
   box-shadow: inset 0 0 0 4px rgba(255, 171, 64, 0.9), inset 0 0 0 7px rgba(255, 171, 64, 0.35);
+}
+
+/* Barreras */
+.square--barrier {
+  background-color: #1b6f33;
 }
 
 .square--barrier-preview::after {
   opacity: 1;
   box-shadow: inset 0 0 0 4px rgba(0, 210, 255, 0.9);
   background: rgba(0, 210, 255, 0.18);
-}
-
-.square--barrier {
-  background-color: #1b6f33;
 }
 
 .barrier {
@@ -509,7 +514,7 @@ body {
 }
 
 /* =========================================
-   6. PIEZAS
+   6. PIEZAS & OBJETOS
    ========================================= */
 .piece {
   position: absolute;
@@ -526,17 +531,7 @@ body {
   background: #0d0d0d;
   overflow: hidden;
   z-index: 3;
-  transition: box-shadow 160ms ease, outline-color 160ms ease;
-}
-
-.piece[data-team='aliado'] {
-  border-color: #2b9afc;
-  box-shadow: 0 4px 10px rgba(0, 98, 204, 0.45);
-}
-
-.piece[data-team='enemigo'] {
-  border-color: #ef3f3f;
-  box-shadow: 0 4px 10px rgba(215, 44, 44, 0.45);
+  transition: box-shadow 160ms ease, outline-color 160ms ease, transform 0.2s ease, border-color 0.2s ease;
 }
 
 .piece__image {
@@ -558,14 +553,39 @@ body {
   border: 0;
 }
 
-/* Modificadores de Estado de la Pieza */
-.piece--active {
-  outline: 4px solid #fbd34d;
-  outline-offset: 1px;
-  box-shadow: 0 0 0 6px rgba(251, 211, 77, 0.35), 0 6px 14px rgba(0, 0, 0, 0.35);
-  animation: active-glow 0.9s ease-in-out infinite;
+/* Colores de Equipo (Básicos) */
+.piece[data-team='aliado'] {
+  border-color: #2b9afc;
+  box-shadow: 0 4px 10px rgba(0, 98, 204, 0.45);
 }
 
+.piece[data-team='enemigo'] {
+  border-color: #ef3f3f;
+  box-shadow: 0 4px 10px rgba(215, 44, 44, 0.45);
+}
+
+/* --- Estados de la Pieza --- */
+
+/* 1. ACTIVO (TURNO) */
+.piece.piece--active {
+  border: none !important;
+  /* IMPORTANTE: Bajamos de 100 a 20. 
+     Así está por encima de otras fichas (z-index 3), 
+     pero POR DEBAJO de los popups (z-index 30/40) */
+  z-index: 20 !important; 
+}
+
+.piece.piece--active[data-team="aliado"] {
+  outline: 4px solid #00e5ff !important; 
+  box-shadow: 0 0 20px 5px rgba(0, 229, 255, 0.8) !important;
+}
+
+.piece.piece--active[data-team="enemigo"] {
+  outline: 4px solid #ff2a00 !important;
+  box-shadow: 0 0 20px 5px rgba(255, 42, 0, 0.8) !important;
+}
+
+/* 2. INCAPACITADO */
 .piece--incapacitated::after {
   content: '✖';
   position: absolute;
@@ -579,62 +599,116 @@ body {
   pointer-events: none;
 }
 
+/* 3. SELECCIONADO (TARGET) */
 .piece.piece--selected {
   opacity: 1 !important;
   filter: grayscale(0%) !important;
-  z-index: 20 !important;
-  transform: translate(-50%, -50%) scale(1.2) !important;
+  z-index: 25 !important; /* Un poco más que el activo para que se note el clic */
+  /* ELIMINADO: transform: translate(-50%, -50%) scale(1.2) !important; */
+  /* AHORA: Solo translate, sin zoom */
+  transform: translate(-50%, -50%) !important; 
   border-width: 4px !important;
   border-style: solid !important;
   animation: blinkSelection 0.6s ease-in-out infinite alternate;
 }
 
-/* Modo Targeting (Foco) */
+/* 4. LEVANTANDO OBJETO */
+.piece--holding {
+  box-shadow: 0 0 0 3px cyan !important; 
+  z-index: 20;
+}
+
+.piece--holding::after {
+  content: "📦";
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  font-size: 20px;
+  background: #000;
+  border-radius: 50%;
+  padding: 2px;
+  border: 1px solid cyan;
+  z-index: 21;
+}
+
+/* --- Modo Targeting (Foco Visual) --- */
 .board.targeting .piece {
   opacity: 0.3;
   filter: grayscale(0.8);
   transition: all 0.3s ease;
 }
 
-/* 1. OBJETIVOS ENEMIGOS (Se ponen ROJOS) */
 .board.targeting .piece.valid-target {
   opacity: 1;
   filter: grayscale(0);
-  z-index: 10;
-  transform: translate(-50%, -50%) scale(1.05);
+  z-index: 22; /* Intermedio */
+  /* ELIMINADO: scale(1.05) */
+  transform: translate(-50%, -50%); 
   border-color: #ff3333 !important;
-  box-shadow: 0 0 15px #ff0000; /* Brillo rojo */
+  box-shadow: 0 0 15px #ff0000;
 }
 
-/* 2. PERSONAJE ACTIVO (Se mantiene DORADO/AMARILLO) */
 .board.targeting .piece.piece--active {
   opacity: 1;
   filter: grayscale(0);
-  z-index: 15; /* Un poco por encima */
-  transform: translate(-50%, -50%) scale(1.1);
-  border-color: #fbd34d !important;
-  box-shadow: 0 0 20px rgba(251, 211, 77, 0.6) !important; /* Brillo dorado */
+  z-index: 20;
+  /* ELIMINADO: scale(1.1) */
+  transform: translate(-50%, -50%);
 }
 
 .board.targeting .piece.valid-target-blue {
   opacity: 1;
   filter: grayscale(0%);
-  z-index: 11;
-  transform: translate(-50%, -50%) scale(1.1);
+  z-index: 22;
+  /* ELIMINADO: scale(1.1) */
+  transform: translate(-50%, -50%);
   border-color: #00e5ff !important; 
-  box-shadow: 0 0 25px rgba(0, 229, 255, 0.8); /* Brillo azul */
+  box-shadow: 0 0 25px rgba(0, 229, 255, 0.8);
 }
 
 .board.targeting .piece.valid-ally {
   opacity: 1;
   filter: grayscale(0);
-  z-index: 11;
-  transform: translate(-50%, -50%) scale(1.1);
+  z-index: 22;
+  /* ELIMINADO: scale(1.1) */
+  transform: translate(-50%, -50%);
   border-color: #33ff57 !important;
-  box-shadow: 0 0 25px rgba(50, 255, 87, 0.8); /* Brillo verde */
+  box-shadow: 0 0 25px rgba(50, 255, 87, 0.8);
 }
 
+/* --- Objetos (Tokens) --- */
+.object-token {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 70%;
+  height: 70%;
+  z-index: 20; 
+  pointer-events: none;
+  box-sizing: border-box;
+  isolation: isolate; 
+}
 
+.object-token.object-heavy {
+  border: 4px solid #c0392b; 
+  box-shadow: 0 0 5px rgba(192, 57, 43, 0.8);
+}
+
+.object-token.object-light {
+  border: 4px solid #f1c40f; 
+  box-shadow: 0 0 5px rgba(241, 196, 15, 0.8);
+}
+
+.object-selected {
+    filter: drop-shadow(0 0 8px cyan);
+    transform: scale(1.1);
+    transition: all 0.2s;
+}
+
+.valid-target:hover {
+    cursor: crosshair;
+}
 
 /* =========================================
    7. PANELES LATERALES & POPUPS
@@ -724,16 +798,6 @@ body {
   text-align: right;
 }
 
-/* Status Bar */
-.status-bar {
-  margin-bottom: 12px;
-  display: flex;
-  justify-content: center;
-  gap: 16px;
-  align-items: center;
-  font-weight: 700;
-}
-
 /* Popups (Turno y Muerte) */
 .turn-popup,
 .death-popup {
@@ -801,10 +865,13 @@ body {
   font-size: clamp(0.75rem, 0.9vw + 0.45rem, 1.2rem);
   line-height: 1.35;
   font-family: 'Impact', 'Anton', system-ui, sans-serif;
-  letter-spacing: 0.05em;
-  text-shadow: 0 3px 10px rgba(0, 0, 0, 0.55), 0 0 30px rgba(251, 211, 77, 0.35);
   text-transform: none;
   width: 100%;
+  /* Parche de legibilidad integrado */
+  font-weight: 500 !important;
+  text-shadow: 2px 2px 0px rgba(0,0,0,0.8);
+  -webkit-text-stroke: 0px !important;
+  letter-spacing: 0.5px;
 }
 
 .turn-popup__hint {
@@ -863,9 +930,6 @@ body {
   min-width: 0;
   border-radius: 10px;
   overflow: hidden;
-  display: flex;
-  align-items: flex-end;
-  justify-content: flex-start;
   background: #111;
   isolation: isolate;
   min-height: 100%;
@@ -956,7 +1020,11 @@ body {
   width: fit-content;
   min-width: 50%;
   font-size: clamp(0.85rem, 11cqw, 1.4rem); 
-  font-weight: 700;
+  /* Estilo integrado */
+  font-family: 'Roboto', sans-serif !important;
+  font-weight: 700 !important;
+  -webkit-text-stroke: 0px !important;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
   letter-spacing: 0.05em;
 }
 
@@ -969,7 +1037,7 @@ body {
 }
 
 /* =========================================
-   8. TOOLTIP (FIXED & CONSOLIDATED)
+   8. TOOLTIP
    ========================================= */
 .tooltip {
   position: fixed;
@@ -981,7 +1049,6 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 12px;
   box-shadow: 0 16px 32px rgba(0, 0, 0, 0.4);
-  /* Estilos para soportar textos largos sin cortar */
   padding: 20px 24px;
   width: max-content;
   max-width: none;
@@ -996,7 +1063,6 @@ body {
   font-size: 1.1rem;
 }
 
-/* Listas Generales (Stats) */
 .tooltip ul {
   list-style: none;
   margin: 0;
@@ -1012,7 +1078,6 @@ body {
   font-size: 0.95rem;  
 }
 
-/* Títulos de sección */
 .tooltip h4 {
     margin: 14px 0 6px 0;
     color: #ffd166;
@@ -1020,7 +1085,6 @@ body {
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-/* Lista de Poderes (1 Columna para espacio) */
 .tooltip .power-list {
     padding-left: 0;
     margin: 0;
@@ -1156,4 +1220,143 @@ body {
   .piece__name {
      display: none; 
   }
+}
+/* --- Modo Targeting (Foco) --- */
+
+/* 1. ESTADO BASE (NO A RANGO) */
+/* Bajamos opacidad pero MANTENEMOS los colores del borde */
+.board.targeting .piece {
+  opacity: 0.5; /* Un poco más visible que antes */
+  transition: all 0.3s ease;
+  filter: none; /* Quitamos el filtro global */
+}
+
+/* Aplicamos el gris SOLO a la imagen interna */
+.board.targeting .piece .piece__image {
+  filter: grayscale(1);
+  transition: all 0.3s ease;
+}
+
+/* 2. OBJETIVOS VÁLIDOS (A RANGO) */
+.board.targeting .piece.valid-target,
+.board.targeting .piece.valid-target-blue,
+.board.targeting .piece.valid-ally,
+.board.targeting .piece.piece--active {
+  opacity: 1;
+  z-index: 10;
+  transform: translate(-50%, -50%) scale(1.05);
+}
+
+/* Recuperamos el color de la imagen en los objetivos válidos */
+.board.targeting .piece.valid-target .piece__image,
+.board.targeting .piece.valid-target-blue .piece__image,
+.board.targeting .piece.valid-ally .piece__image,
+.board.targeting .piece.piece--active .piece__image {
+  filter: grayscale(0);
+}
+
+/* Colores específicos de borde */
+.board.targeting .piece.valid-target {
+  border-color: #ff3333 !important;
+  box-shadow: 0 0 15px #ff0000;
+}
+
+.board.targeting .piece.piece--active {
+  z-index: 15;
+  transform: translate(-50%, -50%) scale(1.1);
+  /* Mantiene su color de turno definido arriba */
+}
+
+.board.targeting .piece.valid-target-blue {
+  border-color: #00e5ff !important; 
+  box-shadow: 0 0 25px rgba(0, 229, 255, 0.8);
+}
+
+.board.targeting .piece.valid-ally {
+  border-color: #33ff57 !important;
+  box-shadow: 0 0 25px rgba(50, 255, 87, 0.8);
+}
+/* --- Estados de la Pieza --- */
+
+/* Animación de Parpadeo de Turno */
+@keyframes turnPulse {
+  0% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.7); transform: translate(-50%, -50%) scale(1); }
+  50% { box-shadow: 0 0 20px 10px rgba(255, 255, 255, 0); transform: translate(-50%, -50%) scale(1.05); }
+  100% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0); transform: translate(-50%, -50%) scale(1); }
+}
+
+/* 1. ACTIVO (TURNO) */
+.piece.piece--active {
+  border: none !important;
+  z-index: 50 !important; /* Por encima de las demás fichas */
+  /* Quitamos el zoom fijo y ponemos la animación */
+  animation: turnPulse 1.5s infinite;
+}
+
+.piece.piece--active[data-team="aliado"] {
+  outline: 4px solid #00e5ff !important;
+  box-shadow: 0 0 25px #00e5ff, inset 0 0 10px #00e5ff !important;
+}
+
+.piece.piece--active[data-team="enemigo"] {
+  outline: 4px solid #ff2a00 !important;
+  box-shadow: 0 0 25px #ff2a00, inset 0 0 10px #ff2a00 !important;
+}
+/* --- Estados de la Pieza --- */
+
+/* Animación de Parpadeo de Turno */
+@keyframes turnPulse {
+  0% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.7); transform: translate(-50%, -50%) scale(1); }
+  50% { box-shadow: 0 0 20px 10px rgba(255, 255, 255, 0); transform: translate(-50%, -50%) scale(1.05); }
+  100% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0); transform: translate(-50%, -50%) scale(1); }
+}
+
+/* 1. ACTIVO (TURNO) */
+.piece.piece--active {
+  border: none !important;
+  /* CORRECCIÓN: Bajamos de 50 a 20 para respetar los popups */
+  z-index: 20 !important; 
+  animation: turnPulse 1.5s infinite;
+}
+
+.piece.piece--active[data-team="aliado"] {
+  outline: 4px solid #00e5ff !important;
+  box-shadow: 0 0 25px #00e5ff, inset 0 0 10px #00e5ff !important;
+}
+
+.piece.piece--active[data-team="enemigo"] {
+  outline: 4px solid #ff2a00 !important;
+  box-shadow: 0 0 25px #ff2a00, inset 0 0 10px #ff2a00 !important;
+}
+/* --- Animación de Turno (Zoom + Parpadeo) --- */
+@keyframes turnPulse {
+  0% { 
+    transform: translate(-50%, -50%) scale(1); 
+    box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.4);
+    outline-offset: 0px;
+  }
+  50% { 
+    transform: translate(-50%, -50%) scale(1.15); /* Zoom más notable */
+    box-shadow: 0 0 25px 10px rgba(255, 255, 255, 0);
+    outline-offset: 4px; /* El borde se separa un poco al palpitar */
+  }
+  100% { 
+    transform: translate(-50%, -50%) scale(1); 
+    box-shadow: 0 0 0 0 rgba(255, 255, 255, 0);
+    outline-offset: 0px;
+  }
+}
+
+.piece.piece--active {
+  z-index: 20 !important;
+  animation: turnPulse 1.5s infinite ease-in-out;
+  /* El color se define abajo, aquí la animación lo hace latir */
+}
+
+.piece.piece--active[data-team="aliado"] {
+  outline: 4px solid #00e5ff !important; /* Azul neón */
+}
+
+.piece.piece--active[data-team="enemigo"] {
+  outline: 4px solid #ff2a00 !important; /* Rojo neón */
 }
