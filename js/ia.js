@@ -224,6 +224,19 @@ function selectBestEnemyAction(piece, targetPiece) {
 }
 
 async function performEnemyTurn(piece) {
+    const stats = pieceMap.get(piece);
+    if (!stats) {
+        playEffectSound(passTurnSound);
+        finishTurn(piece);
+        return;
+    }
+
+    const role = getAIRole(stats);
+    if (role === 'comodin') {
+        await performWildcardTurn(piece, stats);
+        return;
+    }
+
     playEffectSound(passTurnSound);
     finishTurn(piece);
 }
@@ -291,43 +304,80 @@ async function performWildcardTurn(piece, stats) {
         return;
     }
 
+    const controlMentalTarget = findEnemyForControl(piece, stats, 'control mental');
+    if (controlMentalTarget) {
+        await performSupportActionFlow(piece, {
+            actionKey: 'control mental',
+            target: controlMentalTarget,
+            targetType: 'enemy',
+        });
+        return;
+    }
+
+    const incapacitateTarget = findEnemyForControl(piece, stats, 'incapacitar');
+    if (incapacitateTarget) {
+        await performSupportActionFlow(piece, {
+            actionKey: 'incapacitar',
+            target: incapacitateTarget,
+            targetType: 'enemy',
+        });
+        return;
+    }
+
     if (hasPower(stats, 'Curar')) {
-        const criticalAlly = findCriticalAlly(piece);
-        if (criticalAlly && canUseSupportAction(piece, criticalAlly, 'curar', 'ally')) {
+        const selfStats = pieceMap.get(piece);
+        if (selfStats && selfStats.currentVida < selfStats.maxVida) {
             await performSupportActionFlow(piece, {
                 actionKey: 'curar',
-                target: criticalAlly,
+                target: piece,
+                targetType: 'ally',
+            });
+            return;
+        }
+
+        const allyToHeal = findDamagedAlly(piece);
+        if (allyToHeal) {
+            await performSupportActionFlow(piece, {
+                actionKey: 'curar',
+                target: allyToHeal,
                 targetType: 'ally',
             });
             return;
         }
     }
 
-    const hasEnemyInRange = Boolean(findEnemyInRange(piece));
-    const damage = stats.dano || 0;
-
-    if (damage >= 3 && hasAttackOpportunity(piece, stats)) {
-        await performSniperFlow(piece, stats);
+    const buffDecision = chooseSupportBuffTarget(stats, getAllies(piece));
+    if (buffDecision) {
+        await performSupportActionFlow(piece, buffDecision);
         return;
     }
 
-    if (damage <= 2 && hasEnemyInRange) {
-        const controlOrBuff = chooseSupportControlOrBuff(piece, stats, { allowBuffs: true });
-        if (controlOrBuff) {
-            await performSupportActionFlow(piece, controlOrBuff);
-            return;
+    const enemyTarget = findEnemyToAdvance(piece);
+    if (enemyTarget) {
+        const moveSquare = chooseSupportChaseSquare(piece, enemyTarget, 'enemy');
+        if (moveSquare) {
+            const distance = movementDistances.get(moveSquare) ?? 0;
+            clearHighlights();
+            highlightMovement(piece);
+            moveSquare.classList.add('square--target');
+            await sleep(ENEMY_ACTION_DELAY_MS);
+            await animatePieceToSquare(piece, moveSquare);
+            spendMovement(piece, distance);
+            clearHighlights();
+            highlightMovement(piece);
+            highlightRange(piece);
+            updateStatusBar(piece);
         }
     }
 
-    if (!hasEnemyInRange) {
-        const buffDecision = chooseSupportBuffTarget(stats, getAllies(piece));
-        if (buffDecision) {
-            await performSupportActionFlow(piece, buffDecision);
-            return;
-        }
+    if (enemyTarget && canShootTarget(piece, enemyTarget)) {
+        selectedTarget = enemyTarget;
+        handleActionClick('attack', { bypassVisuals: true });
+        return;
     }
 
-    await performSniperFlow(piece, stats);
+    playEffectSound(passTurnSound);
+    finishTurn(piece);
 }
 
 async function performSupportTurn(piece, stats) {
@@ -535,6 +585,60 @@ function findEnemyInRange(piece) {
         if (!origin || !targetSquare) return false;
         return isWithinAttackRange(origin, targetSquare, rangeForPiece(piece));
     });
+}
+
+function findEnemyForControl(piece, stats, actionKey) {
+    if (!hasPower(stats, actionKey === 'control mental' ? 'Control Mental' : 'Incapacitar')) return null;
+    const enemies = getVisibleEnemies(piece, { requireVisibility: false });
+    if (enemies.length === 0) return null;
+
+    const inRange = enemies.find((enemy) =>
+        canUseSupportAction(piece, enemy, actionKey, 'enemy')
+    );
+    if (inRange) return inRange;
+
+    let best = null;
+    enemies.forEach((enemy) => {
+        const moveSquare = findSupportMoveSquare(piece, enemy, actionKey, 'enemy');
+        if (!moveSquare) return;
+        const moveCost = movementDistances.get(moveSquare) ?? 0;
+        if (!best || moveCost < best.moveCost) {
+            best = { enemy, moveCost };
+        }
+    });
+
+    return best?.enemy ?? null;
+}
+
+function findDamagedAlly(piece) {
+    const allies = getAllies(piece);
+    const damaged = allies.filter((ally) => {
+        const stats = pieceMap.get(ally);
+        return stats && stats.currentVida < stats.maxVida;
+    });
+    if (damaged.length === 0) return null;
+    damaged.sort((a, b) => {
+        const aMissing = pieceMap.get(a)?.maxVida - pieceMap.get(a)?.currentVida;
+        const bMissing = pieceMap.get(b)?.maxVida - pieceMap.get(b)?.currentVida;
+        return bMissing - aMissing;
+    });
+    return damaged[0];
+}
+
+function findEnemyToAdvance(piece) {
+    const enemies = getVisibleEnemies(piece, { requireVisibility: false });
+    if (enemies.length === 0) return null;
+    const origin = getPieceSquare(piece);
+    if (!origin) return enemies[0];
+    return enemies.reduce((best, enemy) => {
+        if (!best) return enemy;
+        const bestSquare = getPieceSquare(best);
+        const enemySquare = getPieceSquare(enemy);
+        if (!bestSquare || !enemySquare) return best;
+        const bestDist = attackDistance(origin, bestSquare);
+        const enemyDist = attackDistance(origin, enemySquare);
+        return enemyDist < bestDist ? enemy : best;
+    }, null);
 }
 
 function findCriticalAlly(piece) {
