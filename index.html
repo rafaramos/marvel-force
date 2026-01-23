@@ -1490,25 +1490,23 @@ function attachTooltipEvents(piece) {
         // para que coincida con las matemáticas del juego.
         let displayedDefense = defenderStats.defensa;
         if (!isMelee && hasPassive(defenderStats, 'defensa a/d')) {
-            displayedDefense += 2;
+            displayedDefense = `${defenderStats.defensa + 2} (${defenderStats.defensa} + 2)`;
         }
         // -------------------------------------------
 
         if (actionKey === 'incapacitar') {
-          // Usamos displayedDefense en lugar de defenderStats.defensa
-          const opening = `${attackerStats.name} realiza un ataque de Incapacitación con ${attackerStats.ataque} a ${defenderStats.name} que defiende con ${displayedDefense}.`;
+          const opening = `${attackerStats.name} realiza un ataque de Incapacitación con ${attackerStats.ataque} de Ataque a ${defenderStats.name} que tiene ${displayedDefense} de Defensa.`;
           const rollLine = `${attackerStats.name} necesita un ${need} y ${roll ? `consigue un ${roll}.` : 'prepara la tirada.'}`;
           const resultLine = success
-            ? `${attackerStats.name} incapacita a ${defenderStats.name}.`
-            : `${attackerStats.name} falla el ataque contra ${defenderStats.name}.`;
+            ? `${attackerStats.name} Incapacita a ${defenderStats.name}.`
+            : `${attackerStats.name} falla el ataque de Incapacitación contra ${defenderStats.name}.`;
           return `${opening} ${rollLine} ${resultLine}`;
         }
 
         if (actionKey === 'control mental') {
-            // Usamos displayedDefense aquí también
-            const opening = `${attackerStats.name} realiza un ataque de Control Mental con ${attackerStats.ataque} a ${defenderStats.name} que defiende con ${displayedDefense}.`;
+            const opening = `${attackerStats.name} realiza un ataque de Control Mental con ${attackerStats.ataque} de Ataque a ${defenderStats.name} que tiene ${displayedDefense} de Defensa.`;
             const rollLine = `${attackerStats.name} necesita un ${need} y ${roll ? `consigue un ${roll}.` : 'prepara la tirada.'}`;
-            let resultLine = success ? `${defenderStats.name} es controlado y pasa al equipo de ${attackerStats.name} este turno.` : `${attackerStats.name} falla el ataque de Control Mental contra ${defenderStats.name}.`;
+            let resultLine = success ? `${defenderStats.name} es controlado por ${attackerStats.name} por 1 turno.` : `${attackerStats.name} falla el ataque de Control Mental contra ${defenderStats.name}.`;
             return `${opening} ${rollLine} ${resultLine}`;
         }
 
@@ -1518,7 +1516,7 @@ function attachTooltipEvents(piece) {
         const inflictedDamage = success ? damage : 0;
 
         // Y aquí en el ataque estándar
-        const opening = `${attackerStats.name} realiza un ${attackTypeLabel} con ${attackerStats.ataque} a ${defenderStats.name} que defiende con ${displayedDefense}.`;
+        const opening = `${attackerStats.name} realiza un ${attackTypeLabel} con ${attackerStats.ataque} de Ataque a ${defenderStats.name} que tiene ${displayedDefense} de Defensa.`;
         const rollLine = `${attackerStats.name} necesita un ${need} y ${roll ? `consigue un ${roll}${critical ? ' (Crítico)' : ''}.` : 'prepara la tirada.'}`;
 
         if (!success) {
@@ -1527,19 +1525,19 @@ function attachTooltipEvents(piece) {
 
         const clawsLine =
           clawsRoll !== null && clawsRoll !== undefined
-            ? `${attackerStats.name} usa Cuchillas/Garras/Colmillos (d6) y saca un ${clawsRoll}, con lo que su daño base ${
-                clawsRoll > baseDamageBeforeClaws ? 'aumenta a' : 'se mantiene en'
-              } ${clawsRoll > baseDamageBeforeClaws ? baseDamageAfterClaws : baseDamageBeforeClaws}.`
+            ? `${attackerStats.name} realiza una tirada de Cuchillas/Garras/Colmillos y saca un ${clawsRoll}, con lo que su Daño es ${baseDamageAfterClaws}.`
             : '';
         
         const baseDamageLine =
           clawsRoll === null || clawsRoll === undefined
-            ? `El daño base del ataque es ${baseDamage}.`
+            ? `El Daño de ${attackerStats.name} es ${baseDamage} y la Resistencia de ${defenderStats.name} es ${resistance ?? 0}.`
             : '';
             
-        const resistanceLine = `${defenderStats.name} tiene una ${resistanceLabel} de ${resistance ?? 0}.`;
-        const damageLine = `${attackerStats.name} le causa ${inflictedDamage} puntos de daño infligido a ${defenderStats.name}.`;
-        const deathLine = defenderStats.currentVida <= 0 ? `${defenderStats.name} es eliminado.` : '';
+        const resistanceLine = clawsRoll !== null && clawsRoll !== undefined
+          ? `${defenderStats.name} tiene una ${resistanceLabel} de ${resistance ?? 0}.`
+          : '';
+        const damageLine = `${attackerStats.name} le causa ${inflictedDamage} puntos de Daño Infligido a ${defenderStats.name}.`;
+        const deathLine = defenderStats.currentVida <= 0 ? `${defenderStats.name} es ELIMINADO.` : '';
 
       return `${opening} ${rollLine} ${clawsLine} ${baseDamageLine} ${resistanceLine} ${damageLine} ${deathLine}`.replace(/\s+/g, ' ').trim();
     }
@@ -1856,7 +1854,7 @@ async function resolveExplosion(attacker, defender) {
   });
 
   const affectedText = detailsList.length > 0 ? formatter.format(detailsList) : 'Ninguno';
-  const logMessage = `${attackerStats.name} ejecuta Explosión. Ataca con ${attackerStats.ataque} y consigue en la tirada un ${roll}. ${damageDescription}. Afectados: ${affectedText}.`;
+  const logMessage = `${attackerStats.name} ejecuta una Explosión. ${attackerStats.name} tiene ${attackerStats.ataque} de Ataque y consigue en la tirada un ${roll}. ${attackerStats.name} tiene un daño base para Explosión de ${baseRaw}. Afectados: ${affectedText}.`;
 
   pendingAttackInfo = {
     action: actionLabel('explosion'),

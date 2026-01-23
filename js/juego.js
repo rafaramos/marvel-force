@@ -1535,55 +1535,26 @@ function attachTooltipEvents(piece) {
 
         // ÉXITO
         let damageText = '';
-        let resistanceText = ` y la Resistencia de ${defenderStats.name} es ${resistance}.`;
+        let resistanceText = `y la Resistencia de ${defenderStats.name} es ${resistance}.`;
 
         // A) GARRAS
         if (clawsRoll !== null) {
-             damageText = `${attackerStats.name} realiza una tirada de Cuchillas/Garras/Colmillos y saca un ${clawsRoll}, con lo que su Daño es ${rawDamage}`;
-             if (critical) damageText += ` (${clawsRoll} X 2)`;
-             damageText += `.`; // Punto para separar de resistencia
-             
-             resistanceText = `${defenderStats.name} tiene una resistencia de ${resistance}.`; 
+             damageText = `${attackerStats.name} realiza una tirada de Cuchillas/Garras/Colmillos y saca un ${clawsRoll}, con lo que su Daño es ${rawDamage}.`;
+             resistanceText = `${defenderStats.name} tiene una resistencia de ${resistance}.`;
         } 
         // B) NORMAL / OBJETO
         else {
-            let breakdown = '';
-            
-            // Lógica exacta para objeto: "7 (5 + 2)"
-            if (heldObject && attackerStats.originalDano !== undefined) {
-                const base = attackerStats.originalDano;
-                const bonus = attackerStats.dano - base; 
-                
-                if (!critical) {
-                    breakdown = ` (${base} + ${bonus})`;
-                } else {
-                    // Si es crítico: "14 ((5 + 2) X 2)" o simplificado
-                    breakdown = ` ((${base} + ${bonus}) X 2)`;
-                }
-            }
-            // Experto A/D
-            else if (!isMelee && hasPassive(attackerStats, 'experto a/d')) {
-                 if (!critical) breakdown = ` (${attackerStats.dano} + 2)`;
-            }
-            // Crítico normal
-            else if (critical) {
-                const base = rawDamage / 2;
-                breakdown = ` (${base} X 2)`;
-            }
-
-            damageText = `El Daño de ${attackerStats.name} es ${rawDamage}${breakdown}`;
+            damageText = `El Daño de ${attackerStats.name} es ${rawDamage} ${resistanceText}`;
         }
 
         // Unimos frase de Daño + Resistencia
-        let sentence3 = (clawsRoll !== null) ? `${damageText} ${resistanceText}` : `${damageText}${resistanceText}`;
+        let sentence3 = (clawsRoll !== null) ? `${damageText} ${resistanceText}` : damageText;
 
         // Frase 4: Daño Final y Eliminación
-        let sentence4 = `${attackerStats.name} le causa ${damage} puntos de Daño Infligido a ${defenderStats.name}`;
+        let sentence4 = `${attackerStats.name} le causa ${damage} puntos de Daño Infligido a ${defenderStats.name}.`;
         
         if (defenderStats.currentVida <= 0) {
-            sentence4 += `, que es ELIMINADO.`;
-        } else {
-            sentence4 += `.`;
+            sentence4 += ` ${defenderStats.name} es ELIMINADO.`;
         }
 
         // Frase Objeto siempre al final y limpia
