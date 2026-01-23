@@ -679,14 +679,29 @@ function chooseSupportChaseSquare(attacker, target, targetType) {
 }
 
 async function executeSupportAction(attacker, target, actionKey) {
-    if (actionKey === 'attack') {
-        selectedTarget = target;
-        handleActionClick('attack');
+    const buffConfig = {
+        'mejora de ataque': { stat: 'ataque', label: 'Mejora de Ataque' },
+        'mejora de defensa': { stat: 'defensa', label: 'Mejora de Defensa' },
+        'mejora de agilidad': { stat: 'agilidad', label: 'Mejora de Agilidad' },
+        'mejora de critico': { stat: 'critico', label: 'Mejora de Crítico' },
+    };
+
+    if (actionKey === 'curar') {
+        await resolveHeal(attacker, target);
         return;
     }
 
-    selectedTarget = target;
-    handleActionClick(actionKey);
+    if (buffConfig[actionKey]) {
+        applyStatBuff(attacker, target, buffConfig[actionKey]);
+        return;
+    }
+
+    if (actionKey === 'incapacitar' || actionKey === 'control mental') {
+        await resolveAttack(attacker, target, actionKey, { allowCounter: false });
+        return;
+    }
+
+    await resolveAttack(attacker, target, 'attack');
 }
 
 function shouldTriggerSniperPulse(piece, stats) {
