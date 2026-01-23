@@ -525,7 +525,7 @@ function registerTurnSound({ damageDealt = 0, attackFailed = false, zeroDamageHi
         card.className = `life-card${eliminated ? ' life-card--eliminated' : ''}`;
 
         if (element === activePiece) {
-          const borderColor = pieceColor(element);
+          const borderColor = element.dataset.team === 'aliado' ? '#2b9afc' : '#ef3f3f';
           card.classList.add('life-card--active-turn');
           card.style.setProperty('--life-card-border', borderColor);
         }
