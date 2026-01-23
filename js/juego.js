@@ -1535,16 +1535,32 @@ function attachTooltipEvents(piece) {
 
         // ÉXITO
         let damageText = '';
-        let resistanceText = `y la Resistencia de ${defenderStats.name} es ${resistance}.`;
+        let resistanceText = `la Resistencia de ${defenderStats.name} es ${resistance}.`;
 
         // A) GARRAS
         if (clawsRoll !== null) {
-             damageText = `${attackerStats.name} realiza una tirada de Cuchillas/Garras/Colmillos y saca un ${clawsRoll}, con lo que su Daño es ${rawDamage}.`;
+             const critSuffix = critical ? ` (${clawsRoll} X 2)` : '';
+             damageText = `${attackerStats.name} realiza una tirada de Cuchillas/Garras/Colmillos y saca un ${clawsRoll}, con lo que su Daño es ${rawDamage}${critSuffix}.`;
              resistanceText = `${defenderStats.name} tiene una resistencia de ${resistance}.`;
         } 
         // B) NORMAL / OBJETO
         else {
-            damageText = `El Daño de ${attackerStats.name} es ${rawDamage} ${resistanceText}`;
+            let breakdown = '';
+            if (heldObject && attackerStats.originalDano !== undefined) {
+                const base = attackerStats.originalDano;
+                const bonus = attackerStats.dano - base;
+                breakdown = critical
+                    ? ` ((${base} + ${bonus}) X 2)`
+                    : ` (${base} + ${bonus})`;
+            } else if (!isMelee && hasPassive(attackerStats, 'experto a/d')) {
+                breakdown = critical
+                    ? ` ((${attackerStats.dano} + 2) X 2)`
+                    : ` (${attackerStats.dano} + 2)`;
+            } else if (critical) {
+                const base = rawDamage / 2;
+                breakdown = ` (${base} X 2)`;
+            }
+            damageText = `El Daño de ${attackerStats.name} es ${rawDamage}${breakdown} y ${resistanceText}`;
         }
 
         // Unimos frase de Daño + Resistencia

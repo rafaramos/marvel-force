@@ -1525,12 +1525,20 @@ function attachTooltipEvents(piece) {
 
         const clawsLine =
           clawsRoll !== null && clawsRoll !== undefined
-            ? `${attackerStats.name} realiza una tirada de Cuchillas/Garras/Colmillos y saca un ${clawsRoll}, con lo que su Daño es ${baseDamageAfterClaws}.`
+            ? `${attackerStats.name} realiza una tirada de Cuchillas/Garras/Colmillos y saca un ${clawsRoll}, con lo que su Daño es ${baseDamageAfterClaws}${critical ? ` (${clawsRoll} X 2)` : ''}.`
             : '';
         
+        const baseDamageValue = critical ? baseDamage / 2 : baseDamage;
+        let breakdown = '';
+        if (!isMelee && hasPassive(attackerStats, 'experto a/d')) {
+          breakdown = critical ? ` ((${attackerStats.dano} + 2) X 2)` : ` (${attackerStats.dano} + 2)`;
+        } else if (critical) {
+          breakdown = ` (${baseDamageValue} X 2)`;
+        }
+
         const baseDamageLine =
           clawsRoll === null || clawsRoll === undefined
-            ? `El Daño de ${attackerStats.name} es ${baseDamage} y la Resistencia de ${defenderStats.name} es ${resistance ?? 0}.`
+            ? `El Daño de ${attackerStats.name} es ${baseDamage}${breakdown} y la Resistencia de ${defenderStats.name} es ${resistance ?? 0}.`
             : '';
             
         const resistanceLine = clawsRoll !== null && clawsRoll !== undefined
@@ -2768,7 +2776,7 @@ async function resolveHeal(attacker, target) {
           if (buff.remaining <= 0) {
             const baseKey = stat === 'ataque' ? 'baseAtaque' : stat === 'defensa' ? 'baseDefensa' : 'baseAgilidad';
             stats[stat] = stats[baseKey] ?? stats[stat];
-            messages.push(`${stats.name} pierde ${buff.label?.toLowerCase?.() || stat}.`);
+            messages.push(`${stats.name} pierde ${buff.label || stat}.`);
             delete stats.statBuffs[stat];
           }
         });
@@ -2776,7 +2784,7 @@ async function resolveHeal(attacker, target) {
       if (stats.critBuff) {
         stats.critBuff.remaining -= 1;
         if (stats.critBuff.remaining <= 0) {
-          messages.push(`${stats.name} pierde ${stats.critBuff.label?.toLowerCase?.() || 'mejora de crítico'}.`);
+          messages.push(`${stats.name} pierde ${stats.critBuff.label || 'Mejora de Crítico'}.`);
           delete stats.critBuff;
         }
       }
