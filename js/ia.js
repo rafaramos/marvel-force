@@ -314,7 +314,7 @@ async function performWildcardTurn(piece, stats) {
 
     if (hasPower(stats, 'Curar')) {
         const criticalAlly = findCriticalAlly(piece);
-        if (criticalAlly) {
+        if (criticalAlly && canUseSupportAction(piece, criticalAlly, 'curar', 'ally')) {
             await performSupportActionFlow(piece, {
                 actionKey: 'curar',
                 target: criticalAlly,
@@ -324,12 +324,28 @@ async function performWildcardTurn(piece, stats) {
         }
     }
 
-    const preferAttackOverBuffs = (stats.dano || 0) > 3;
-    const allowBuffs = !preferAttackOverBuffs || !hasSniperAttackOpportunity(piece, stats);
-    const controlOrBuff = chooseSupportControlOrBuff(piece, stats, { allowBuffs });
-    if (controlOrBuff) {
-        await performSupportActionFlow(piece, controlOrBuff);
+    const hasEnemyInRange = Boolean(findEnemyInRange(piece));
+    const damage = stats.dano || 0;
+
+    if (damage >= 3 && hasAttackOpportunity(piece, stats)) {
+        await performSniperFlow(piece, stats);
         return;
+    }
+
+    if (damage <= 2 && hasEnemyInRange) {
+        const controlOrBuff = chooseSupportControlOrBuff(piece, stats, { allowBuffs: true });
+        if (controlOrBuff) {
+            await performSupportActionFlow(piece, controlOrBuff);
+            return;
+        }
+    }
+
+    if (!hasEnemyInRange) {
+        const buffDecision = chooseSupportBuffTarget(stats, getAllies(piece));
+        if (buffDecision) {
+            await performSupportActionFlow(piece, buffDecision);
+            return;
+        }
     }
 
     await performSniperFlow(piece, stats);
@@ -453,10 +469,7 @@ function chooseSupportAction(piece, stats) {
 }
 
 function chooseSupportControlOrBuff(piece, stats, { allowBuffs = true } = {}) {
-    const team = piece.dataset.team;
-    const allies = pieces
-        .map((p) => p.element)
-        .filter((candidate) => candidate && candidate.dataset.team === team && candidate.dataset.eliminated !== 'true');
+    const allies = getAllies(piece);
 
     const enemies = getVisibleEnemies(piece, { requireVisibility: false });
     if (enemies.length > 0) {
@@ -493,7 +506,7 @@ function chooseSupportControlOrBuff(piece, stats, { allowBuffs = true } = {}) {
     return null;
 }
 
-function hasSniperAttackOpportunity(piece, stats) {
+function hasAttackOpportunity(piece, stats) {
     const target = chooseSniperTarget(piece, stats);
     if (target && canShootTarget(piece, target)) return true;
     return Boolean(findSniperMoveSquare(piece, stats));
@@ -526,6 +539,23 @@ function chooseSupportBuffTarget(stats, allies) {
 
     if (!best) return null;
     return { actionKey: best.actionKey, target: best.target, targetType: best.targetType };
+}
+
+function getAllies(piece) {
+    const team = piece.dataset.team;
+    return pieces
+        .map((p) => p.element)
+        .filter((candidate) => candidate && candidate.dataset.team === team && candidate.dataset.eliminated !== 'true');
+}
+
+function findEnemyInRange(piece) {
+    const enemies = getVisibleEnemies(piece, { requireVisibility: true });
+    return enemies.find((enemy) => {
+        const origin = getPieceSquare(piece);
+        const targetSquare = getPieceSquare(enemy);
+        if (!origin || !targetSquare) return false;
+        return isWithinAttackRange(origin, targetSquare, rangeForPiece(piece));
+    });
 }
 
 function findCriticalAlly(piece) {
