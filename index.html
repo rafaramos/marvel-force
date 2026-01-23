@@ -2580,7 +2580,7 @@ async function resolveHeal(attacker, target) {
       }
     });
 
-   function handleActionClick(actionKey) {
+   function handleActionClick(actionKey, options = {}) {
   currentAction = actionKey;
   const attacker = turnOrder[turnIndex];
 
@@ -2625,7 +2625,7 @@ async function resolveHeal(attacker, target) {
       ? selectedTarget
       : getPieceSquare(selectedTarget);
     const isInOrangeZone = targetSquare?.classList.contains('square--range');
-    if (!isInOrangeZone) {
+    if (!isInOrangeZone && !options.bypassVisuals) {
       if (typeof showTurnPopup === 'function') showTurnPopup('El objetivo está fuera de rango.');
       else alert('El objetivo está fuera de rango.');
       clearTargetSelection();
@@ -2642,7 +2642,7 @@ async function resolveHeal(attacker, target) {
   const isInOrangeZone = targetSquare.classList.contains('square--range');
   
   // Si el objetivo está en la zona Púrpura (lejos), solo permitimos poderes mentales
-  if (isInPurpleZone && !isInOrangeZone) {
+  if (isInPurpleZone && !isInOrangeZone && !options.bypassVisuals) {
       const mentalActions = ['control mental', 'telekinesis']; 
       const normalizedKey = normalizePowerKey(actionKey); 
 
@@ -2654,7 +2654,7 @@ async function resolveHeal(attacker, target) {
   }
   
   // Si no hay luz, no hay ataque
-  if (!isInOrangeZone && !isInPurpleZone) {
+  if (!isInOrangeZone && !isInPurpleZone && !options.bypassVisuals) {
       alert('El objetivo está fuera de rango (Visual).');
       clearTargetSelection();
       return;
