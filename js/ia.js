@@ -361,13 +361,13 @@ async function performWildcardTurn(piece, stats) {
         }
     }
 
-    const buffDecision = chooseSupportBuffTarget(stats, getAllies(piece));
+    const buffDecision = chooseSupportBuffTarget(piece, stats, getAllies(piece));
     if (buffDecision) {
         await performSupportActionFlow(piece, buffDecision);
         return;
     }
 
-    const selfBuffAction = chooseSelfBuffAction(stats);
+    const selfBuffAction = chooseSelfBuffAction(piece, stats);
     if (selfBuffAction) {
         await performSupportActionFlow(piece, {
             actionKey: selfBuffAction,
@@ -493,7 +493,7 @@ function chooseSupportAction(piece, stats) {
         }
     }
 
-    const buffDecision = chooseSupportBuffTarget(stats, allies);
+    const buffDecision = chooseSupportBuffTarget(piece, stats, allies);
     if (buffDecision) {
         return buffDecision;
     }
@@ -554,7 +554,7 @@ function chooseSupportControlOrBuff(piece, stats, { allowBuffs = true } = {}) {
         return null;
     }
 
-    const buffDecision = chooseSupportBuffTarget(stats, allies);
+    const buffDecision = chooseSupportBuffTarget(piece, stats, allies);
     if (buffDecision) {
         return buffDecision;
     }
@@ -568,7 +568,7 @@ function hasAttackOpportunity(piece, stats) {
     return Boolean(findSniperMoveSquare(piece, stats));
 }
 
-function chooseSupportBuffTarget(stats, allies) {
+function chooseSupportBuffTarget(attacker, stats, allies) {
     const buffs = [
         { key: 'mejora de ataque', stat: 'ataque' },
         { key: 'mejora de defensa', stat: 'defensa' },
@@ -587,14 +587,41 @@ function chooseSupportBuffTarget(stats, allies) {
                 : Boolean(allyStats.statBuffs?.[stat]);
             if (alreadyBuffed) return;
             const strength = allyStrengthScore(allyStats);
-            if (!best || strength > best.strength) {
-                best = { actionKey: key, target: ally, targetType: 'ally', strength };
+            const inRange = Boolean(attacker && canUseSupportAction(attacker, ally, key, 'ally'));
+            if (
+                !best ||
+                (inRange && !best.inRange) ||
+                (inRange === best.inRange && strength > best.strength)
+            ) {
+                best = { actionKey: key, target: ally, targetType: 'ally', strength, inRange };
             }
         });
     });
 
     if (!best) return null;
     return { actionKey: best.actionKey, target: best.target, targetType: best.targetType };
+}
+
+function chooseSelfBuffAction(piece, stats) {
+    if (!piece || !stats) return null;
+    const buffs = [
+        { key: 'mejora de ataque', stat: 'ataque' },
+        { key: 'mejora de defensa', stat: 'defensa' },
+        { key: 'mejora de agilidad', stat: 'agilidad' },
+        { key: 'mejora de critico', stat: 'critico' },
+    ];
+
+    const alreadyBuffed = (stat) => {
+        if (stat === 'critico') return Boolean(stats.critBuff);
+        return Boolean(stats.statBuffs?.[stat]);
+    };
+
+    const available = buffs.filter(({ key, stat }) => hasPower(stats, key) && !alreadyBuffed(stat));
+    if (available.length === 0) return null;
+
+    const preference = ['agilidad', 'ataque', 'defensa', 'critico'];
+    available.sort((a, b) => preference.indexOf(a.stat) - preference.indexOf(b.stat));
+    return available[0].key;
 }
 
 function getAllies(piece) {
@@ -747,7 +774,19 @@ function canUseSupportActionFromSquare(attacker, target, actionKey, originSquare
     if (!originSquare || !targetSquare) return false;
     const range = actionKey === 'attack' ? rangeForPiece(attacker) : rangeForAction(attacker, actionKey);
     const distance = attackDistance(originSquare, targetSquare);
-    if (distance > range || distance === 0) return false;
+    if (distance > range) return false;
+    if (distance === 0) {
+        const isSelf = attacker === target;
+        if (!isSelf) return false;
+        const allowedSelfActions = new Set([
+            'curar',
+            'mejora de ataque',
+            'mejora de defensa',
+            'mejora de agilidad',
+            'mejora de critico',
+        ]);
+        return allowedSelfActions.has(actionKey);
+    }
     if (requireVisibility && !isVisibleTarget(attacker, target, originSquare)) return false;
     return true;
 }
