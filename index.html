@@ -502,14 +502,34 @@ function registerTurnSound({ damageDealt = 0, attackFailed = false, zeroDamageHi
       allyCards.innerHTML = '';
       enemyCards.innerHTML = '';
 
+      const activePiece = turnOrder[turnIndex];
+      const allyOrder = selections?.player1 ?? [];
+      const enemyOrder = selections?.player2 ?? [];
+
+      const piecesByTeam = {
+        aliado: new Map(),
+        enemigo: new Map(),
+      };
+
       pieces.forEach(({ element }) => {
         if (!element) return;
+        const team = element.dataset.team;
+        if (!piecesByTeam[team]) return;
+        piecesByTeam[team].set(element.dataset.key, element);
+      });
+
+      const appendCard = (element, container) => {
         const stats = pieceMap.get(element);
         const eliminated = element.dataset.eliminated === 'true';
-        const container = element.dataset.team === 'aliado' ? allyCards : enemyCards;
         const card = document.createElement('div');
         card.className = `life-card${eliminated ? ' life-card--eliminated' : ''}`;
-        
+
+        if (element === activePiece) {
+          const borderColor = pieceColor(element);
+          card.classList.add('life-card--active-turn');
+          card.style.setProperty('--life-card-border', borderColor);
+        }
+
         // --- CAMBIO AQUÍ: Formato de vida Actual / Máxima ---
         const vidaActual = Math.max(stats.currentVida, 0);
         const vidaMax = stats.maxVida; 
@@ -523,7 +543,25 @@ function registerTurnSound({ damageDealt = 0, attackFailed = false, zeroDamageHi
           </div>
         `;
         container.appendChild(card);
-      });
+      };
+
+      const renderTeamCards = (team, order, container) => {
+        const used = new Set();
+        order.forEach((key) => {
+          const element = piecesByTeam[team].get(key);
+          if (!element) return;
+          used.add(element);
+          appendCard(element, container);
+        });
+
+        pieces.forEach(({ element }) => {
+          if (!element || element.dataset.team !== team || used.has(element)) return;
+          appendCard(element, container);
+        });
+      };
+
+      renderTeamCards('aliado', allyOrder, allyCards);
+      renderTeamCards('enemigo', enemyOrder, enemyCards);
     }
 
     function rebuildGameState() {

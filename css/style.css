@@ -764,6 +764,12 @@ body {
   border-color: rgba(255, 99, 99, 0.55);
 }
 
+.life-card--active-turn {
+  border-width: 2px;
+  border-color: var(--life-card-border, #ffffff);
+  box-shadow: 0 0 0 2px var(--life-card-border, #ffffff), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
 .life-card__main {
   display: flex;
   align-items: center;
