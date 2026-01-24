@@ -1485,7 +1485,8 @@ function attachTooltipEvents(piece) {
         actionKey,
         clawsRoll,
         critical,
-        heldObject
+        heldObject,
+        baseDamageAfterClaws
       }) {
         
         // 1. Defensa Visual
@@ -1539,7 +1540,7 @@ function attachTooltipEvents(piece) {
 
         // A) GARRAS
         if (clawsRoll !== null) {
-             const critSuffix = critical ? ` (${clawsRoll} X 2)` : '';
+             const critSuffix = critical ? ` (${baseDamageAfterClaws} X 2)` : '';
              damageText = `${attackerStats.name} realiza una tirada de Cuchillas/Garras/Colmillos y saca un ${clawsRoll}, con lo que su Daño es ${rawDamage}${critSuffix}.`;
              resistanceText = `${defenderStats.name} tiene una resistencia de ${resistance}.`;
         } 
