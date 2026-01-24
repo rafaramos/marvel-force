@@ -2502,6 +2502,7 @@ async function resolveHeal(attacker, target) {
 
       // --- MOVIMIENTO ---
       if (square.classList.contains('square--move')) {
+          if (actionUsedThisTurn) return;
           if (square.querySelector('.piece')) return;
           const distance = movementDistances.get(square);
           if (distance !== undefined && distance <= remainingMovement(activePiece)) {
