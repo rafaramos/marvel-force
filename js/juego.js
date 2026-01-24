@@ -112,6 +112,7 @@ const board = document.querySelector('.board');
 
       let backgroundStarted = false;
       let isPlayerVsAI = false;
+      let isAIVsAI = false;
       let gameStarted = false;
       const PROBABILIDAD_DURATION = 2;
       const SUPPORT_POWERS = new Set([
@@ -128,6 +129,16 @@ const board = document.querySelector('.board');
       let draftActive = false;
       const selections = { player1: [], player2: [] };
       let availableCharacters = [];
+
+      function shouldAIPick(playerId) {
+        return isAIVsAI || (isPlayerVsAI && playerId === 'player2');
+      }
+
+      function isCPUControlledPiece(piece) {
+        if (!piece) return false;
+        if (isAIVsAI) return true;
+        return isPlayerVsAI && piece.dataset.team === 'enemigo';
+      }
 
       // --- NUEVA VARIABLE DE ESTADO ---
     let pendingTelekinesis = null; // Guardará { attacker, victim } mientras eliges destino
@@ -2372,7 +2383,7 @@ async function resolveHeal(attacker, target) {
       // B) LÓGICA NORMAL
       // ==================================================================
       const activePiece = turnOrder[turnIndex];
-      if (isPlayerVsAI && activePiece.dataset.team === 'enemigo') return;
+      if (isCPUControlledPiece(activePiece)) return;
 
       let targetPiece = square.querySelector('.piece');
       const targetObject = square.querySelector('.object-token');
@@ -2861,7 +2872,7 @@ function startTurn(piece) {
       highlightRange(piece);
 
       // 3. Bloqueo para IA
-      if (isPlayerVsAI && piece.dataset.team === 'enemigo') {
+      if (isCPUControlledPiece(piece)) {
         passButton.disabled = true;
         attackButton.disabled = true;
         setTimeout(() => performEnemyTurn(piece), 1000);
@@ -2871,6 +2882,9 @@ function startTurn(piece) {
 
     function ownerLabel(playerId) {
       if (playerId === 'player1') return 'Jugador 1';
+      if (isAIVsAI) {
+        return playerId === 'player1' ? 'IA 1' : 'IA 2';
+      }
       return isPlayerVsAI ? 'IA' : 'Jugador 2';
     }
 
@@ -2996,7 +3010,7 @@ function startTurn(piece) {
       updateDraftLabels();
 
       const nextPicker = draftOrder[draftIndex];
-      if (isPlayerVsAI && nextPicker === 'player2') {
+      if (shouldAIPick(nextPicker)) {
         setTimeout(performAIPick, 600);
       }
     }
@@ -3053,7 +3067,8 @@ function startTurn(piece) {
 
     function beginDraft(mode) {
       // 1. CORRECCIÓN: Asignamos el modo correctamente
-      isPlayerVsAI = (mode === 'ai'); 
+      isPlayerVsAI = (mode === 'ai');
+      isAIVsAI = (mode === 'aivai');
 
       selections.player1 = [];
       selections.player2 = [];
@@ -3070,7 +3085,7 @@ function startTurn(piece) {
 
       // 2. CORRECCIÓN: Si la IA empieza eligiendo, hay que avisarla
       const currentPicker = draftOrder[draftIndex];
-      if (isPlayerVsAI && currentPicker === 'player2') {
+      if (shouldAIPick(currentPicker)) {
         setTimeout(performAIPick, 600);
       }
     }
@@ -3288,7 +3303,7 @@ function startGame() {
       if (!activePiece) return;
       
       // Bloqueo si es turno de la IA (para no pasarle el turno accidentalmente)
-      if (isPlayerVsAI && activePiece.dataset.team === 'enemigo') return;
+      if (isCPUControlledPiece(activePiece)) return;
 
       playEffectSound(passTurnSound);
       finishTurn(activePiece);
@@ -3299,7 +3314,7 @@ function startGame() {
       if (!activePiece) return;
       
       // Bloqueo IA
-      if (isPlayerVsAI && activePiece.dataset.team === 'enemigo') return;
+      if (isCPUControlledPiece(activePiece)) return;
 
       if (!selectedTarget) return;
 
