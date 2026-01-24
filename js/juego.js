@@ -255,7 +255,7 @@ let activeBarriers = []; // Nueva lista para rastrear barreras activas
 
     const AI_DELAY_MS = 1200;
     const TURN_DELAY_MS = 600;
-    const ENEMY_ACTION_DELAY_MS = 900;
+    const ENEMY_ACTION_DELAY_MS = 500;
     const DEFAULT_MOVE_DURATION_MS = 1200;
 
     let squaresByCoord = new Map();

@@ -379,6 +379,7 @@ async function performTargetedAction(piece, target, actionKey) {
     if (canUseSupportAction(piece, target, actionKey, 'enemy')) {
         await flashAITarget(piece, target);
         selectedTarget = target;
+        await sleep(ENEMY_ACTION_DELAY_MS);
         handleActionClick(actionKey, { bypassVisuals: true });
         return true;
     }
@@ -390,6 +391,7 @@ async function performTargetedAction(piece, target, actionKey) {
     if (canUseSupportAction(piece, target, actionKey, 'enemy')) {
         await flashAITarget(piece, target);
         selectedTarget = target;
+        await sleep(ENEMY_ACTION_DELAY_MS);
         handleActionClick(actionKey, { bypassVisuals: true });
         return true;
     }
