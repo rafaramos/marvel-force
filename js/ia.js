@@ -198,12 +198,24 @@ async function performEnemyTurn(piece) {
         return;
     }
     const highDamageProfile = isHighDamageProfile(stats);
+    const mediumDamageProfile = isMediumDamageProfile(stats);
     const enemiesInRange = getEnemiesInRange(piece);
+    const alliesInRange = getAlliesInRange(piece);
     const enemiesReachable = getEnemiesInMoveRange(piece);
     const hasSupportAllyInRange = Boolean(findSupportDecision(piece, stats, { requireInRange: true, alliesOnly: true }));
 
     if (highDamageProfile) {
-        if (enemiesInRange.length > 0) {
+        if (enemiesInRange.length === 0 && alliesInRange.length === 0 && enemiesReachable.length === 0) {
+            await handleHighDamageNoTargets(piece, stats);
+            return;
+        }
+
+        if (enemiesInRange.length === 0 && alliesInRange.length > 0) {
+            await handleHighDamageAlliesOnlyInRange(piece, stats);
+            return;
+        }
+
+        if (enemiesInRange.length > 0 && alliesInRange.length > 0) {
             await handleHighDamageInRange(piece, stats, enemiesInRange);
             return;
         }
@@ -213,7 +225,52 @@ async function performEnemyTurn(piece) {
             return;
         }
 
-        await handleHighDamageNoRange(piece, stats);
+        if (enemiesInRange.length > 0) {
+            await handleHighDamageInRange(piece, stats, enemiesInRange);
+            return;
+        }
+
+        await handleHighDamageNoTargets(piece, stats);
+        return;
+    }
+
+    if (mediumDamageProfile) {
+        if (enemiesInRange.length === 0 && alliesInRange.length === 0 && enemiesReachable.length === 0) {
+            await handleMediumDamageNoTargets(piece, stats);
+            return;
+        }
+
+        if (enemiesInRange.length === 0 && alliesInRange.length > 0) {
+            await handleMediumDamageAlliesOnlyInRange(piece, stats);
+            return;
+        }
+
+        if (enemiesInRange.length > 0 && alliesInRange.length > 0) {
+            await handleMediumDamageAlliesInRange(piece, stats, enemiesInRange);
+            return;
+        }
+
+        if (enemiesReachable.length > 0) {
+            await handleMediumDamageMoveRange(piece, stats, enemiesReachable);
+            return;
+        }
+
+        if (enemiesInRange.length > 0) {
+            await handleMediumDamageEnemiesOnlyInRange(piece, stats, enemiesInRange);
+            return;
+        }
+
+        await handleMediumDamageNoTargets(piece, stats);
+        return;
+    }
+
+    if (enemiesInRange.length === 0 && alliesInRange.length === 0 && enemiesReachable.length === 0) {
+        await handleLowDamageNoTargets(piece, stats);
+        return;
+    }
+
+    if (enemiesInRange.length === 0 && alliesInRange.length > 0) {
+        await handleLowDamageAlliesOnlyInRange(piece, stats);
         return;
     }
 
@@ -244,6 +301,15 @@ function isHighDamageProfile(stats) {
     );
 }
 
+function isMediumDamageProfile(stats) {
+    const damage = stats?.dano ?? 0;
+    return (
+        damage === 2 &&
+        !hasPower(stats, 'Cuchillas/Garras/Colmillos') &&
+        !hasPower(stats, 'Experto a/d')
+    );
+}
+
 function hasDureza(stats) {
     return hasPower(stats, 'Dureza');
 }
@@ -257,6 +323,17 @@ function getEnemiesInRange(piece) {
     if (!origin) return [];
     return getVisibleEnemies(piece, { requireVisibility: true }).filter((enemy) => {
         const targetSquare = getPieceSquare(enemy);
+        if (!targetSquare) return false;
+        return isWithinAttackRange(origin, targetSquare, rangeForPiece(piece));
+    });
+}
+
+function getAlliesInRange(piece) {
+    const origin = getPieceSquare(piece);
+    if (!origin) return [];
+    return getAllies(piece).filter((ally) => {
+        if (ally === piece) return false;
+        const targetSquare = getPieceSquare(ally);
         if (!targetSquare) return false;
         return isWithinAttackRange(origin, targetSquare, rangeForPiece(piece));
     });
@@ -315,6 +392,47 @@ async function performTargetedAction(piece, target, actionKey) {
         selectedTarget = target;
         handleActionClick(actionKey, { bypassVisuals: true });
         return true;
+    }
+
+    return false;
+}
+
+async function executeSingleTargetSequence(piece, stats, enemies, steps) {
+    for (const step of steps) {
+        if (step === 'attack-weak') {
+            const target = chooseTargetByDurability(enemies, ['none']);
+            if (target) {
+                if (await performTargetedAction(piece, target, 'attack')) return true;
+            }
+        }
+
+        if (step === 'control mental' && hasPower(stats, 'Control Mental')) {
+            const target = chooseDangerousEnemy(enemies);
+            if (await performTargetedAction(piece, target, 'control mental')) return true;
+        }
+
+        if (step === 'incapacitar' && hasPower(stats, 'Incapacitar')) {
+            const target = chooseDangerousEnemy(enemies);
+            if (await performTargetedAction(piece, target, 'incapacitar')) return true;
+        }
+
+        if (step === 'attack-dureza') {
+            const target = chooseTargetByDurability(enemies, ['dureza']);
+            if (target) {
+                if (await performTargetedAction(piece, target, 'attack')) return true;
+            }
+        }
+
+        if (step === 'attack-invulnerable') {
+            const target = chooseTargetByDurability(enemies, ['invulnerable']);
+            if (target) {
+                if (await performTargetedAction(piece, target, 'attack')) return true;
+            }
+        }
+
+        if (step === 'support') {
+            if (await attemptSupportAction(piece, stats)) return true;
+        }
     }
 
     return false;
@@ -427,29 +545,13 @@ async function handleHighDamageInRange(piece, stats, enemies) {
     }
 
     if (enemies.length === 1) {
-        const target = enemies[0];
-        const targetStats = pieceMap.get(target);
-        if (targetStats && !hasDureza(targetStats) && !hasInvulnerable(targetStats)) {
-            await performTargetedAction(piece, target, 'attack');
-            return;
-        }
-
-        if (hasPower(stats, 'Control Mental')) {
-            const controlTarget = chooseDangerousEnemy(enemies);
-            if (await performTargetedAction(piece, controlTarget, 'control mental')) return;
-        }
-
-        const durezaTarget = chooseTargetByDurability(enemies, ['dureza']);
-        if (durezaTarget) {
-            await performTargetedAction(piece, durezaTarget, 'attack');
-            return;
-        }
-
-        const invTarget = chooseTargetByDurability(enemies, ['invulnerable']);
-        if (invTarget) {
-            await performTargetedAction(piece, invTarget, 'attack');
-            return;
-        }
+        const handled = await executeSingleTargetSequence(piece, stats, enemies, [
+            'attack-weak',
+            'control mental',
+            'attack-dureza',
+            'attack-invulnerable',
+        ]);
+        if (handled) return;
     }
 
     const target = chooseTargetByDurability(enemies, ['none', 'dureza', 'invulnerable']);
@@ -469,26 +571,13 @@ async function handleHighDamageMoveRange(piece, stats, enemies) {
     }
 
     if (enemies.length === 1) {
-        const target = enemies[0];
-        const targetStats = pieceMap.get(target);
-        if (targetStats && !hasDureza(targetStats) && !hasInvulnerable(targetStats)) {
-            if (await performTargetedAction(piece, target, 'attack')) return;
-        }
-
-        if (hasPower(stats, 'Control Mental')) {
-            const controlTarget = chooseDangerousEnemy(enemies);
-            if (await performTargetedAction(piece, controlTarget, 'control mental')) return;
-        }
-
-        const durezaTarget = chooseTargetByDurability(enemies, ['dureza']);
-        if (durezaTarget) {
-            if (await performTargetedAction(piece, durezaTarget, 'attack')) return;
-        }
-
-        const invTarget = chooseTargetByDurability(enemies, ['invulnerable']);
-        if (invTarget) {
-            if (await performTargetedAction(piece, invTarget, 'attack')) return;
-        }
+        const handled = await executeSingleTargetSequence(piece, stats, enemies, [
+            'attack-weak',
+            'control mental',
+            'attack-dureza',
+            'attack-invulnerable',
+        ]);
+        if (handled) return;
     }
 
     const target = chooseTargetByDurability(enemies, ['none', 'dureza', 'invulnerable']);
@@ -500,7 +589,7 @@ async function handleHighDamageMoveRange(piece, stats, enemies) {
     finishTurn(piece);
 }
 
-async function handleHighDamageNoRange(piece, stats) {
+async function handleHighDamageNoTargets(piece, stats) {
     if (!(await moveTowardEnemy(piece))) {
         playEffectSound(passTurnSound);
         finishTurn(piece);
@@ -509,29 +598,13 @@ async function handleHighDamageNoRange(piece, stats) {
 
     const enemiesInRange = getEnemiesInRange(piece);
     if (enemiesInRange.length === 1) {
-        const target = enemiesInRange[0];
-        const targetStats = pieceMap.get(target);
-        if (targetStats && !hasDureza(targetStats) && !hasInvulnerable(targetStats)) {
-            await performTargetedAction(piece, target, 'attack');
-            return;
-        }
-
-        if (hasPower(stats, 'Control Mental')) {
-            const controlTarget = chooseDangerousEnemy(enemiesInRange);
-            if (await performTargetedAction(piece, controlTarget, 'control mental')) return;
-        }
-
-        const durezaTarget = chooseTargetByDurability(enemiesInRange, ['dureza']);
-        if (durezaTarget) {
-            await performTargetedAction(piece, durezaTarget, 'attack');
-            return;
-        }
-
-        const invTarget = chooseTargetByDurability(enemiesInRange, ['invulnerable']);
-        if (invTarget) {
-            await performTargetedAction(piece, invTarget, 'attack');
-            return;
-        }
+        const handled = await executeSingleTargetSequence(piece, stats, enemiesInRange, [
+            'attack-weak',
+            'control mental',
+            'attack-dureza',
+            'attack-invulnerable',
+        ]);
+        if (handled) return;
     }
 
     if (enemiesInRange.length > 0) {
@@ -542,7 +615,182 @@ async function handleHighDamageNoRange(piece, stats) {
         }
     }
 
+    const alliesInRange = getAlliesInRange(piece);
+    if (alliesInRange.length > 0 || enemiesInRange.length === 0) {
+        if (await attemptSupportActionInRange(piece, stats)) return;
+    }
+
+    playEffectSound(passTurnSound);
+    finishTurn(piece);
+}
+
+async function handleHighDamageAlliesOnlyInRange(piece, stats) {
+    if (await attemptSupportActionInRange(piece, stats)) {
+        // continue flow after support
+    }
+
+    if (!(await moveTowardEnemy(piece))) {
+        playEffectSound(passTurnSound);
+        finishTurn(piece);
+        return;
+    }
+
+    const enemiesInRange = getEnemiesInRange(piece);
+    if (enemiesInRange.length > 0) {
+        await handleHighDamageInRange(piece, stats, enemiesInRange);
+        return;
+    }
+
+    const alliesInRange = getAlliesInRange(piece);
+    if (alliesInRange.length > 0) {
+        if (await attemptSupportActionInRange(piece, stats)) return;
+    } else {
+        if (await attemptSupportActionInRange(piece, stats)) return;
+    }
+
+    playEffectSound(passTurnSound);
+    finishTurn(piece);
+}
+
+async function handleMediumDamageNoTargets(piece, stats) {
+    if (!(await moveTowardEnemy(piece))) {
+        playEffectSound(passTurnSound);
+        finishTurn(piece);
+        return;
+    }
+
+    const enemiesInRange = getEnemiesInRange(piece);
+    if (enemiesInRange.length === 1) {
+        const handled = await executeSingleTargetSequence(piece, stats, enemiesInRange, [
+            'attack-weak',
+            'control mental',
+            'attack-dureza',
+            'incapacitar',
+            'attack-invulnerable',
+        ]);
+        if (handled) return;
+    }
+
+    if (enemiesInRange.length > 0) {
+        const target = chooseTargetByDurability(enemiesInRange, ['none', 'dureza', 'invulnerable']);
+        if (target && await performTargetedAction(piece, target, 'attack')) return;
+    }
+
     if (await attemptSupportActionInRange(piece, stats)) return;
+
+    playEffectSound(passTurnSound);
+    finishTurn(piece);
+}
+
+async function handleMediumDamageAlliesOnlyInRange(piece, stats) {
+    if (await attemptSupportActionInRange(piece, stats)) {
+        // continue flow after support
+    }
+
+    if (!(await moveTowardEnemy(piece))) {
+        playEffectSound(passTurnSound);
+        finishTurn(piece);
+        return;
+    }
+
+    const enemiesInRange = getEnemiesInRange(piece);
+    if (enemiesInRange.length > 0) {
+        await handleMediumDamageEnemiesOnlyInRange(piece, stats, enemiesInRange);
+        return;
+    }
+
+    if (await attemptSupportActionInRange(piece, stats)) return;
+
+    playEffectSound(passTurnSound);
+    finishTurn(piece);
+}
+
+async function handleMediumDamageAlliesInRange(piece, stats, enemies) {
+    if (hasPower(stats, 'Pulso') && countAdjacentEnemies(piece) >= 3) {
+        handleActionClick('pulso', { bypassVisuals: true });
+        return;
+    }
+
+    const explosionTarget = findExplosionTarget(piece, enemies);
+    if (explosionTarget) {
+        await performTargetedAction(piece, explosionTarget, 'explosion');
+        return;
+    }
+
+    if (enemies.length === 1) {
+        const handled = await executeSingleTargetSequence(piece, stats, enemies, [
+            'attack-weak',
+            'control mental',
+            'attack-dureza',
+            'incapacitar',
+            'support',
+            'attack-invulnerable',
+        ]);
+        if (handled) return;
+    }
+
+    const target = chooseTargetByDurability(enemies, ['none', 'dureza', 'invulnerable']);
+    if (target) {
+        await performTargetedAction(piece, target, 'attack');
+        return;
+    }
+
+    playEffectSound(passTurnSound);
+    finishTurn(piece);
+}
+
+async function handleMediumDamageEnemiesOnlyInRange(piece, stats, enemies) {
+    if (hasPower(stats, 'Pulso') && countAdjacentEnemies(piece) >= 3) {
+        handleActionClick('pulso', { bypassVisuals: true });
+        return;
+    }
+
+    const explosionTarget = findExplosionTarget(piece, enemies);
+    if (explosionTarget) {
+        await performTargetedAction(piece, explosionTarget, 'explosion');
+        return;
+    }
+
+    if (enemies.length === 1) {
+        const handled = await executeSingleTargetSequence(piece, stats, enemies, [
+            'attack-weak',
+            'control mental',
+            'attack-dureza',
+            'incapacitar',
+            'attack-invulnerable',
+        ]);
+        if (handled) return;
+    }
+
+    const target = chooseTargetByDurability(enemies, ['none', 'dureza', 'invulnerable']);
+    if (target) {
+        await performTargetedAction(piece, target, 'attack');
+        return;
+    }
+
+    playEffectSound(passTurnSound);
+    finishTurn(piece);
+}
+
+async function handleMediumDamageMoveRange(piece, stats, enemies) {
+    const explosionTarget = findExplosionTarget(piece, enemies);
+    if (explosionTarget) {
+        if (await performTargetedAction(piece, explosionTarget, 'explosion')) return;
+    }
+
+    if (enemies.length === 1) {
+        const handled = await executeSingleTargetSequence(piece, stats, enemies, [
+            'attack-weak',
+            'control mental',
+            'attack-dureza',
+            'incapacitar',
+            'attack-invulnerable',
+        ]);
+        if (handled) return;
+    }
+
+    const target = chooseTargetByDurability(enemies, ['none', 'dureza', 'invulnerable']);
+    if (target && await performTargetedAction(piece, target, 'attack')) return;
 
     playEffectSound(passTurnSound);
     finishTurn(piece);
@@ -561,36 +809,15 @@ async function handleLowDamageAlliesInRange(piece, stats, enemies) {
     }
 
     if (enemies.length === 1) {
-        const target = enemies[0];
-        const targetStats = pieceMap.get(target);
-        if (targetStats && !hasDureza(targetStats) && !hasInvulnerable(targetStats)) {
-            await performTargetedAction(piece, target, 'attack');
-            return;
-        }
-
-        if (hasPower(stats, 'Control Mental')) {
-            const controlTarget = chooseDangerousEnemy(enemies);
-            if (await performTargetedAction(piece, controlTarget, 'control mental')) return;
-        }
-
-        if (hasPower(stats, 'Incapacitar')) {
-            const incapTarget = chooseDangerousEnemy(enemies);
-            if (await performTargetedAction(piece, incapTarget, 'incapacitar')) return;
-        }
-
-        if (await attemptSupportAction(piece, stats)) return;
-
-        const durezaTarget = chooseTargetByDurability(enemies, ['dureza']);
-        if (durezaTarget) {
-            await performTargetedAction(piece, durezaTarget, 'attack');
-            return;
-        }
-
-        const invTarget = chooseTargetByDurability(enemies, ['invulnerable']);
-        if (invTarget) {
-            await performTargetedAction(piece, invTarget, 'attack');
-            return;
-        }
+        const handled = await executeSingleTargetSequence(piece, stats, enemies, [
+            'control mental',
+            'incapacitar',
+            'support',
+            'attack-weak',
+            'attack-dureza',
+            'attack-invulnerable',
+        ]);
+        if (handled) return;
     }
 
     const target = chooseTargetByDurability(enemies, ['none', 'dureza', 'invulnerable']);
@@ -616,36 +843,14 @@ async function handleLowDamageEnemiesOnlyInRange(piece, stats, enemies) {
     }
 
     if (enemies.length === 1) {
-        const target = enemies[0];
-        const targetStats = pieceMap.get(target);
-        if (targetStats && !hasDureza(targetStats) && !hasInvulnerable(targetStats)) {
-            await performTargetedAction(piece, target, 'attack');
-            return;
-        }
-
-        if (hasPower(stats, 'Control Mental')) {
-            const controlTarget = chooseDangerousEnemy(enemies);
-            if (await performTargetedAction(piece, controlTarget, 'control mental')) return;
-        }
-
-        if (hasPower(stats, 'Incapacitar')) {
-            const incapTarget = chooseDangerousEnemy(enemies);
-            if (await performTargetedAction(piece, incapTarget, 'incapacitar')) return;
-        }
-
-        if (await attemptSupportAction(piece, stats)) return;
-
-        const durezaTarget = chooseTargetByDurability(enemies, ['dureza']);
-        if (durezaTarget) {
-            await performTargetedAction(piece, durezaTarget, 'attack');
-            return;
-        }
-
-        const invTarget = chooseTargetByDurability(enemies, ['invulnerable']);
-        if (invTarget) {
-            await performTargetedAction(piece, invTarget, 'attack');
-            return;
-        }
+        const handled = await executeSingleTargetSequence(piece, stats, enemies, [
+            'control mental',
+            'incapacitar',
+            'attack-weak',
+            'attack-dureza',
+            'attack-invulnerable',
+        ]);
+        if (handled) return;
     }
 
     const target = chooseTargetByDurability(enemies, ['none', 'dureza', 'invulnerable']);
@@ -665,50 +870,18 @@ async function handleLowDamageMoveRange(piece, stats, enemies) {
     }
 
     if (enemies.length === 1) {
-        const target = enemies[0];
-        const targetStats = pieceMap.get(target);
-        if (targetStats && !hasDureza(targetStats) && !hasInvulnerable(targetStats)) {
-            if (await performTargetedAction(piece, target, 'attack')) return;
-        }
-
-        if (hasPower(stats, 'Control Mental')) {
-            const controlTarget = chooseDangerousEnemy(enemies);
-            if (await performTargetedAction(piece, controlTarget, 'control mental')) return;
-        }
-
-        const durezaTarget = chooseTargetByDurability(enemies, ['dureza']);
-        if (durezaTarget) {
-            if (await performTargetedAction(piece, durezaTarget, 'attack')) return;
-        }
-
-        if (hasPower(stats, 'Incapacitar')) {
-            const incapTarget = chooseDangerousEnemy(enemies);
-            if (await performTargetedAction(piece, incapTarget, 'incapacitar')) return;
-        }
-
-        const invTarget = chooseTargetByDurability(enemies, ['invulnerable']);
-        if (invTarget) {
-            if (await performTargetedAction(piece, invTarget, 'attack')) return;
-        }
-
-        if (await attemptSupportAction(piece, stats)) return;
-
-        if (await moveTowardEnemy(piece)) {
-            playEffectSound(passTurnSound);
-            finishTurn(piece);
-            return;
-        }
+        const handled = await executeSingleTargetSequence(piece, stats, enemies, [
+            'control mental',
+            'incapacitar',
+            'attack-weak',
+            'attack-dureza',
+            'attack-invulnerable',
+        ]);
+        if (handled) return;
     }
 
     const target = chooseTargetByDurability(enemies, ['none', 'dureza', 'invulnerable']);
     if (target && await performTargetedAction(piece, target, 'attack')) return;
-
-    if (await attemptSupportAction(piece, stats)) return;
-    if (await moveTowardEnemy(piece)) {
-        playEffectSound(passTurnSound);
-        finishTurn(piece);
-        return;
-    }
 
     playEffectSound(passTurnSound);
     finishTurn(piece);
@@ -721,6 +894,59 @@ async function handleLowDamageNoRange(piece, stats) {
         finishTurn(piece);
         return;
     }
+    playEffectSound(passTurnSound);
+    finishTurn(piece);
+}
+
+async function handleLowDamageNoTargets(piece, stats) {
+    if (!(await moveTowardEnemy(piece))) {
+        playEffectSound(passTurnSound);
+        finishTurn(piece);
+        return;
+    }
+
+    const enemiesInRange = getEnemiesInRange(piece);
+    if (enemiesInRange.length === 1) {
+        const handled = await executeSingleTargetSequence(piece, stats, enemiesInRange, [
+            'control mental',
+            'incapacitar',
+            'attack-weak',
+            'attack-dureza',
+            'attack-invulnerable',
+        ]);
+        if (handled) return;
+    }
+
+    if (enemiesInRange.length > 0) {
+        const target = chooseTargetByDurability(enemiesInRange, ['none', 'dureza', 'invulnerable']);
+        if (target && await performTargetedAction(piece, target, 'attack')) return;
+    }
+
+    if (await attemptSupportActionInRange(piece, stats)) return;
+
+    playEffectSound(passTurnSound);
+    finishTurn(piece);
+}
+
+async function handleLowDamageAlliesOnlyInRange(piece, stats) {
+    if (await attemptSupportActionInRange(piece, stats)) {
+        // continue after support
+    }
+
+    if (!(await moveTowardEnemy(piece))) {
+        playEffectSound(passTurnSound);
+        finishTurn(piece);
+        return;
+    }
+
+    const enemiesInRange = getEnemiesInRange(piece);
+    if (enemiesInRange.length > 0) {
+        await handleLowDamageEnemiesOnlyInRange(piece, stats, enemiesInRange);
+        return;
+    }
+
+    if (await attemptSupportActionInRange(piece, stats)) return;
+
     playEffectSound(passTurnSound);
     finishTurn(piece);
 }
