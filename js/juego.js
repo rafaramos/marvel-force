@@ -1540,8 +1540,10 @@ function attachTooltipEvents(piece) {
 
         // A) GARRAS
         if (clawsRoll !== null) {
-             const critSuffix = critical ? ` (${baseDamageAfterClaws} X 2)` : '';
-             damageText = `${attackerStats.name} realiza una tirada de Cuchillas/Garras/Colmillos y saca un ${clawsRoll}, con lo que su Daño es ${rawDamage}${critSuffix}.`;
+             const clawsBase = baseDamageAfterClaws ?? rawDamage;
+             const clawsDamage = critical ? clawsBase * 2 : clawsBase;
+             const critSuffix = critical ? ` (${clawsBase} X 2)` : '';
+             damageText = `${attackerStats.name} realiza una tirada de Cuchillas/Garras/Colmillos y saca un ${clawsRoll}, con lo que su Daño es ${clawsDamage}${critSuffix}.`;
              resistanceText = `${defenderStats.name} tiene una resistencia de ${resistance}.`;
         } 
         // B) NORMAL / OBJETO
