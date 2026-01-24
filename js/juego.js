@@ -253,9 +253,9 @@ let activeBarriers = []; // Nueva lista para rastrear barreras activas
     const allyCards = document.getElementById('allyCards');
     const enemyCards = document.getElementById('enemyCards');
 
-    const AI_DELAY_MS = 900;
-    const TURN_DELAY_MS = 250;
-    const ENEMY_ACTION_DELAY_MS = 500;
+    const AI_DELAY_MS = 1200;
+    const TURN_DELAY_MS = 600;
+    const ENEMY_ACTION_DELAY_MS = 900;
     const DEFAULT_MOVE_DURATION_MS = 1200;
 
     let squaresByCoord = new Map();
@@ -2833,6 +2833,10 @@ function handleActionClick(actionKey, options = {}) {
 
 function startTurn(piece) {
       if (!piece) return;
+      if (!turnPopup.hidden || !deathPopup.hidden) {
+        setTimeout(() => startTurn(piece), 200);
+        return;
+      }
       const stats = pieceMap.get(piece);
       if (!stats) return;
 
@@ -2875,7 +2879,7 @@ function startTurn(piece) {
       if (isCPUControlledPiece(piece)) {
         passButton.disabled = true;
         attackButton.disabled = true;
-        setTimeout(() => performEnemyTurn(piece), 1000);
+        setTimeout(() => performEnemyTurn(piece), AI_DELAY_MS);
       }
     }
 
