@@ -674,8 +674,8 @@ body {
   z-index: 22;
   /* ELIMINADO: scale(1.1) */
   transform: translate(-50%, -50%);
-  border-color: #33ff57 !important;
-  box-shadow: 0 0 25px rgba(50, 255, 87, 0.8);
+  border-color: #00e5ff !important;
+  box-shadow: 0 0 25px rgba(0, 229, 255, 0.8);
 }
 
 /* --- Objetos (Tokens) --- */
@@ -1298,8 +1298,8 @@ body {
 }
 
 .board.targeting .piece.valid-ally {
-  border-color: #33ff57 !important;
-  box-shadow: 0 0 25px rgba(50, 255, 87, 0.8);
+  border-color: #00e5ff !important;
+  box-shadow: 0 0 25px rgba(0, 229, 255, 0.8);
 }
 /* --- Estados de la Pieza --- */
 

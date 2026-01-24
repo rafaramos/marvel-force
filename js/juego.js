@@ -266,6 +266,7 @@ let activeBarriers = []; // Nueva lista para rastrear barreras activas
     const movementPool = new Map();
     let turnOrder = [];
     let turnIndex = 0;
+    let actionUsedThisTurn = false;
 
     // --- FUNCIONES DE MOVIMIENTO (RECUPERADAS) ---
     function remainingMovement(piece) {
@@ -736,7 +737,7 @@ function registerTurnSound({ damageDealt = 0, attackFailed = false, zeroDamageHi
       return SUPPORT_POWERS.has(normalizePowerKey(actionKey));
     }
 
-   function renderPowerButtons(piece) {
+    function renderPowerButtons(piece) {
       powerControls.innerHTML = '';
       const stats = pieceMap.get(piece);
       if (!stats) return;
@@ -764,7 +765,7 @@ function registerTurnSound({ damageDealt = 0, attackFailed = false, zeroDamageHi
         };
         
         btn.textContent = labels[key] || ability?.nombre || ability;
-        btn.disabled = false;
+        btn.disabled = actionUsedThisTurn;
         btn.addEventListener('click', () => handleActionClick(key));
         powerControls.appendChild(btn);
       });
@@ -1026,21 +1027,19 @@ function highlightRange(piece) {
             const isHiddenByStealth = dist > 3 && hasPassive(targetStats, 'sigilo');
 
             if (isSupport && isAlly) {
-              targetPiece.classList.add('valid-ally');
+              targetPiece.classList.add('valid-target-blue');
               targetsFound = true;
             }
             else if (!isSupport && !isAlly) {
               // Si NO está oculto, marcamos. Si está oculto, NO marcamos (y se verá gris)
               if (!isHiddenByStealth) {
-                  if (piece.dataset.team === 'aliado') targetPiece.classList.add('valid-target');
-                  else targetPiece.classList.add('valid-target-blue');
+                  targetPiece.classList.add('valid-target');
                   targetsFound = true;
               }
             }
             else if (!isSupport && isAlly && pieceMap.get(targetPiece)?.mindControlled) {
                if (!isHiddenByStealth) {
-                  if (piece.dataset.team === 'aliado') targetPiece.classList.add('valid-target');
-                  else targetPiece.classList.add('valid-target-blue');
+                  targetPiece.classList.add('valid-target');
                   targetsFound = true;
               }
             }
@@ -1072,6 +1071,27 @@ function highlightRange(piece) {
       tooltip.hidden = true;
       selectedTarget = null;
       pendingBarrierPlacement = null;
+    }
+
+    function setActionControlsEnabled(enabled) {
+      attackButton.disabled = !enabled;
+      powerControls.querySelectorAll('button').forEach((btn) => {
+        btn.disabled = !enabled;
+      });
+    }
+
+    function registerActionUsage(attacker, { showPopup = false, autoFinish = true } = {}) {
+      actionUsedThisTurn = true;
+      setActionControlsEnabled(false);
+      clearRangeHighlights();
+      clearTargetSelection(true);
+      attackButton.classList.remove('button--pulse');
+      updateCombatInfo();
+      updateStatusBar(attacker);
+
+      if (autoFinish && (remainingMovement(attacker) <= 0 || isCPUControlledPiece(attacker))) {
+        finishTurn(attacker, { showPopup });
+      }
     }
 
     function highlightMovement(piece) {
@@ -1137,7 +1157,7 @@ function highlightRange(piece) {
       document.querySelectorAll('.piece').forEach((p) => p.classList.remove('piece--active'));
       piece.classList.add('piece--active');
       passButton.disabled = false;
-      attackButton.disabled = false;
+      setActionControlsEnabled(true);
       renderLifeCards();
       updateStatusBar(piece);
       updateCombatInfo();
@@ -1704,7 +1724,7 @@ async function resolveAttack(attacker, defender, actionKey = 'attack', options =
         updateCombatInfo();
         if (!skipTurnAdvance) {
           await showTurnPopup(blockedMessage);
-          finishTurn(attacker, { showPopup: false });
+          registerActionUsage(attacker, { showPopup: false });
         }
         return;
       }
@@ -1722,7 +1742,7 @@ async function resolveAttack(attacker, defender, actionKey = 'attack', options =
             updateCombatInfo();
             if (!skipTurnAdvance) {
               await showTurnPopup(blockedMessage);
-              finishTurn(attacker, { showPopup: false });
+              registerActionUsage(attacker, { showPopup: false });
             }
             return;
         }
@@ -1842,7 +1862,7 @@ async function resolveAttack(attacker, defender, actionKey = 'attack', options =
           skipTurnAdvance: true,
           actionLabelOverride: 'Réplica',
         });
-        if (!skipTurnAdvance) finishTurn(attacker);
+        if (!skipTurnAdvance) registerActionUsage(attacker, { showPopup: false });
         return;
       }
 
@@ -1866,7 +1886,7 @@ async function resolveAttack(attacker, defender, actionKey = 'attack', options =
         clearRangeHighlights();
         selectedTarget = null;
         attackButton.classList.remove('button--pulse');
-        finishTurn(attacker);
+        registerActionUsage(attacker, { showPopup: false });
       }
     }
 
@@ -1942,7 +1962,7 @@ async function resolveExplosion(attacker, centerTarget) {
   renderLifeCards();
   
   await showTurnPopup(msg);
-  finishTurn(attacker, { showPopup: false });
+  registerActionUsage(attacker, { showPopup: false });
 }
 
 
@@ -2022,7 +2042,7 @@ async function resolvePulse(attacker) {
   renderLifeCards();
   
   await showTurnPopup(msg);
-  finishTurn(attacker, { showPopup: false });
+  registerActionUsage(attacker, { showPopup: false });
 }
 
 
@@ -2071,7 +2091,7 @@ async function finalizeBarrierPlacement(attacker, created) {
   // 2. REFRESCO VISUAL (Importante para ver los puntos)
   renderLifeCards(); 
 
-  finishTurn(attacker, { showPopup: false });
+  registerActionUsage(attacker, { showPopup: false });
 }
 
 
@@ -2183,7 +2203,7 @@ async function resolveBarrier(attacker, targetSquare) {
       clearTargetSelection(true);
       attackButton.classList.remove('button--pulse');
       updateCombatInfo();
-      finishTurn(attacker);
+      registerActionUsage(attacker, { showPopup: false });
     }
 
    function applyStatBuff(attacker, target, { stat, label }) {
@@ -2247,7 +2267,7 @@ async function resolveBarrier(attacker, targetSquare) {
       renderLifeCards();
       
       showTurnPopup(message).then(() => {
-          finishTurn(attacker, { showPopup: false });
+          registerActionUsage(attacker, { showPopup: false });
       });
     }
 
@@ -2261,7 +2281,7 @@ async function resolveHeal(attacker, target) {
       
       if (wounds === 0) {
         await showTurnPopup(`${attackerStats.name} intenta curar a ${targetStats.name}, pero ya está al máximo de salud.`);
-        finishTurn(attacker, { showPopup: false });
+        registerActionUsage(attacker, { showPopup: false });
         return;
       }
 
@@ -2304,7 +2324,7 @@ async function resolveHeal(attacker, target) {
           await showTurnPopup(msg);
       }
 
-      finishTurn(attacker, { showPopup: false });
+      registerActionUsage(attacker, { showPopup: false });
 }
 
    
@@ -2362,7 +2382,7 @@ async function resolveHeal(attacker, target) {
               if (!isObject) await showTurnPopup(msg);
 
               cancelTelekinesis();
-              finishTurn(attacker, { showPopup: false });
+              registerActionUsage(attacker, { showPopup: false });
               return;
           }
 
@@ -2511,12 +2531,18 @@ async function resolveHeal(attacker, target) {
               highlightMovement(activePiece);
               highlightRange(activePiece);
               updateStatusBar(activePiece);
+              if (actionUsedThisTurn && remainingMovement(activePiece) <= 0) {
+                  finishTurn(activePiece, { showPopup: false });
+              }
           }
           return;
       }
     });
 
 function handleActionClick(actionKey, options = {}) {
+  if (actionUsedThisTurn) {
+    return;
+  }
   currentAction = actionKey;
   const attacker = turnOrder[turnIndex];
 
@@ -2874,6 +2900,7 @@ function startTurn(piece) {
 
       // 2. Configuración Estándar
       resetMovement(piece);
+      actionUsedThisTurn = false;
       setActivePiece(piece); 
       clearTargetSelection(true);
       clearHighlights();
@@ -3256,7 +3283,7 @@ function startGame() {
     cancelTelekinesis(); // Limpia estados
     
     await showTurnPopup(msg);
-    finishTurn(attacker, { showPopup: false });
+    registerActionUsage(attacker, { showPopup: false });
 }
 
     function cancelTelekinesis() {
@@ -3324,6 +3351,7 @@ function startGame() {
       
       // Bloqueo IA
       if (isCPUControlledPiece(activePiece)) return;
+      if (actionUsedThisTurn) return;
 
       if (!selectedTarget) return;
 
