@@ -1080,9 +1080,14 @@ function highlightRange(piece) {
       });
     }
 
-    function registerActionUsage(attacker, { showPopup = false } = {}) {
+    function markActionUsed() {
+      if (actionUsedThisTurn) return;
       actionUsedThisTurn = true;
       setActionControlsEnabled(false);
+    }
+
+    function registerActionUsage(attacker, { showPopup = false } = {}) {
+      markActionUsed();
       clearRangeHighlights();
       clearTargetSelection(true);
       attackButton.classList.remove('button--pulse');
@@ -2546,6 +2551,7 @@ function handleActionClick(actionKey, options = {}) {
 
   // 1. Acciones sin objetivo (Área inmediata)
   if (actionKey === 'pulso') {
+    markActionUsed();
     resolvePulse(attacker);
     return;
   }
@@ -2625,6 +2631,7 @@ function handleActionClick(actionKey, options = {}) {
 
   // 4. TELEKINESIS: Iniciar fase de colocación
   if (actionKey === 'telekinesis') {
+      markActionUsed();
       startTelekinesisPlacement(attacker, selectedTarget);
       return; 
   }
@@ -2632,14 +2639,15 @@ function handleActionClick(actionKey, options = {}) {
   // 5. Resto de poderes
   const supportAction = normalizePowerKey(actionKey);
 
-  if (supportAction === 'probabilidad') { applyProbabilidad(attacker, selectedTarget); return; }
-  if (supportAction === 'mejora de ataque') { applyStatBuff(attacker, selectedTarget, { stat: 'ataque', label: 'Mejora de Ataque' }); return; }
-  if (supportAction === 'mejora de defensa') { applyStatBuff(attacker, selectedTarget, { stat: 'defensa', label: 'Mejora de Defensa' }); return; }
-  if (supportAction === 'mejora de agilidad') { applyStatBuff(attacker, selectedTarget, { stat: 'agilidad', label: 'Mejora de Agilidad' }); return; }
-  if (supportAction === 'mejora de critico') { applyStatBuff(attacker, selectedTarget, { stat: 'critico', label: 'Mejora de Crítico' }); return; }
-  if (supportAction === 'curar') { resolveHeal(attacker, selectedTarget); return; }
+  if (supportAction === 'probabilidad') { markActionUsed(); applyProbabilidad(attacker, selectedTarget); return; }
+  if (supportAction === 'mejora de ataque') { markActionUsed(); applyStatBuff(attacker, selectedTarget, { stat: 'ataque', label: 'Mejora de Ataque' }); return; }
+  if (supportAction === 'mejora de defensa') { markActionUsed(); applyStatBuff(attacker, selectedTarget, { stat: 'defensa', label: 'Mejora de Defensa' }); return; }
+  if (supportAction === 'mejora de agilidad') { markActionUsed(); applyStatBuff(attacker, selectedTarget, { stat: 'agilidad', label: 'Mejora de Agilidad' }); return; }
+  if (supportAction === 'mejora de critico') { markActionUsed(); applyStatBuff(attacker, selectedTarget, { stat: 'critico', label: 'Mejora de Crítico' }); return; }
+  if (supportAction === 'curar') { markActionUsed(); resolveHeal(attacker, selectedTarget); return; }
 
   if (actionKey === 'incapacitar') {
+    markActionUsed();
     const tStats = pieceMap.get(selectedTarget);
     if (tStats.incapacitatedTurns > 0) {
        showTurnPopup(`¡${tStats.name} ya está incapacitado!`);
@@ -2650,6 +2658,7 @@ function handleActionClick(actionKey, options = {}) {
   }
 
   if (actionKey === 'control mental') {
+    markActionUsed();
     const tStats = pieceMap.get(selectedTarget);
     if (tStats.mindControlled) {
         showTurnPopup(`¡${tStats.name} ya está bajo control mental!`);
@@ -2664,8 +2673,10 @@ function handleActionClick(actionKey, options = {}) {
   prepareAttackInfo(attacker, selectedTarget, actionKey);
   
   if (actionKey === 'explosion') {
+    markActionUsed();
     resolveExplosion(attacker, selectedTarget);
   } else {
+    markActionUsed();
     resolveAttack(attacker, selectedTarget, actionKey);
   }
 }
@@ -3358,9 +3369,11 @@ function startGame() {
 
       // Ejecutar la acción según lo que esté seleccionado
       if (currentAction === 'explosion') {
+        markActionUsed();
         resolveExplosion(activePiece, selectedTarget);
       } else {
         // Ataques normales, Incapacitar, Control Mental, etc.
+        markActionUsed();
         resolveAttack(activePiece, selectedTarget, currentAction);
       }
     });
