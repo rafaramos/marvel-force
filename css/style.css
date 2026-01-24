@@ -614,6 +614,24 @@ body {
   animation: blinkSelection 0.6s ease-in-out infinite alternate;
 }
 
+.piece.target-flash--ally::after,
+.piece.target-flash--enemy::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 30;
+}
+
+.piece.target-flash--ally::after {
+  background: rgba(0, 160, 255, 0.35);
+}
+
+.piece.target-flash--enemy::after {
+  background: rgba(255, 0, 0, 0.35);
+}
+
 /* 4. LEVANTANDO OBJETO */
 .piece--holding {
   box-shadow: 0 0 0 3px cyan !important; 

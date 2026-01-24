@@ -778,6 +778,7 @@ function registerTurnSound({ damageDealt = 0, attackFailed = false, zeroDamageHi
     let resolveTurnPopup = null;
     let resolveDeathPopup = null;
     const pendingDeathMessages = [];
+    const targetFlashTimeouts = new WeakMap();
 
     function getPieceSquare(piece) {
       return piece.closest('.square');
@@ -796,6 +797,22 @@ function registerTurnSound({ damageDealt = 0, attackFailed = false, zeroDamageHi
       const rowDiff = Math.abs(Number(secondSquare.dataset.row) - Number(firstSquare.dataset.row));
       const colDiff = Math.abs(Number(secondSquare.dataset.col) - Number(firstSquare.dataset.col));
       return rowDiff + colDiff === 1;
+    }
+
+    function flashTargetPiece(piece, teamType) {
+      if (!piece) return;
+      const className = teamType === 'enemy' ? 'target-flash--enemy' : 'target-flash--ally';
+      const existing = targetFlashTimeouts.get(piece);
+      if (existing) {
+        clearTimeout(existing);
+      }
+      piece.classList.remove('target-flash--enemy', 'target-flash--ally');
+      piece.classList.add(className);
+      const timeoutId = setTimeout(() => {
+        piece.classList.remove(className);
+        targetFlashTimeouts.delete(piece);
+      }, 250);
+      targetFlashTimeouts.set(piece, timeoutId);
     }
 
     function clearBarrierPreview() {
@@ -2548,6 +2565,9 @@ function handleActionClick(actionKey, options = {}) {
   }
   currentAction = actionKey;
   const attacker = turnOrder[turnIndex];
+  if (selectedTarget && selectedTarget.classList?.contains('piece')) {
+    flashTargetPiece(selectedTarget, isEnemy(attacker, selectedTarget) ? 'enemy' : 'ally');
+  }
 
   // 1. Acciones sin objetivo (Área inmediata)
   if (actionKey === 'pulso') {
@@ -3369,10 +3389,16 @@ function startGame() {
 
       // Ejecutar la acción según lo que esté seleccionado
       if (currentAction === 'explosion') {
+        if (selectedTarget && selectedTarget.classList?.contains('piece')) {
+          flashTargetPiece(selectedTarget, isEnemy(activePiece, selectedTarget) ? 'enemy' : 'ally');
+        }
         markActionUsed();
         resolveExplosion(activePiece, selectedTarget);
       } else {
         // Ataques normales, Incapacitar, Control Mental, etc.
+        if (selectedTarget && selectedTarget.classList?.contains('piece')) {
+          flashTargetPiece(selectedTarget, isEnemy(activePiece, selectedTarget) ? 'enemy' : 'ally');
+        }
         markActionUsed();
         resolveAttack(activePiece, selectedTarget, currentAction);
       }
