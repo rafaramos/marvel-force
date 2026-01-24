@@ -300,6 +300,7 @@ function chooseDangerousEnemy(enemies) {
 async function performTargetedAction(piece, target, actionKey) {
     if (!target) return false;
     if (canUseSupportAction(piece, target, actionKey, 'enemy')) {
+        await flashAITarget(piece, target);
         selectedTarget = target;
         handleActionClick(actionKey, { bypassVisuals: true });
         return true;
@@ -310,6 +311,7 @@ async function performTargetedAction(piece, target, actionKey) {
 
     await movePieceToSquare(piece, moveSquare);
     if (canUseSupportAction(piece, target, actionKey, 'enemy')) {
+        await flashAITarget(piece, target);
         selectedTarget = target;
         handleActionClick(actionKey, { bypassVisuals: true });
         return true;
@@ -330,6 +332,15 @@ async function movePieceToSquare(piece, square) {
     highlightMovement(piece);
     highlightRange(piece);
     updateStatusBar(piece);
+}
+
+async function flashAITarget(piece, target) {
+    if (!piece || !target) return;
+    const isEnemyTarget = target.dataset.team !== piece.dataset.team;
+    const className = isEnemyTarget ? 'piece--ai-target-enemy' : 'piece--ai-target-ally';
+    target.classList.add(className);
+    await sleep(ENEMY_ACTION_DELAY_MS);
+    target.classList.remove(className);
 }
 
 function findSupportDecision(piece, stats, { requireInRange = false, alliesOnly = false } = {}) {
@@ -355,6 +366,15 @@ function findSupportDecision(piece, stats, { requireInRange = false, alliesOnly 
     if (buffDecision) {
         if (!requireInRange || canUseSupportAction(piece, buffDecision.target, buffDecision.actionKey, 'ally')) {
             return buffDecision;
+        }
+    }
+
+    if (!alliesOnly) {
+        const selfBuffAction = chooseSelfBuffAction(piece, stats);
+        if (selfBuffAction) {
+            if (!requireInRange || canUseSupportAction(piece, piece, selfBuffAction, 'ally')) {
+                return { actionKey: selfBuffAction, target: piece, targetType: 'ally' };
+            }
         }
     }
 

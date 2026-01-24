@@ -761,6 +761,23 @@ body {
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
+.piece--ai-target-ally::before,
+.piece--ai-target-enemy::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.piece--ai-target-ally::before {
+  background: rgba(255, 0, 0, 0.35);
+}
+
+.piece--ai-target-enemy::before {
+  background: rgba(0, 0, 0, 0.45);
+}
+
 .life-card--eliminated {
   background: linear-gradient(135deg, rgba(120, 6, 6, 0.8), rgba(40, 0, 0, 0.75));
   border-color: rgba(255, 99, 99, 0.55);
