@@ -197,6 +197,7 @@ async function performEnemyTurn(piece) {
         finishTurn(piece);
         return;
     }
+    await waitForPopupsToClose();
     const highDamageProfile = isHighDamageProfile(stats);
     const mediumDamageProfile = isMediumDamageProfile(stats);
     const enemiesInRange = getEnemiesInRange(piece);
@@ -292,6 +293,13 @@ async function performEnemyTurn(piece) {
     await handleLowDamageNoRange(piece, stats);
 }
 
+async function waitForPopupsToClose() {
+    if (typeof turnPopup === 'undefined' || typeof deathPopup === 'undefined') return;
+    while (!turnPopup.hidden || !deathPopup.hidden) {
+        await sleep(100);
+    }
+}
+
 function isHighDamageProfile(stats) {
     const damage = stats?.dano ?? 0;
     return (
@@ -376,6 +384,7 @@ function chooseDangerousEnemy(enemies) {
 
 async function performTargetedAction(piece, target, actionKey) {
     if (!target) return false;
+    await waitForPopupsToClose();
     if (canUseSupportAction(piece, target, actionKey, 'enemy')) {
         await flashAITarget(piece, target);
         selectedTarget = target;
@@ -441,6 +450,7 @@ async function executeSingleTargetSequence(piece, stats, enemies, steps) {
 }
 
 async function movePieceToSquare(piece, square) {
+    await waitForPopupsToClose();
     const distance = movementDistances.get(square) ?? 0;
     clearHighlights();
     highlightMovement(piece);
@@ -1144,6 +1154,7 @@ async function performSupportActionFlow(piece, decision) {
         return;
     }
 
+    await waitForPopupsToClose();
     if (canUseSupportAction(piece, target, actionKey, targetType)) {
         await sleep(ENEMY_ACTION_DELAY_MS);
         await executeSupportAction(piece, target, actionKey);
