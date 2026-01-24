@@ -1080,7 +1080,7 @@ function highlightRange(piece) {
       });
     }
 
-    function registerActionUsage(attacker, { showPopup = false, autoFinish = null } = {}) {
+    function registerActionUsage(attacker, { showPopup = false } = {}) {
       actionUsedThisTurn = true;
       setActionControlsEnabled(false);
       clearRangeHighlights();
@@ -1088,11 +1088,7 @@ function highlightRange(piece) {
       attackButton.classList.remove('button--pulse');
       updateCombatInfo();
       updateStatusBar(attacker);
-
-      const shouldAutoFinish = autoFinish ?? isCPUControlledPiece(attacker);
-      if (shouldAutoFinish) {
-        finishTurn(attacker, { showPopup });
-      }
+      finishTurn(attacker, { showPopup });
     }
 
     function highlightMovement(piece) {
