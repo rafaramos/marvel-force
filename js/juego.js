@@ -1080,7 +1080,7 @@ function highlightRange(piece) {
       });
     }
 
-    function registerActionUsage(attacker, { showPopup = false, autoFinish = true } = {}) {
+    function registerActionUsage(attacker, { showPopup = false, autoFinish = null } = {}) {
       actionUsedThisTurn = true;
       setActionControlsEnabled(false);
       clearRangeHighlights();
@@ -1089,7 +1089,8 @@ function highlightRange(piece) {
       updateCombatInfo();
       updateStatusBar(attacker);
 
-      if (autoFinish && (remainingMovement(attacker) <= 0 || isCPUControlledPiece(attacker))) {
+      const shouldAutoFinish = autoFinish ?? isCPUControlledPiece(attacker);
+      if (shouldAutoFinish) {
         finishTurn(attacker, { showPopup });
       }
     }
