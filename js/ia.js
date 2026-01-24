@@ -74,40 +74,7 @@ function performAIPick() {
 }
 
 /* ==========================================================================
-   2. LÓGICA DE CEREBRO (4 ROLES: FRANCOTIRADOR, FAJADOR, SUPPORT, COMODÍN)
-   ========================================================================== */
-
-function getAIRole(stats) {
-
-    const rango = stats.rango || 1; 
-    const vida = stats.vida || 1; 
-    const daño = stats.dano || 0; 
-
-    const sniperPowers = ['Experto a/d', 'Pulso', 'Explosión'
-    ];
-
-    const hasSniper = sniperPowers.some(p => hasPower(stats, p));
-    
-    const supportPowers = ['Curar','Mejora de Ataque','Mejora de Defensa','Mejora de Crítico', 'Mejora de Agilidad',
-                           'Control Mental','Telekinesis',
-    ];
-    
-    const hasSupport = supportPowers.some(p => hasPower(stats, p));
-
-    if (daño <= 1 && !hasSniper) return 'support';
-
-    if (rango >=4 || hasSniper) {
-          if (hasSupport) return 'comodin';
-          return 'francotirador';
-    }
-
-    if (hasSupport) return 'comodin';
-
-    return 'fajador';            
-}
-
-/* ==========================================================================
-   3. LÓGICA DE TURNO (IA EN PARTIDA)
+   2. LÓGICA DE TURNO (IA EN PARTIDA)
    ========================================================================== */
 
 function findClosestEnemy(piece) {
@@ -228,12 +195,6 @@ async function performEnemyTurn(piece) {
     if (!stats) {
         playEffectSound(passTurnSound);
         finishTurn(piece);
-        return;
-    }
-
-    const role = getAIRole(stats);
-    if (role === 'comodin') {
-        await performWildcardTurn(piece, stats);
         return;
     }
 
