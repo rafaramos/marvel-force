@@ -74,40 +74,7 @@ function performAIPick() {
 }
 
 /* ==========================================================================
-   2. LÓGICA DE CEREBRO (4 ROLES: FRANCOTIRADOR, FAJADOR, SUPPORT, COMODÍN)
-   ========================================================================== */
-
-function getAIRole(stats) {
-
-    const rango = stats.rango || 1; 
-    const vida = stats.vida || 1; 
-    const daño = stats.dano || 0; 
-
-    const sniperPowers = ['Experto a/d', 'Pulso', 'Explosión'
-    ];
-
-    const hasSniper = sniperPowers.some(p => hasPower(stats, p));
-    
-    const supportPowers = ['Curar','Mejora de Ataque','Mejora de Defensa','Mejora de Crítico', 'Mejora de Agilidad',
-                           'Control Mental','Telekinesis',
-    ];
-    
-    const hasSupport = supportPowers.some(p => hasPower(stats, p));
-
-    if (daño <= 1 && !hasSniper) return 'support';
-
-    if (rango >=4 || hasSniper) {
-          if (hasSupport) return 'comodin';
-          return 'francotirador';
-    }
-
-    if (hasSupport) return 'comodin';
-
-    return 'fajador';            
-}
-
-/* ==========================================================================
-   3. LÓGICA DE TURNO (IA EN PARTIDA)
+   2. LÓGICA DE TURNO (IA EN PARTIDA)
    ========================================================================== */
 
 function findClosestEnemy(piece) {
@@ -226,16 +193,774 @@ function selectBestEnemyAction(piece, targetPiece) {
 async function performEnemyTurn(piece) {
     const stats = pieceMap.get(piece);
     if (!stats) {
+        await sleep(ENEMY_ACTION_DELAY_MS);
+        playEffectSound(passTurnSound);
+        finishTurn(piece);
+        return;
+    }
+    await waitForPopupsToClose();
+    await sleep(ENEMY_ACTION_DELAY_MS);
+    const highDamageProfile = isHighDamageProfile(stats);
+    const mediumDamageProfile = isMediumDamageProfile(stats);
+    const enemiesInRange = getEnemiesInRange(piece);
+    const alliesInRange = getAlliesInRange(piece);
+    const enemiesReachable = getEnemiesInMoveRange(piece);
+    const hasSupportAllyInRange = Boolean(findSupportDecision(piece, stats, { requireInRange: true, alliesOnly: true }));
+
+    if (highDamageProfile) {
+        if (enemiesInRange.length === 0 && alliesInRange.length === 0 && enemiesReachable.length === 0) {
+            await handleHighDamageNoTargets(piece, stats);
+            return;
+        }
+
+        if (enemiesInRange.length === 0 && alliesInRange.length > 0) {
+            await handleHighDamageAlliesOnlyInRange(piece, stats);
+            return;
+        }
+
+        if (enemiesInRange.length > 0 && alliesInRange.length > 0) {
+            await handleHighDamageInRange(piece, stats, enemiesInRange);
+            return;
+        }
+
+        if (enemiesReachable.length > 0) {
+            await handleHighDamageMoveRange(piece, stats, enemiesReachable);
+            return;
+        }
+
+        if (enemiesInRange.length > 0) {
+            await handleHighDamageInRange(piece, stats, enemiesInRange);
+            return;
+        }
+
+        await handleHighDamageNoTargets(piece, stats);
+        return;
+    }
+
+    if (mediumDamageProfile) {
+        if (enemiesInRange.length === 0 && alliesInRange.length === 0 && enemiesReachable.length === 0) {
+            await handleMediumDamageNoTargets(piece, stats);
+            return;
+        }
+
+        if (enemiesInRange.length === 0 && alliesInRange.length > 0) {
+            await handleMediumDamageAlliesOnlyInRange(piece, stats);
+            return;
+        }
+
+        if (enemiesInRange.length > 0 && alliesInRange.length > 0) {
+            await handleMediumDamageAlliesInRange(piece, stats, enemiesInRange);
+            return;
+        }
+
+        if (enemiesReachable.length > 0) {
+            await handleMediumDamageMoveRange(piece, stats, enemiesReachable);
+            return;
+        }
+
+        if (enemiesInRange.length > 0) {
+            await handleMediumDamageEnemiesOnlyInRange(piece, stats, enemiesInRange);
+            return;
+        }
+
+        await handleMediumDamageNoTargets(piece, stats);
+        return;
+    }
+
+    if (enemiesInRange.length === 0 && alliesInRange.length === 0 && enemiesReachable.length === 0) {
+        await handleLowDamageNoTargets(piece, stats);
+        return;
+    }
+
+    if (enemiesInRange.length === 0 && alliesInRange.length > 0) {
+        await handleLowDamageAlliesOnlyInRange(piece, stats);
+        return;
+    }
+
+    if (enemiesInRange.length > 0 && hasSupportAllyInRange) {
+        await handleLowDamageAlliesInRange(piece, stats, enemiesInRange);
+        return;
+    }
+
+    if (enemiesInRange.length > 0) {
+        await handleLowDamageEnemiesOnlyInRange(piece, stats, enemiesInRange);
+        return;
+    }
+
+    if (enemiesReachable.length > 0) {
+        await handleLowDamageMoveRange(piece, stats, enemiesReachable);
+        return;
+    }
+
+    await handleLowDamageNoRange(piece, stats);
+}
+
+async function waitForPopupsToClose() {
+    if (typeof turnPopup === 'undefined' || typeof deathPopup === 'undefined') return;
+    while (!turnPopup.hidden || !deathPopup.hidden) {
+        await sleep(100);
+    }
+}
+
+function isHighDamageProfile(stats) {
+    const damage = stats?.dano ?? 0;
+    return (
+        damage >= 3 ||
+        hasPower(stats, 'Cuchillas/Garras/Colmillos') ||
+        hasPower(stats, 'Experto a/d')
+    );
+}
+
+function isMediumDamageProfile(stats) {
+    const damage = stats?.dano ?? 0;
+    return (
+        damage === 2 &&
+        !hasPower(stats, 'Cuchillas/Garras/Colmillos') &&
+        !hasPower(stats, 'Experto a/d')
+    );
+}
+
+function hasDureza(stats) {
+    return hasPower(stats, 'Dureza');
+}
+
+function hasInvulnerable(stats) {
+    return hasPower(stats, 'Invulnerable') || hasPower(stats, 'Invulnerabilidad');
+}
+
+function getEnemiesInRange(piece) {
+    const origin = getPieceSquare(piece);
+    if (!origin) return [];
+    return getVisibleEnemies(piece, { requireVisibility: true }).filter((enemy) => {
+        const targetSquare = getPieceSquare(enemy);
+        if (!targetSquare) return false;
+        return isWithinAttackRange(origin, targetSquare, rangeForPiece(piece));
+    });
+}
+
+function getAlliesInRange(piece) {
+    const origin = getPieceSquare(piece);
+    if (!origin) return [];
+    return getAllies(piece).filter((ally) => {
+        if (ally === piece) return false;
+        const targetSquare = getPieceSquare(ally);
+        if (!targetSquare) return false;
+        return isWithinAttackRange(origin, targetSquare, rangeForPiece(piece));
+    });
+}
+
+function getEnemiesInMoveRange(piece) {
+    const enemies = getVisibleEnemies(piece, { requireVisibility: false });
+    return enemies.filter((enemy) => canReachTargetWithAction(piece, enemy, 'attack'));
+}
+
+function canReachTargetWithAction(piece, target, actionKey) {
+    if (canUseSupportAction(piece, target, actionKey, 'enemy')) return true;
+    return Boolean(findSupportMoveSquare(piece, target, actionKey, 'enemy'));
+}
+
+function findExplosionTarget(piece, enemies) {
+    if (!hasPower(pieceMap.get(piece), 'Explosión')) return null;
+    return enemies.find((enemy) => hasExplosionOpportunity(piece, enemy));
+}
+
+function chooseTargetByDurability(enemies, priorities) {
+    for (const priority of priorities) {
+        const candidate = enemies.find((enemy) => {
+            const targetStats = pieceMap.get(enemy);
+            if (!targetStats) return false;
+            if (priority === 'none') return !hasDureza(targetStats) && !hasInvulnerable(targetStats);
+            if (priority === 'dureza') return hasDureza(targetStats) && !hasInvulnerable(targetStats);
+            if (priority === 'invulnerable') return hasInvulnerable(targetStats);
+            return false;
+        });
+        if (candidate) return candidate;
+    }
+    return enemies[0] ?? null;
+}
+
+function chooseDangerousEnemy(enemies) {
+    if (enemies.length === 0) return null;
+    return enemies.slice().sort((a, b) => enemyDangerScore(pieceMap.get(b)) - enemyDangerScore(pieceMap.get(a)))[0];
+}
+
+async function performTargetedAction(piece, target, actionKey) {
+    if (!target) return false;
+    await waitForPopupsToClose();
+    if (canUseSupportAction(piece, target, actionKey, 'enemy')) {
+        await flashAITarget(piece, target);
+        selectedTarget = target;
+        await sleep(ENEMY_ACTION_DELAY_MS);
+        handleActionClick(actionKey, { bypassVisuals: true });
+        return true;
+    }
+
+    const moveSquare = findSupportMoveSquare(piece, target, actionKey, 'enemy');
+    if (!moveSquare) return false;
+
+    await movePieceToSquare(piece, moveSquare);
+    if (canUseSupportAction(piece, target, actionKey, 'enemy')) {
+        await flashAITarget(piece, target);
+        selectedTarget = target;
+        await sleep(ENEMY_ACTION_DELAY_MS);
+        handleActionClick(actionKey, { bypassVisuals: true });
+        return true;
+    }
+
+    return false;
+}
+
+async function executeSingleTargetSequence(piece, stats, enemies, steps) {
+    for (const step of steps) {
+        if (step === 'attack-weak') {
+            const target = chooseTargetByDurability(enemies, ['none']);
+            if (target) {
+                if (await performTargetedAction(piece, target, 'attack')) return true;
+            }
+        }
+
+        if (step === 'control mental' && hasPower(stats, 'Control Mental')) {
+            const target = chooseDangerousEnemy(enemies);
+            if (await performTargetedAction(piece, target, 'control mental')) return true;
+        }
+
+        if (step === 'incapacitar' && hasPower(stats, 'Incapacitar')) {
+            const target = chooseDangerousEnemy(enemies);
+            if (await performTargetedAction(piece, target, 'incapacitar')) return true;
+        }
+
+        if (step === 'attack-dureza') {
+            const target = chooseTargetByDurability(enemies, ['dureza']);
+            if (target) {
+                if (await performTargetedAction(piece, target, 'attack')) return true;
+            }
+        }
+
+        if (step === 'attack-invulnerable') {
+            const target = chooseTargetByDurability(enemies, ['invulnerable']);
+            if (target) {
+                if (await performTargetedAction(piece, target, 'attack')) return true;
+            }
+        }
+
+        if (step === 'support') {
+            if (await attemptSupportAction(piece, stats)) return true;
+        }
+    }
+
+    return false;
+}
+
+async function movePieceToSquare(piece, square) {
+    await waitForPopupsToClose();
+    const distance = movementDistances.get(square) ?? 0;
+    clearHighlights();
+    highlightMovement(piece);
+    square.classList.add('square--target');
+    await sleep(ENEMY_ACTION_DELAY_MS);
+    await animatePieceToSquare(piece, square);
+    spendMovement(piece, distance);
+    clearHighlights();
+    highlightMovement(piece);
+    highlightRange(piece);
+    updateStatusBar(piece);
+    await sleep(ENEMY_ACTION_DELAY_MS);
+}
+
+async function flashAITarget(piece, target) {
+    if (!piece || !target) return;
+    const isEnemyTarget = target.dataset.team !== piece.dataset.team;
+    const className = isEnemyTarget ? 'piece--ai-target-enemy' : 'piece--ai-target-ally';
+    target.classList.add(className);
+    await sleep(ENEMY_ACTION_DELAY_MS);
+    target.classList.remove(className);
+}
+
+function findSupportDecision(piece, stats, { requireInRange = false, alliesOnly = false } = {}) {
+    const allies = getAllies(piece).filter((ally) => (alliesOnly ? ally !== piece : true));
+
+    if (hasPower(stats, 'Curar')) {
+        const selfStats = pieceMap.get(piece);
+        if (!alliesOnly && selfStats && selfStats.currentVida < selfStats.maxVida) {
+            if (!requireInRange || canUseSupportAction(piece, piece, 'curar', 'ally')) {
+                return { actionKey: 'curar', target: piece, targetType: 'ally' };
+            }
+        }
+
+        const damagedAlly = findDamagedAlly(piece);
+        if (damagedAlly) {
+            if (!requireInRange || canUseSupportAction(piece, damagedAlly, 'curar', 'ally')) {
+                return { actionKey: 'curar', target: damagedAlly, targetType: 'ally' };
+            }
+        }
+    }
+
+    const buffDecision = chooseSupportBuffTarget(piece, stats, allies);
+    if (buffDecision) {
+        if (!requireInRange || canUseSupportAction(piece, buffDecision.target, buffDecision.actionKey, 'ally')) {
+            return buffDecision;
+        }
+    }
+
+    if (!alliesOnly) {
+        const selfBuffAction = chooseSelfBuffAction(piece, stats);
+        if (selfBuffAction) {
+            if (!requireInRange || canUseSupportAction(piece, piece, selfBuffAction, 'ally')) {
+                return { actionKey: selfBuffAction, target: piece, targetType: 'ally' };
+            }
+        }
+    }
+
+    return null;
+}
+
+async function attemptSupportAction(piece, stats) {
+    const decision = findSupportDecision(piece, stats);
+    if (!decision) return false;
+    await performSupportActionFlow(piece, decision);
+    return true;
+}
+
+async function attemptSupportActionInRange(piece, stats) {
+    const decision = findSupportDecision(piece, stats, { requireInRange: true });
+    if (!decision) return false;
+    await performSupportActionFlow(piece, decision);
+    return true;
+}
+
+async function moveTowardEnemy(piece) {
+    const enemyTarget = findEnemyToAdvance(piece);
+    if (!enemyTarget) return false;
+    const moveSquare = chooseSupportChaseSquare(piece, enemyTarget, 'enemy');
+    if (!moveSquare) return false;
+    await movePieceToSquare(piece, moveSquare);
+    return true;
+}
+
+async function moveTowardAllies(piece, stats) {
+    const allies = getAllies(piece).filter((ally) => ally !== piece);
+    if (allies.length === 0) return false;
+    const target = findDamagedAlly(piece) ?? allies[0];
+    const moveSquare = chooseSupportChaseSquare(piece, target, 'ally');
+    if (!moveSquare) return false;
+    await movePieceToSquare(piece, moveSquare);
+    return true;
+}
+
+async function handleHighDamageInRange(piece, stats, enemies) {
+    if (hasPower(stats, 'Pulso') && countAdjacentEnemies(piece) >= 3) {
+        handleActionClick('pulso', { bypassVisuals: true });
+        return;
+    }
+
+    const explosionTarget = findExplosionTarget(piece, enemies);
+    if (explosionTarget) {
+        await performTargetedAction(piece, explosionTarget, 'explosion');
+        return;
+    }
+
+    if (enemies.length === 1) {
+        const handled = await executeSingleTargetSequence(piece, stats, enemies, [
+            'attack-weak',
+            'control mental',
+            'attack-dureza',
+            'attack-invulnerable',
+        ]);
+        if (handled) return;
+    }
+
+    const target = chooseTargetByDurability(enemies, ['none', 'dureza', 'invulnerable']);
+    if (target) {
+        await performTargetedAction(piece, target, 'attack');
+        return;
+    }
+
+    playEffectSound(passTurnSound);
+    finishTurn(piece);
+}
+
+async function handleHighDamageMoveRange(piece, stats, enemies) {
+    const explosionTarget = findExplosionTarget(piece, enemies);
+    if (explosionTarget) {
+        if (await performTargetedAction(piece, explosionTarget, 'explosion')) return;
+    }
+
+    if (enemies.length === 1) {
+        const handled = await executeSingleTargetSequence(piece, stats, enemies, [
+            'attack-weak',
+            'control mental',
+            'attack-dureza',
+            'attack-invulnerable',
+        ]);
+        if (handled) return;
+    }
+
+    const target = chooseTargetByDurability(enemies, ['none', 'dureza', 'invulnerable']);
+    if (target) {
+        if (await performTargetedAction(piece, target, 'attack')) return;
+    }
+
+    playEffectSound(passTurnSound);
+    finishTurn(piece);
+}
+
+async function handleHighDamageNoTargets(piece, stats) {
+    if (!(await moveTowardEnemy(piece))) {
         playEffectSound(passTurnSound);
         finishTurn(piece);
         return;
     }
 
-    const role = getAIRole(stats);
-    if (role === 'comodin') {
-        await performWildcardTurn(piece, stats);
+    const enemiesInRange = getEnemiesInRange(piece);
+    if (enemiesInRange.length === 1) {
+        const handled = await executeSingleTargetSequence(piece, stats, enemiesInRange, [
+            'attack-weak',
+            'control mental',
+            'attack-dureza',
+            'attack-invulnerable',
+        ]);
+        if (handled) return;
+    }
+
+    if (enemiesInRange.length > 0) {
+        const target = chooseTargetByDurability(enemiesInRange, ['none', 'dureza', 'invulnerable']);
+        if (target) {
+            await performTargetedAction(piece, target, 'attack');
+            return;
+        }
+    }
+
+    const alliesInRange = getAlliesInRange(piece);
+    if (alliesInRange.length > 0 || enemiesInRange.length === 0) {
+        if (await attemptSupportActionInRange(piece, stats)) return;
+    }
+
+    playEffectSound(passTurnSound);
+    finishTurn(piece);
+}
+
+async function handleHighDamageAlliesOnlyInRange(piece, stats) {
+    if (await attemptSupportActionInRange(piece, stats)) {
+        // continue flow after support
+    }
+
+    if (!(await moveTowardEnemy(piece))) {
+        playEffectSound(passTurnSound);
+        finishTurn(piece);
         return;
     }
+
+    const enemiesInRange = getEnemiesInRange(piece);
+    if (enemiesInRange.length > 0) {
+        await handleHighDamageInRange(piece, stats, enemiesInRange);
+        return;
+    }
+
+    const alliesInRange = getAlliesInRange(piece);
+    if (alliesInRange.length > 0) {
+        if (await attemptSupportActionInRange(piece, stats)) return;
+    } else {
+        if (await attemptSupportActionInRange(piece, stats)) return;
+    }
+
+    playEffectSound(passTurnSound);
+    finishTurn(piece);
+}
+
+async function handleMediumDamageNoTargets(piece, stats) {
+    if (!(await moveTowardEnemy(piece))) {
+        playEffectSound(passTurnSound);
+        finishTurn(piece);
+        return;
+    }
+
+    const enemiesInRange = getEnemiesInRange(piece);
+    if (enemiesInRange.length === 1) {
+        const handled = await executeSingleTargetSequence(piece, stats, enemiesInRange, [
+            'attack-weak',
+            'control mental',
+            'attack-dureza',
+            'incapacitar',
+            'attack-invulnerable',
+        ]);
+        if (handled) return;
+    }
+
+    if (enemiesInRange.length > 0) {
+        const target = chooseTargetByDurability(enemiesInRange, ['none', 'dureza', 'invulnerable']);
+        if (target && await performTargetedAction(piece, target, 'attack')) return;
+    }
+
+    if (await attemptSupportActionInRange(piece, stats)) return;
+
+    playEffectSound(passTurnSound);
+    finishTurn(piece);
+}
+
+async function handleMediumDamageAlliesOnlyInRange(piece, stats) {
+    if (await attemptSupportActionInRange(piece, stats)) {
+        // continue flow after support
+    }
+
+    if (!(await moveTowardEnemy(piece))) {
+        playEffectSound(passTurnSound);
+        finishTurn(piece);
+        return;
+    }
+
+    const enemiesInRange = getEnemiesInRange(piece);
+    if (enemiesInRange.length > 0) {
+        await handleMediumDamageEnemiesOnlyInRange(piece, stats, enemiesInRange);
+        return;
+    }
+
+    if (await attemptSupportActionInRange(piece, stats)) return;
+
+    playEffectSound(passTurnSound);
+    finishTurn(piece);
+}
+
+async function handleMediumDamageAlliesInRange(piece, stats, enemies) {
+    if (hasPower(stats, 'Pulso') && countAdjacentEnemies(piece) >= 3) {
+        handleActionClick('pulso', { bypassVisuals: true });
+        return;
+    }
+
+    const explosionTarget = findExplosionTarget(piece, enemies);
+    if (explosionTarget) {
+        await performTargetedAction(piece, explosionTarget, 'explosion');
+        return;
+    }
+
+    if (enemies.length === 1) {
+        const handled = await executeSingleTargetSequence(piece, stats, enemies, [
+            'attack-weak',
+            'control mental',
+            'attack-dureza',
+            'incapacitar',
+            'support',
+            'attack-invulnerable',
+        ]);
+        if (handled) return;
+    }
+
+    const target = chooseTargetByDurability(enemies, ['none', 'dureza', 'invulnerable']);
+    if (target) {
+        await performTargetedAction(piece, target, 'attack');
+        return;
+    }
+
+    playEffectSound(passTurnSound);
+    finishTurn(piece);
+}
+
+async function handleMediumDamageEnemiesOnlyInRange(piece, stats, enemies) {
+    if (hasPower(stats, 'Pulso') && countAdjacentEnemies(piece) >= 3) {
+        handleActionClick('pulso', { bypassVisuals: true });
+        return;
+    }
+
+    const explosionTarget = findExplosionTarget(piece, enemies);
+    if (explosionTarget) {
+        await performTargetedAction(piece, explosionTarget, 'explosion');
+        return;
+    }
+
+    if (enemies.length === 1) {
+        const handled = await executeSingleTargetSequence(piece, stats, enemies, [
+            'attack-weak',
+            'control mental',
+            'attack-dureza',
+            'incapacitar',
+            'attack-invulnerable',
+        ]);
+        if (handled) return;
+    }
+
+    const target = chooseTargetByDurability(enemies, ['none', 'dureza', 'invulnerable']);
+    if (target) {
+        await performTargetedAction(piece, target, 'attack');
+        return;
+    }
+
+    playEffectSound(passTurnSound);
+    finishTurn(piece);
+}
+
+async function handleMediumDamageMoveRange(piece, stats, enemies) {
+    const explosionTarget = findExplosionTarget(piece, enemies);
+    if (explosionTarget) {
+        if (await performTargetedAction(piece, explosionTarget, 'explosion')) return;
+    }
+
+    if (enemies.length === 1) {
+        const handled = await executeSingleTargetSequence(piece, stats, enemies, [
+            'attack-weak',
+            'control mental',
+            'attack-dureza',
+            'incapacitar',
+            'attack-invulnerable',
+        ]);
+        if (handled) return;
+    }
+
+    const target = chooseTargetByDurability(enemies, ['none', 'dureza', 'invulnerable']);
+    if (target && await performTargetedAction(piece, target, 'attack')) return;
+
+    playEffectSound(passTurnSound);
+    finishTurn(piece);
+}
+
+async function handleLowDamageAlliesInRange(piece, stats, enemies) {
+    if (hasPower(stats, 'Pulso') && countAdjacentEnemies(piece) >= 3) {
+        handleActionClick('pulso', { bypassVisuals: true });
+        return;
+    }
+
+    const explosionTarget = findExplosionTarget(piece, enemies);
+    if (explosionTarget) {
+        await performTargetedAction(piece, explosionTarget, 'explosion');
+        return;
+    }
+
+    if (enemies.length === 1) {
+        const handled = await executeSingleTargetSequence(piece, stats, enemies, [
+            'control mental',
+            'incapacitar',
+            'support',
+            'attack-weak',
+            'attack-dureza',
+            'attack-invulnerable',
+        ]);
+        if (handled) return;
+    }
+
+    const target = chooseTargetByDurability(enemies, ['none', 'dureza', 'invulnerable']);
+    if (target) {
+        await performTargetedAction(piece, target, 'attack');
+        return;
+    }
+
+    playEffectSound(passTurnSound);
+    finishTurn(piece);
+}
+
+async function handleLowDamageEnemiesOnlyInRange(piece, stats, enemies) {
+    if (hasPower(stats, 'Pulso') && countAdjacentEnemies(piece) >= 3) {
+        handleActionClick('pulso', { bypassVisuals: true });
+        return;
+    }
+
+    const explosionTarget = findExplosionTarget(piece, enemies);
+    if (explosionTarget) {
+        await performTargetedAction(piece, explosionTarget, 'explosion');
+        return;
+    }
+
+    if (enemies.length === 1) {
+        const handled = await executeSingleTargetSequence(piece, stats, enemies, [
+            'control mental',
+            'incapacitar',
+            'attack-weak',
+            'attack-dureza',
+            'attack-invulnerable',
+        ]);
+        if (handled) return;
+    }
+
+    const target = chooseTargetByDurability(enemies, ['none', 'dureza', 'invulnerable']);
+    if (target) {
+        await performTargetedAction(piece, target, 'attack');
+        return;
+    }
+
+    playEffectSound(passTurnSound);
+    finishTurn(piece);
+}
+
+async function handleLowDamageMoveRange(piece, stats, enemies) {
+    const explosionTarget = findExplosionTarget(piece, enemies);
+    if (explosionTarget) {
+        if (await performTargetedAction(piece, explosionTarget, 'explosion')) return;
+    }
+
+    if (enemies.length === 1) {
+        const handled = await executeSingleTargetSequence(piece, stats, enemies, [
+            'control mental',
+            'incapacitar',
+            'attack-weak',
+            'attack-dureza',
+            'attack-invulnerable',
+        ]);
+        if (handled) return;
+    }
+
+    const target = chooseTargetByDurability(enemies, ['none', 'dureza', 'invulnerable']);
+    if (target && await performTargetedAction(piece, target, 'attack')) return;
+
+    playEffectSound(passTurnSound);
+    finishTurn(piece);
+}
+
+async function handleLowDamageNoRange(piece, stats) {
+    if (await attemptSupportAction(piece, stats)) return;
+    if (await moveTowardEnemy(piece)) {
+        playEffectSound(passTurnSound);
+        finishTurn(piece);
+        return;
+    }
+    playEffectSound(passTurnSound);
+    finishTurn(piece);
+}
+
+async function handleLowDamageNoTargets(piece, stats) {
+    if (!(await moveTowardEnemy(piece))) {
+        playEffectSound(passTurnSound);
+        finishTurn(piece);
+        return;
+    }
+
+    const enemiesInRange = getEnemiesInRange(piece);
+    if (enemiesInRange.length === 1) {
+        const handled = await executeSingleTargetSequence(piece, stats, enemiesInRange, [
+            'control mental',
+            'incapacitar',
+            'attack-weak',
+            'attack-dureza',
+            'attack-invulnerable',
+        ]);
+        if (handled) return;
+    }
+
+    if (enemiesInRange.length > 0) {
+        const target = chooseTargetByDurability(enemiesInRange, ['none', 'dureza', 'invulnerable']);
+        if (target && await performTargetedAction(piece, target, 'attack')) return;
+    }
+
+    if (await attemptSupportActionInRange(piece, stats)) return;
+
+    playEffectSound(passTurnSound);
+    finishTurn(piece);
+}
+
+async function handleLowDamageAlliesOnlyInRange(piece, stats) {
+    if (await attemptSupportActionInRange(piece, stats)) {
+        // continue after support
+    }
+
+    if (!(await moveTowardEnemy(piece))) {
+        playEffectSound(passTurnSound);
+        finishTurn(piece);
+        return;
+    }
+
+    const enemiesInRange = getEnemiesInRange(piece);
+    if (enemiesInRange.length > 0) {
+        await handleLowDamageEnemiesOnlyInRange(piece, stats, enemiesInRange);
+        return;
+    }
+
+    if (await attemptSupportActionInRange(piece, stats)) return;
 
     playEffectSound(passTurnSound);
     finishTurn(piece);
@@ -432,6 +1157,7 @@ async function performSupportActionFlow(piece, decision) {
         return;
     }
 
+    await waitForPopupsToClose();
     if (canUseSupportAction(piece, target, actionKey, targetType)) {
         await sleep(ENEMY_ACTION_DELAY_MS);
         await executeSupportAction(piece, target, actionKey);
