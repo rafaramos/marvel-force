@@ -2828,6 +2828,11 @@ function handleActionClick(actionKey, options = {}) {
         await showQueuedDeathPopups();
       }
 
+      const shouldPause = typeof isCPUControlledPiece === 'function' && isCPUControlledPiece(piece);
+      if (shouldPause) {
+        await sleep(ENEMY_ACTION_DELAY_MS);
+      }
+
       advanceTurn();
     }
 

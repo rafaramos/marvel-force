@@ -193,11 +193,13 @@ function selectBestEnemyAction(piece, targetPiece) {
 async function performEnemyTurn(piece) {
     const stats = pieceMap.get(piece);
     if (!stats) {
+        await sleep(ENEMY_ACTION_DELAY_MS);
         playEffectSound(passTurnSound);
         finishTurn(piece);
         return;
     }
     await waitForPopupsToClose();
+    await sleep(ENEMY_ACTION_DELAY_MS);
     const highDamageProfile = isHighDamageProfile(stats);
     const mediumDamageProfile = isMediumDamageProfile(stats);
     const enemiesInRange = getEnemiesInRange(piece);
@@ -462,6 +464,7 @@ async function movePieceToSquare(piece, square) {
     highlightMovement(piece);
     highlightRange(piece);
     updateStatusBar(piece);
+    await sleep(ENEMY_ACTION_DELAY_MS);
 }
 
 async function flashAITarget(piece, target) {
