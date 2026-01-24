@@ -641,7 +641,7 @@ async function handleHighDamageNoTargets(piece, stats) {
 
 async function handleHighDamageAlliesOnlyInRange(piece, stats) {
     if (await attemptSupportActionInRange(piece, stats)) {
-        // continue flow after support
+        return;
     }
 
     if (!(await moveTowardEnemy(piece))) {
@@ -699,7 +699,7 @@ async function handleMediumDamageNoTargets(piece, stats) {
 
 async function handleMediumDamageAlliesOnlyInRange(piece, stats) {
     if (await attemptSupportActionInRange(piece, stats)) {
-        // continue flow after support
+        return;
     }
 
     if (!(await moveTowardEnemy(piece))) {
@@ -945,7 +945,7 @@ async function handleLowDamageNoTargets(piece, stats) {
 
 async function handleLowDamageAlliesOnlyInRange(piece, stats) {
     if (await attemptSupportActionInRange(piece, stats)) {
-        // continue after support
+        return;
     }
 
     if (!(await moveTowardEnemy(piece))) {
