@@ -1599,16 +1599,56 @@ function attachTooltipEvents(piece) {
             return `${part1} ${part2} ${part3}`;
         }
 
-        if (actionKey === 'control mental') {
+      if (actionKey === 'control mental') {
             const part1 = `${attackerStats.name} realiza un ataque de Control Mental con ${attackerStats.ataque} de Ataque a ${defenderStats.name} que tiene ${defDisplay} de Defensa.`;
             const part2 = `${attackerStats.name} necesita un ${needed} y consigue un ${rollText}.`;
             const part3 = success 
                 ? `${defenderStats.name} es controlado por ${attackerStats.name} por 1 turno.`
                 : `${attackerStats.name} falla el ataque de Control Mental contra ${defenderStats.name}.`;
-            return `${part1} ${part2} ${part3}`;
+        return `${part1} ${part2} ${part3}`;
+      }
+
+      if (actionKey === 'telekinesis-ally-throw') {
+        const casterName = attackerStats.telekinesisCasterName ?? attackerStats.name;
+        const boost = attackerStats.telekinesisBoost;
+        const baseAtaque = boost?.baseAtaque ?? attackerStats.ataque;
+        const ataqueBonus = boost?.ataqueBonus ?? 0;
+        const baseDano = boost?.baseDano ?? attackerStats.dano ?? 0;
+        const danoBonus = boost?.danoBonus ?? 0;
+        const attackDisplay = ataqueBonus
+          ? `${attackerStats.ataque} (${baseAtaque} + ${ataqueBonus})`
+          : `${attackerStats.ataque}`;
+
+        const part1 = `${casterName} realiza un lanzamiento telekinético de compañero (${attackerStats.name}).`;
+        const part2 = `${attackerStats.name} tiene ${attackDisplay} de Ataque y ${defenderStats.name} tiene ${defDisplay} de Defensa.`;
+        const part3 = `${attackerStats.name} necesita un ${needed} y consigue un ${rollText}.`;
+
+        if (!success) {
+          return `${part1} ${part2} ${part3} ${casterName} falla el lanzamiento telekinético y no causa daño.`;
         }
 
-        // --- ATAQUE NORMAL (C/C o A/D) ---
+        let damageText = '';
+        let resistanceText = `la Resistencia de ${defenderStats.name} es ${resistance}.`;
+
+        if (clawsRoll !== null) {
+          const clawsBase = baseDamageAfterClaws ?? rawDamage;
+          const clawsDamage = critical ? clawsBase * 2 : clawsBase;
+          const bonusText = danoBonus ? ` (${clawsRoll} + ${danoBonus})` : '';
+          const critSuffix = critical ? `${bonusText} X 2` : bonusText;
+          damageText = `${attackerStats.name} realiza una tirada de Cuchillas/Garras/Colmillos y saca un ${clawsRoll}, con lo que su Daño es ${clawsDamage}${critSuffix}.`;
+          resistanceText = `${defenderStats.name} tiene una resistencia de ${resistance}.`;
+        } else {
+          const breakdown = danoBonus ? ` (${baseDano} + ${danoBonus})` : '';
+          damageText = `El Daño de ${attackerStats.name} es ${rawDamage}${breakdown} y ${resistanceText}`;
+        }
+
+        const sentence3 = (clawsRoll !== null) ? `${damageText} ${resistanceText}` : damageText;
+        const damageLabel = damage === 1 ? 'punto' : 'puntos';
+        const sentence4 = `${attackerStats.name} le causa ${damage} ${damageLabel} de Daño Infligido a ${defenderStats.name}.`;
+        return `${part1} ${part2} ${part3} ${sentence3} ${sentence4}`;
+      }
+
+      // --- ATAQUE NORMAL (C/C o A/D) ---
         const attackType = isMelee ? 'ataque cuerpo a cuerpo' : 'ataque a distancia';
         const sentence1 = `${attackerStats.name} realiza un ${attackType} con ${attackerStats.ataque} de Ataque a ${defenderStats.name} que tiene ${defDisplay} de Defensa.`;
         const sentence2 = `${attackerStats.name} necesita un ${needed} y consigue un ${rollText}.`;
@@ -3376,10 +3416,10 @@ function startGame() {
         playEffectSound(failureSound);
       }
 
-      const sentence2 = `${attackerStats.name} realiza un ataque a distancia de objeto (${objectName}) con ${attackerStats.ataque} de Ataque a ${targetStats.name} que tiene ${effectiveDefense} de Defensa. ${attackerStats.name} necesita un ${needed} y consigue un ${roll}.`;
+      const sentence2 = `${attackerStats.name} realiza un ataque telekinético de objeto (${objectName}) con ${attackerStats.ataque} de Ataque a ${targetStats.name} que tiene ${effectiveDefense} de Defensa. ${attackerStats.name} necesita un ${needed} y consigue un ${roll}.`;
       const damageLabel = appliedDamage === 1 ? 'punto' : 'puntos';
-      const sentence3 = `El Daño del Objeto es ${damage} y la Resistencia de ${targetStats.name} es ${resistance}. ${attackerStats.name} le causa ${appliedDamage} ${damageLabel} de Daño Infligido a ${targetStats.name}.`;
-      const failureMessage = `${attackerStats.name} realiza un ataque a distancia de objeto (${objectName}) con ${attackerStats.ataque} de Ataque a ${targetStats.name} que tiene ${effectiveDefense} de Defensa. ${attackerStats.name} necesita un ${needed} y consigue un ${roll}. ${attackerStats.name} falla el ataque contra ${targetStats.name}.`;
+      const sentence3 = `El Daño del objeto es ${damage} y la Resistencia de ${targetStats.name} es ${resistance}. ${attackerStats.name} le causa ${appliedDamage} ${damageLabel} de Daño Infligido a ${targetStats.name}.`;
+      const failureMessage = `${attackerStats.name} realiza un ataque telekinético de objeto (${objectName}) con ${attackerStats.ataque} de Ataque a ${targetStats.name} que tiene ${effectiveDefense} de Defensa. ${attackerStats.name} necesita un ${needed} y consigue un ${roll}. ${attackerStats.name} falla el ataque contra ${targetStats.name}.`;
       const msg = success ? `${sentence2} ${sentence3}` : failureMessage;
 
       addHistoryEntry(attacker.dataset.team, msg, { attacker, defenders: [targetPiece] });
@@ -3416,12 +3456,21 @@ function startGame() {
         const originalDano = victimStats.dano;
         victimStats.ataque = originalAtaque + 2;
         victimStats.dano = (originalDano ?? 0) + 1;
+        victimStats.telekinesisBoost = {
+          baseAtaque: originalAtaque,
+          ataqueBonus: 2,
+          baseDano: originalDano ?? 0,
+          danoBonus: 1,
+        };
+        victimStats.telekinesisCasterName = attackerStats.name;
 
         try {
-          await resolveAttack(victim, targetPiece, 'attack', { skipTurnAdvance: true });
+          await resolveAttack(victim, targetPiece, 'telekinesis-ally-throw', { skipTurnAdvance: true });
         } finally {
           victimStats.ataque = originalAtaque;
           victimStats.dano = originalDano;
+          delete victimStats.telekinesisBoost;
+          delete victimStats.telekinesisCasterName;
         }
 
         const targetAlive = targetPiece.isConnected && targetPiece.dataset.eliminated !== 'true';
@@ -3513,10 +3562,12 @@ function startGame() {
         playEffectSound(failureSound);
       }
 
-      const sentence1 = `${attackerStats.name} lanza a ${victimStats.name} contra ${targetStats.name}.`;
-      const sentence2 = `${attackerStats.name} realiza un ataque telequinético con ${attackerStats.ataque} de Ataque a ${targetStats.name} que tiene ${effectiveDefense} de Defensa. ${attackerStats.name} necesita un ${needed} y consigue un ${roll}.`;
+      const sentence1 = `${attackerStats.name} realiza un lanzamiento telekinético de enemigos. Lanza a ${victimStats.name} contra ${targetStats.name}.`;
+      const sentence2 = `${attackerStats.name} tiene ${attackerStats.ataque} de Ataque y ${targetStats.name} tiene ${effectiveDefense} de Defensa. ${attackerStats.name} necesita un ${needed} y consigue un ${roll}.`;
+      const targetDamageLabel = targetDamage === 1 ? 'punto' : 'puntos';
+      const victimDamageLabel = victimDamage === 1 ? 'punto' : 'puntos';
       const sentence3 = success
-        ? `El impacto causa ${targetDamage} puntos de Daño Infligido a ${targetStats.name} y ${victimStats.name} recibe ${victimDamage}.`
+        ? `El impacto causa ${targetDamage} ${targetDamageLabel} de Daño Infligido a ${targetStats.name} y ${victimStats.name} recibe ${victimDamage} ${victimDamageLabel}.`
         : `${attackerStats.name} falla el lanzamiento y no causa daño.`;
       const msg = `${sentence1} ${sentence2} ${sentence3}`;
 
