@@ -3087,36 +3087,44 @@ function startTurn(piece) {
     
 
     function buildPositionsFromSelections() {
-      const buildPhalanxSlots = (count, { columns, rows, palette }) => {
+      const FRONT_ROWS = [5, 6];
+      const MID_ROWS = [4, 5, 6, 7];
+      const BACK_ROWS = [3, 4, 5, 6, 7, 8];
+
+      const allyColumns = { front: 3, mid: 2, back: 1 };
+      const enemyColumns = {
+        front: BOARD_COLS - 2,
+        mid: BOARD_COLS - 1,
+        back: BOARD_COLS,
+      };
+
+      const buildPyramidSlots = (count, palette, columns) => {
         const slots = [];
         let colorIndex = 0;
-        columns.forEach((col) => {
-          rows.forEach((row) => {
-            if (slots.length >= count) return;
-            const className = palette[colorIndex % palette.length];
-            slots.push({ row, col, className });
-            colorIndex += 1;
-          });
-        });
+        const pushSlot = (row, col) => {
+          const className = palette[colorIndex % palette.length];
+          slots.push({ row, col, className });
+          colorIndex += 1;
+        };
+
+        for (let i = 0; i < count; i += 1) {
+          if (i < 2) {
+            const row = FRONT_ROWS[i % FRONT_ROWS.length];
+            pushSlot(row, columns.front);
+          } else if (i < 6) {
+            const row = MID_ROWS[(i - 2) % MID_ROWS.length];
+            pushSlot(row, columns.mid);
+          } else {
+            const row = BACK_ROWS[(i - 6) % BACK_ROWS.length];
+            pushSlot(row, columns.back);
+          }
+        }
+
         return slots;
       };
 
-      const formationRows = [4, 5, 6, 7];
-      const allyColumns = [3, 2, 1];
-      const enemyStartCol = BOARD_COLS - 2;
-      const enemyColumns = [enemyStartCol, enemyStartCol + 1, enemyStartCol + 2];
-
-      const allySlots = buildPhalanxSlots(selections.player1.length, {
-        columns: allyColumns,
-        rows: formationRows,
-        palette: ALLY_COLORS,
-      });
-
-      const enemySlots = buildPhalanxSlots(selections.player2.length, {
-        columns: enemyColumns,
-        rows: formationRows,
-        palette: ENEMY_COLORS,
-      });
+      const allySlots = buildPyramidSlots(selections.player1.length, ALLY_COLORS, allyColumns);
+      const enemySlots = buildPyramidSlots(selections.player2.length, ENEMY_COLORS, enemyColumns);
 
       const positions = [];
       selections.player1.forEach((key, idx) => {
