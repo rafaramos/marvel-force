@@ -1905,6 +1905,7 @@ async function resolveAttack(attacker, defender, actionKey = 'attack', options =
         clearRangeHighlights();
         selectedTarget = null;
         attackButton.classList.remove('button--pulse');
+        await showTurnPopup(popupMessage);
         registerActionUsage(attacker, { showPopup: false });
       }
     }
