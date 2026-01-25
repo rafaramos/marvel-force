@@ -1074,29 +1074,34 @@ function highlightRange(piece) {
             // LÓGICA DE SIGILO
             const isHiddenByStealth = dist > 3 && hasPassive(targetStats, 'sigilo');
 
-            if (isSupport && isAlly) {
+            if (isTelekinesis) {
+              if (isAlly) {
+                targetPiece.classList.add('valid-target-blue');
+                targetsFound = true;
+              } else if (!isHiddenByStealth) {
+                targetPiece.classList.add('valid-target');
+                targetsFound = true;
+              }
+            } else if (isSupport && isAlly) {
               targetPiece.classList.add('valid-target-blue');
               targetsFound = true;
-            }
-            else if (!isSupport && !isAlly) {
+            } else if (!isSupport && !isAlly) {
               // Si NO está oculto, marcamos. Si está oculto, NO marcamos (y se verá gris)
               if (!isHiddenByStealth) {
-                  targetPiece.classList.add('valid-target');
-                  targetsFound = true;
+                targetPiece.classList.add('valid-target');
+                targetsFound = true;
+              }
+            } else if (!isSupport && isAlly && pieceMap.get(targetPiece)?.mindControlled) {
+              if (!isHiddenByStealth) {
+                targetPiece.classList.add('valid-target');
+                targetsFound = true;
               }
             }
-            else if (!isSupport && isAlly && pieceMap.get(targetPiece)?.mindControlled) {
-               if (!isHiddenByStealth) {
-                  targetPiece.classList.add('valid-target');
-                  targetsFound = true;
-              }
+          } else if (hasObject) {
+            if (isTelekinesis) {
+              hasObject.classList.add('valid-target'); 
+              targetsFound = true;
             }
-          }
-          else if (hasObject) {
-              if (isTelekinesis) {
-                  hasObject.classList.add('valid-target'); 
-                  targetsFound = true;
-              }
           }
         }
       });
