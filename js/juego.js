@@ -3416,7 +3416,7 @@ function startGame() {
         playEffectSound(failureSound);
       }
 
-      const sentence2 = `${attackerStats.name} realiza un ataque telekinético de objeto (${objectName}) con ${attackerStats.ataque} de Ataque a ${targetStats.name} que tiene ${effectiveDefense} de Defensa. ${attackerStats.name} necesita un ${needed} y consigue un ${roll}.`;
+      const sentence2 = `${attackerStats.name} realiza un ataque telekinético de objeto (${objectName}) con ${attackerStats.ataque} de Ataque a ${targetStats.name} que tiene ${effectiveDefense} de Defensa. ${attackerStats.name} necesito un ${needed} y consigue un ${roll}.`;
       const damageLabel = appliedDamage === 1 ? 'punto' : 'puntos';
       const sentence3 = `El Daño del objeto es ${damage} y la Resistencia de ${targetStats.name} es ${resistance}. ${attackerStats.name} le causa ${appliedDamage} ${damageLabel} de Daño Infligido a ${targetStats.name}.`;
       const failureMessage = `${attackerStats.name} realiza un ataque telekinético de objeto (${objectName}) con ${attackerStats.ataque} de Ataque a ${targetStats.name} que tiene ${effectiveDefense} de Defensa. ${attackerStats.name} necesita un ${needed} y consigue un ${roll}. ${attackerStats.name} falla el ataque contra ${targetStats.name}.`;
