@@ -162,8 +162,8 @@ const board = document.querySelector('.board');
       }
 
       function updateControlToggles() {
-        updateControlToggleButton(controlToggleP1, 'player1');
-        updateControlToggleButton(controlToggleP2, 'player2');
+        updateControlToggleButton(document.getElementById('controlToggleP1'), 'player1');
+        updateControlToggleButton(document.getElementById('controlToggleP2'), 'player2');
       }
 
       function triggerAITurnIfActive(playerId) {
@@ -222,15 +222,17 @@ let activeBarriers = []; // Nueva lista para rastrear barreras activas
         revealModes();
       });
 
-      if (controlToggleP1) {
-        controlToggleP1.addEventListener('click', () => {
+      const controlToggleP1Button = document.getElementById('controlToggleP1');
+      if (controlToggleP1Button) {
+        controlToggleP1Button.addEventListener('click', () => {
           const nextMode = playerControl.player1 === 'auto' ? 'manual' : 'auto';
           setPlayerControlMode('player1', nextMode);
         });
       }
 
-      if (controlToggleP2) {
-        controlToggleP2.addEventListener('click', () => {
+      const controlToggleP2Button = document.getElementById('controlToggleP2');
+      if (controlToggleP2Button) {
+        controlToggleP2Button.addEventListener('click', () => {
           const nextMode = playerControl.player2 === 'auto' ? 'manual' : 'auto';
           setPlayerControlMode('player2', nextMode);
         });
@@ -317,8 +319,6 @@ let activeBarriers = []; // Nueva lista para rastrear barreras activas
     const movementInfo = document.getElementById('movementInfo');
     const allyCards = document.getElementById('allyCards');
     const enemyCards = document.getElementById('enemyCards');
-    const controlToggleP1 = document.getElementById('controlToggleP1');
-    const controlToggleP2 = document.getElementById('controlToggleP2');
 
     const AI_DELAY_MS = 1200;
     const TURN_DELAY_MS = 600;
