@@ -3100,7 +3100,7 @@ function startTurn(piece) {
       const formationRows = [4, 5, 6, 7];
       const allyColumns = [3, 2, 1];
       const enemyStartCol = BOARD_COLS - 2;
-      const enemyColumns = [enemyStartCol, enemyStartCol + 1, enemyStartCol + 2].reverse();
+      const enemyColumns = [enemyStartCol, enemyStartCol + 1, enemyStartCol + 2];
 
       const allySlots = buildPhalanxSlots(selections.player1.length, {
         columns: allyColumns,
