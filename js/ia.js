@@ -372,6 +372,15 @@ async function handleHighDamageFlow(piece, stats, { enemiesInRange, alliesInRang
         const updatedEnemies = getEnemiesInRange(piece);
         const updatedAllies = getAlliesInRange(piece);
         if (updatedEnemies.length > 0) {
+            if (hasPower(stats, 'Pulso') && countAdjacentEnemies(piece) >= 3) {
+                handleActionClick('pulso', { bypassVisuals: true });
+                return;
+            }
+            const explosionTarget = findExplosionTarget(piece, updatedEnemies);
+            if (explosionTarget) {
+                await performTargetedAction(piece, explosionTarget, 'explosion');
+                return;
+            }
             if (await executeAttackPriority(piece, stats, updatedEnemies, [
                 'attack-none',
                 'control mental',
@@ -398,6 +407,15 @@ async function handleHighDamageFlow(piece, stats, { enemiesInRange, alliesInRang
         const updatedEnemies = getEnemiesInRange(piece);
         const updatedAllies = getAlliesInRange(piece);
         if (updatedEnemies.length > 0) {
+            if (hasPower(stats, 'Pulso') && countAdjacentEnemies(piece) >= 3) {
+                handleActionClick('pulso', { bypassVisuals: true });
+                return;
+            }
+            const explosionTarget = findExplosionTarget(piece, updatedEnemies);
+            if (explosionTarget) {
+                await performTargetedAction(piece, explosionTarget, 'explosion');
+                return;
+            }
             if (await executeAttackPriority(piece, stats, updatedEnemies, [
                 'attack-none',
                 'control mental',
@@ -472,6 +490,11 @@ async function handleMediumDamageFlow(piece, stats, { enemiesInRange, alliesInRa
         const updatedEnemies = getEnemiesInRange(piece);
         const updatedAllies = getAlliesInRange(piece);
         if (updatedEnemies.length > 0) {
+            const explosionTarget = findExplosionTarget(piece, updatedEnemies);
+            if (explosionTarget) {
+                await performTargetedAction(piece, explosionTarget, 'explosion');
+                return;
+            }
             if (await executeAttackPriority(piece, stats, updatedEnemies, [
                 'attack-none',
                 'control mental',
@@ -499,6 +522,11 @@ async function handleMediumDamageFlow(piece, stats, { enemiesInRange, alliesInRa
         const updatedEnemies = getEnemiesInRange(piece);
         const updatedAllies = getAlliesInRange(piece);
         if (updatedEnemies.length > 0) {
+            const explosionTarget = findExplosionTarget(piece, updatedEnemies);
+            if (explosionTarget) {
+                await performTargetedAction(piece, explosionTarget, 'explosion');
+                return;
+            }
             if (await executeAttackPriority(piece, stats, updatedEnemies, [
                 'attack-none',
                 'control mental',
@@ -583,6 +611,11 @@ async function handleLowDamageFlow(piece, stats, { enemiesInRange, alliesInRange
         const updatedEnemies = getEnemiesInRange(piece);
         const updatedAllies = getAlliesInRange(piece);
         if (updatedEnemies.length > 0) {
+            const explosionTarget = findExplosionTarget(piece, updatedEnemies);
+            if (explosionTarget) {
+                await performTargetedAction(piece, explosionTarget, 'explosion');
+                return;
+            }
             if (await executeAttackPriority(piece, stats, updatedEnemies, [
                 'control mental',
                 'incapacitar',
@@ -610,6 +643,11 @@ async function handleLowDamageFlow(piece, stats, { enemiesInRange, alliesInRange
         const updatedEnemies = getEnemiesInRange(piece);
         const updatedAllies = getAlliesInRange(piece);
         if (updatedEnemies.length > 0) {
+            const explosionTarget = findExplosionTarget(piece, updatedEnemies);
+            if (explosionTarget) {
+                await performTargetedAction(piece, explosionTarget, 'explosion');
+                return;
+            }
             if (await executeAttackPriority(piece, stats, updatedEnemies, [
                 'control mental',
                 'incapacitar',
