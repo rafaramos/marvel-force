@@ -775,8 +775,14 @@ function registerTurnSound({ damageDealt = 0, attackFailed = false, zeroDamageHi
         'curar',
         'telekinesis',
       ];
+      const orderedPowers = [...allPowers].sort((left, right) => {
+        const leftHas = activeKeys.has(left);
+        const rightHas = activeKeys.has(right);
+        if (leftHas === rightHas) return 0;
+        return leftHas ? -1 : 1;
+      });
 
-      allPowers.forEach((key) => {
+      orderedPowers.forEach((key) => {
         const hasPower = activeKeys.has(key);
         const btn = document.createElement('button');
         btn.type = 'button';
