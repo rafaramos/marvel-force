@@ -3409,19 +3409,60 @@ function startGame() {
       const targetSquare = getPieceSquare(targetPiece);
 
       if (isAllyThrow) {
-        const offsets = [[1, 0], [-1, 0], [0, 1], [0, -1]];
-        const landingSquare = offsets
-          .map(([dr, dc]) => getSquareAt(Number(targetSquare.dataset.row) + dr, Number(targetSquare.dataset.col) + dc))
-          .find((square) => {
-            if (!square) return false;
-            if (square.querySelector('.piece')) return false;
-            if (square.querySelector('.object-token')) return false;
-            if (isBarrierSquare(square)) return false;
-            return true;
-          });
+        await animatePieceToSquare(victim, targetSquare, { duration: 600 });
+        playEffectSound(telekinesisSound);
+
+        const originalAtaque = victimStats.ataque;
+        const originalDano = victimStats.dano;
+        victimStats.ataque = originalAtaque + 2;
+        victimStats.dano = (originalDano ?? 0) + 1;
+
+        try {
+          await resolveAttack(victim, targetPiece, 'attack', { skipTurnAdvance: true });
+        } finally {
+          victimStats.ataque = originalAtaque;
+          victimStats.dano = originalDano;
+        }
+
+        const targetAlive = targetPiece.isConnected && targetPiece.dataset.eliminated !== 'true';
+        let landingSquare = null;
+
+        if (!targetAlive) {
+          landingSquare = targetSquare;
+        } else {
+          const limitRows = (typeof BOARD_ROWS !== 'undefined') ? BOARD_ROWS : (document.querySelectorAll('.board__row').length || 10);
+          const limitCols = (typeof BOARD_COLS !== 'undefined') ? BOARD_COLS : (document.querySelectorAll('.board__row:first-child .square').length || 10);
+          const startRow = Number(targetSquare.dataset.row);
+          const startCol = Number(targetSquare.dataset.col);
+          const queue = [{ row: startRow, col: startCol }];
+          const visited = new Set([`${startRow},${startCol}`]);
+          const deltas = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+
+          while (queue.length && !landingSquare) {
+            const { row, col } = queue.shift();
+            for (const [dr, dc] of deltas) {
+              const nr = row + dr;
+              const nc = col + dc;
+              if (nr < 1 || nr > limitRows || nc < 1 || nc > limitCols) continue;
+              const key = `${nr},${nc}`;
+              if (visited.has(key)) continue;
+              visited.add(key);
+              const square = getSquareAt(nr, nc);
+              if (!square) continue;
+              if (isBarrierSquare(square)) continue;
+              if (square.querySelector('.object-token')) continue;
+              if (square.querySelector('.piece')) {
+                queue.push({ row: nr, col: nc });
+                continue;
+              }
+              landingSquare = square;
+              break;
+            }
+          }
+        }
 
         if (!landingSquare) {
-          const msg = `No hay una casilla adyacente libre para lanzar a ${victimStats.name}.`;
+          const msg = `No hay una casilla libre cerca de ${targetStats.name} para aterrizar a ${victimStats.name}.`;
           addHistoryEntry(attacker.dataset.team, msg, { attacker, defenders: [targetPiece] });
           await showTurnPopup(msg);
           cancelTelekinesis();
@@ -3429,18 +3470,9 @@ function startGame() {
           return;
         }
 
-        await animatePieceToSquare(victim, landingSquare, { duration: 600 });
-        playEffectSound(telekinesisSound);
-
-        const originalAtaque = victimStats.ataque;
-        const originalDano = victimStats.dano;
-        victimStats.ataque = originalAtaque + 2;
-        victimStats.dano = originalDano + 1;
-
-        await resolveAttack(victim, targetPiece, 'attack', { skipTurnAdvance: true });
-
-        victimStats.ataque = originalAtaque;
-        victimStats.dano = originalDano;
+        if (landingSquare !== targetSquare) {
+          await animatePieceToSquare(victim, landingSquare, { duration: 600 });
+        }
 
         cancelTelekinesis();
         registerActionUsage(attacker, { showPopup: false });
