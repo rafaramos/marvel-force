@@ -741,7 +741,7 @@ body {
 
 .object-selected {
     filter: drop-shadow(0 0 8px cyan);
-    transform: scale(1.1);
+    transform: translate(-50%, -50%) scale(1.1);
     transition: all 0.2s;
 }
 

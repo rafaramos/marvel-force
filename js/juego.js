@@ -2768,12 +2768,9 @@ function handleActionClick(actionKey, options = {}) {
         const endRect = piece.getBoundingClientRect();
         const deltaX = startRect.left - endRect.left;
         const deltaY = startRect.top - endRect.top;
-        const isObject = piece.classList.contains('object-token');
-        const baseTransform = isObject ? '' : 'translate(-50%, -50%)';
-        const startTransform = isObject
-          ? `translate(${deltaX}px, ${deltaY}px)`
-          : `${baseTransform} translate(${deltaX}px, ${deltaY}px)`;
-        const endTransform = isObject ? 'translate(0px, 0px)' : baseTransform;
+        const baseTransform = 'translate(-50%, -50%)';
+        const startTransform = `${baseTransform} translate(${deltaX}px, ${deltaY}px)`;
+        const endTransform = baseTransform;
 
         const animation = piece.animate(
           [
