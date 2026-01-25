@@ -2739,10 +2739,10 @@ function handleActionClick(actionKey, options = {}) {
         const deltaY = startRect.top - endRect.top;
         const isObject = piece.classList.contains('object-token');
         const baseTransform = isObject ? '' : 'translate(-50%, -50%)';
-        const startTransform = baseTransform
-          ? `${baseTransform} translate(${deltaX}px, ${deltaY}px)`
-          : `translate(${deltaX}px, ${deltaY}px)`;
-        const endTransform = baseTransform || 'none';
+        const startTransform = isObject
+          ? `translate(${deltaX}px, ${deltaY}px)`
+          : `${baseTransform} translate(${deltaX}px, ${deltaY}px)`;
+        const endTransform = isObject ? 'translate(0px, 0px)' : baseTransform;
 
         const animation = piece.animate(
           [
@@ -3346,7 +3346,8 @@ function startGame() {
       const sentence1 = `${attackerStats.name} lanza ${objectName} a ${targetStats.name}. Daño base: ${damage}. Resistencia: ${resistance}. Daño final: ${appliedDamage}.`;
       const sentence2 = `${attackerStats.name} realiza un ataque a distancia de objeto (${objectName}) con ${attackerStats.ataque} de Ataque a ${targetStats.name} que tiene ${effectiveDefense} de Defensa. ${attackerStats.name} necesita un ${needed} y consigue un ${roll}.`;
       const sentence3 = `El Daño del Objeto es ${damage} y la Resistencia de ${targetStats.name} es ${resistance}. ${attackerStats.name} le causa ${appliedDamage} puntos de Daño Infligido a ${targetStats.name}.`;
-      const msg = `${sentence1} ${sentence2} ${sentence3}`;
+      const failureMessage = `${attackerStats.name} realiza un ataque a distancia de objeto (${objectName}) con ${attackerStats.ataque} de Ataque a ${targetStats.name} que tiene ${effectiveDefense} de Defensa. ${attackerStats.name} necesita un ${needed} y consigue un ${roll}. ${attackerStats.name} falla el ataque contra ${targetStats.name}.`;
+      const msg = success ? `${sentence1} ${sentence2} ${sentence3}` : failureMessage;
 
       addHistoryEntry(attacker.dataset.team, msg, { attacker, defenders: [targetPiece] });
 
@@ -3425,21 +3426,23 @@ function startGame() {
       const success = attackValue >= effectiveDefense;
       const needed = Math.max(2, effectiveDefense - attackerStats.ataque);
 
-      let impactBonus = 0;
-      if (hasPassive(victimStats, 'dureza')) impactBonus += 1;
-      if (hasPassive(victimStats, 'invulnerable')) impactBonus += 2;
-      if (hasPassive(victimStats, 'superfuerza')) impactBonus += 1;
+      let targetResistance = 0;
+      if (hasPassive(targetStats, 'dureza')) targetResistance = 1;
+      if (hasPassive(targetStats, 'invulnerable')) targetResistance = 2;
 
-      const impactRoll = Math.floor(Math.random() * 6) + 1;
-      const impactDamage = impactRoll + impactBonus;
-      const victimDamage = Math.floor(impactDamage / 2);
+      let victimResistance = 0;
+      if (hasPassive(victimStats, 'dureza')) victimResistance = 1;
+      if (hasPassive(victimStats, 'invulnerable')) victimResistance = 2;
+
+      const targetDamage = Math.max((victimStats.dano ?? 0) - targetResistance, 0);
+      const victimDamage = Math.max((targetStats.dano ?? 0) - victimResistance, 0);
 
       if (success) {
         playEffectSound(punchSound);
-        targetStats.currentVida = Math.max(0, targetStats.currentVida - impactDamage);
+        targetStats.currentVida = Math.max(0, targetStats.currentVida - targetDamage);
         victimStats.currentVida = Math.max(0, victimStats.currentVida - victimDamage);
         if (isEnemy(attacker, targetPiece)) {
-          addPoints(attacker, impactDamage * SCORE_PER_DAMAGE);
+          addPoints(attacker, targetDamage * SCORE_PER_DAMAGE);
         }
       } else {
         playEffectSound(failureSound);
@@ -3448,7 +3451,7 @@ function startGame() {
       const sentence1 = `${attackerStats.name} lanza a ${victimStats.name} contra ${targetStats.name}.`;
       const sentence2 = `${attackerStats.name} realiza un ataque telequinético con ${attackerStats.ataque} de Ataque a ${targetStats.name} que tiene ${effectiveDefense} de Defensa. ${attackerStats.name} necesita un ${needed} y consigue un ${roll}.`;
       const sentence3 = success
-        ? `El impacto causa ${impactDamage} puntos de Daño Infligido a ${targetStats.name} y ${victimStats.name} recibe ${victimDamage}.`
+        ? `El impacto causa ${targetDamage} puntos de Daño Infligido a ${targetStats.name} y ${victimStats.name} recibe ${victimDamage}.`
         : `${attackerStats.name} falla el lanzamiento y no causa daño.`;
       const msg = `${sentence1} ${sentence2} ${sentence3}`;
 
