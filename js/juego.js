@@ -8,10 +8,11 @@ const board = document.querySelector('.board');
       const draftGrid = document.getElementById('draftGrid');
       const draftPrompt = document.getElementById('draftPrompt');
       const draftPicker = document.getElementById('draftPicker');
-      const draftTurn = document.getElementById('draftTurn');
-      const draftCounter = document.getElementById('draftCounter');
-      const draftInfo = document.getElementById('draftInfo');
-      const draftSubtitle = document.getElementById('draftSubtitle');
+    const draftTurn = document.getElementById('draftTurn');
+    const draftCounter = document.getElementById('draftCounter');
+    const draftInfo = document.getElementById('draftInfo');
+    const draftSubtitle = document.getElementById('draftSubtitle');
+    const draftFinalizeButton = document.getElementById('draftFinalizeButton');
       const pieceStats =
         (typeof personajes !== 'undefined' && personajes) ||
         (typeof window !== 'undefined' ? window.personajes : {});
@@ -130,6 +131,7 @@ const board = document.querySelector('.board');
       let draftIndex = 0;
       let firstPicker = 'player1';
       let draftActive = false;
+      const draftFinalized = { player1: false, player2: false };
       const selections = { player1: [], player2: [] };
       let availableCharacters = [];
 
@@ -235,6 +237,27 @@ let activeBarriers = []; // Nueva lista para rastrear barreras activas
         controlToggleP2Button.addEventListener('click', () => {
           const nextMode = playerControl.player2 === 'auto' ? 'manual' : 'auto';
           setPlayerControlMode('player2', nextMode);
+        });
+      }
+
+      if (draftFinalizeButton) {
+        draftFinalizeButton.addEventListener('click', () => {
+          if (!draftActive || !canFinalizeDraft()) return;
+          advanceDraftIndex();
+          const pickerId = draftOrder[draftIndex];
+          if (!pickerId || draftFinalized[pickerId]) return;
+          draftFinalized[pickerId] = true;
+          updateDraftFinalizeButton();
+          advanceDraftIndex();
+          if (draftIsComplete()) {
+            finalizeDraft();
+            return;
+          }
+          updateDraftLabels();
+          const nextPicker = draftOrder[draftIndex];
+          if (shouldAIPick(nextPicker)) {
+            setTimeout(performAIPick, 600);
+          }
         });
       }
 
@@ -3143,6 +3166,34 @@ function startTurn(piece) {
       return availableCharacters.filter((key) => !selections.player1.includes(key) && !selections.player2.includes(key));
     }
 
+    function canFinalizeDraft() {
+      return selections.player1.length > 0 && selections.player2.length > 0;
+    }
+
+    function updateDraftFinalizeButton() {
+      if (!draftFinalizeButton) return;
+      draftFinalizeButton.disabled = !canFinalizeDraft();
+    }
+
+    function isTeamLocked(playerId) {
+      return draftFinalized[playerId] || selections[playerId].length >= 12;
+    }
+
+    function advanceDraftIndex() {
+      while (draftIndex < draftOrder.length) {
+        const pickerId = draftOrder[draftIndex];
+        if (!pickerId) {
+          draftIndex += 1;
+          continue;
+        }
+        if (isTeamLocked(pickerId)) {
+          draftIndex += 1;
+          continue;
+        }
+        break;
+      }
+    }
+
     function renderDraftCards() {
       draftGrid.innerHTML = '';
       const ownership = new Map();
@@ -3192,9 +3243,12 @@ function startTurn(piece) {
 
         draftGrid.appendChild(card);
       });
+
+      updateDraftFinalizeButton();
     }
 
     function updateDraftLabels() {
+      advanceDraftIndex();
       if (draftIndex >= draftOrder.length) {
         finalizeDraft();
         return;
@@ -3208,16 +3262,19 @@ function startTurn(piece) {
       const remaining = 12 - selections[pickerId].length;
       draftPrompt.textContent = `${ownerLabel(pickerId)} selecciona (${remaining} plazas restantes en su equipo).`;
       draftInfo.textContent = 'Los personajes elegidos no se pueden repetir. Tras la última elección comenzará la partida.';
+      updateDraftFinalizeButton();
     }
 
     function draftIsComplete() {
       const teamsFull = selections.player1.length === 12 && selections.player2.length === 12;
+      const teamsFinalized = draftFinalized.player1 && draftFinalized.player2;
       const outOfTurns = draftIndex >= draftOrder.length;
-      return teamsFull || outOfTurns;
+      return teamsFull || teamsFinalized || outOfTurns;
     }
 
     function handleDraftPick(key) {
       if (!draftActive) return;
+      advanceDraftIndex();
       if (draftIndex >= draftOrder.length) {
         finalizeDraft();
         return;
@@ -3226,11 +3283,12 @@ function startTurn(piece) {
       const pickerId = draftOrder[draftIndex];
       if (!pickerId) return;
       if (!availablePool().includes(key)) return;
-      if (selections[pickerId].length >= 12) return;
+      if (isTeamLocked(pickerId)) return;
 
       selections[pickerId].push(key);
       draftIndex = Math.min(draftIndex + 1, draftOrder.length);
       renderDraftCards();
+      updateDraftFinalizeButton();
 
       if (selections.player1.length === 12 && selections.player2.length === 12) {
         finalizeDraft();
@@ -3345,6 +3403,8 @@ function startTurn(piece) {
 
       selections.player1 = [];
       selections.player2 = [];
+      draftFinalized.player1 = false;
+      draftFinalized.player2 = false;
       availableCharacters = Object.keys(pieceStats);
       
       firstPicker = Math.random() < 0.5 ? 'player1' : 'player2';

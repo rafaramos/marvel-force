@@ -336,6 +336,10 @@ body {
   gap: 10px;
 }
 
+#draftFinalizeButton {
+  min-width: 180px;
+}
+
 .draft-prompt {
   margin: 0;
   font-weight: 700;
