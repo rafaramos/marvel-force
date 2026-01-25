@@ -1795,11 +1795,6 @@ async function resolveAttack(attacker, defender, actionKey = 'attack', options =
       const targetSquare = getPieceSquare(defender);
       const maxRange = rangeForAction(attacker, actionKey);
       const distance = attackDistance(attackerSquare, targetSquare);
-      const isMelee = distance <= 1;
-      const effectiveDefense = (!isMelee && hasPassive(defenderStats, 'defensa a/d'))
-        ? defenderStats.defensa + 2
-        : defenderStats.defensa;
-      const needed = Math.max(2, effectiveDefense - attackerStats.ataque);
 
       // --- NUEVO: Bloqueo por Sigilo (> 3 casillas) ---
       if (distance > 3 && hasPassive(defenderStats, 'sigilo')) {
@@ -1864,6 +1859,10 @@ async function resolveAttack(attacker, defender, actionKey = 'attack', options =
 
       const { totalDamage, clawsRoll, isMelee, resistance, rawDamage, baseDamageBeforeClaws, baseDamageAfterClaws } = 
         calculateDamage(attackerStats, defenderStats, distance, critical);
+      const effectiveDefense = (!isMelee && hasPassive(defenderStats, 'defensa a/d'))
+        ? defenderStats.defensa + 2
+        : defenderStats.defensa;
+      const needed = Math.max(2, effectiveDefense - attackerStats.ataque);
 
       const isStatusAttack = actionKey === 'incapacitar' || actionKey === 'control mental';
       const damageApplied = success && !isStatusAttack ? totalDamage : 0;
