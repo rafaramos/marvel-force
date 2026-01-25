@@ -50,6 +50,8 @@ const board = document.querySelector('.board');
       const criticoSound = new Audio('sonidos/efectos/critico.mp3');
       const pifiaSound = new Audio('sonidos/efectos/pifia.mp3');
 
+      const bonusConfirmSound = new Audio('sonidos/efectos/click.wav');
+
       const controlMentalSound = new Audio('sonidos/efectos/controlMental.mp3');
       const curarSound = new Audio('sonidos/efectos/curar.mp3');
       const explosionSound = new Audio('sonidos/efectos/explosion.mp3');
@@ -2507,6 +2509,9 @@ async function resolveHeal(attacker, target) {
         selectedTarget = selectionTarget;
 
         if (currentAction === 'telekinesis' || isSupportPower(currentAction)) {
+            if (isSupportPower(currentAction)) {
+                playEffectSound(bonusConfirmSound);
+            }
             handleActionClick(currentAction);
             return;
         }
