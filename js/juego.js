@@ -2330,7 +2330,9 @@ async function resolveHeal(attacker, target) {
       const wounds = Math.max(targetStats.maxVida - targetStats.currentVida, 0);
       
       if (wounds === 0) {
-        await showTurnPopup(`${attackerStats.name} intenta curar a ${targetStats.name}, pero ya está al máximo de salud.`);
+        const msg = `${attackerStats.name} intenta curar a ${targetStats.name}, pero ya está al máximo de salud.`;
+        addHistoryEntry(attacker.dataset.team, msg, { attacker, defenders: [target] });
+        await showTurnPopup(msg);
         registerActionUsage(attacker, { showPopup: false });
         return;
       }
@@ -2370,7 +2372,7 @@ async function resolveHeal(attacker, target) {
       } else {
           const msg = `${sentence1} ${sentence2} ${attackerStats.name} falla la curación.`;
           playEffectSound(failureSound);
-          addHistoryEntry(attacker.dataset.team, msg, { attacker });
+          addHistoryEntry(attacker.dataset.team, msg, { attacker, defenders: [target] });
           await showTurnPopup(msg);
       }
 
