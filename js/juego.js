@@ -1780,6 +1780,8 @@ async function resolveAttack(attacker, defender, actionKey = 'attack', options =
       const { 
         allowCounter = true, 
         skipTurnAdvance = false, 
+        showPopup = true,
+        logHistory = true,
         actionLabelOverride = null, 
         isSecondAttack = false 
       } = options;
@@ -1793,6 +1795,11 @@ async function resolveAttack(attacker, defender, actionKey = 'attack', options =
       const targetSquare = getPieceSquare(defender);
       const maxRange = rangeForAction(attacker, actionKey);
       const distance = attackDistance(attackerSquare, targetSquare);
+      const isMelee = distance <= 1;
+      const effectiveDefense = (!isMelee && hasPassive(defenderStats, 'defensa a/d'))
+        ? defenderStats.defensa + 2
+        : defenderStats.defensa;
+      const needed = Math.max(2, effectiveDefense - attackerStats.ataque);
 
       // --- NUEVO: Bloqueo por Sigilo (> 3 casillas) ---
       if (distance > 3 && hasPassive(defenderStats, 'sigilo')) {
@@ -1921,7 +1928,9 @@ async function resolveAttack(attacker, defender, actionKey = 'attack', options =
       }
       // -------------------------------------------------------
 
-      addHistoryEntry(attacker.dataset.team, popupMessage, { attacker, defenders: [defender] });
+      if (logHistory) {
+        addHistoryEntry(attacker.dataset.team, popupMessage, { attacker, defenders: [defender] });
+      }
 
       // Gestión de Muerte
       if (success && !isStatusAttack && defenderStats.currentVida <= 0) {
@@ -1950,15 +1959,19 @@ async function resolveAttack(attacker, defender, actionKey = 'attack', options =
 
       // Flujo de Pifia / Doble Ataque / Fin de Turno
       if (shouldCounter && defenderStats.currentVida > 0 && defender.dataset.eliminated !== 'true') {
-        await showTurnPopup(`¡PIFIA! ${attackerStats.name} ha fallado estrepitosamente.\n${defenderStats.name} prepara su contraataque.\n(Haz clic para resolver la réplica)`);
-        await sleep(300);
+        if (showPopup) {
+          await showTurnPopup(`¡PIFIA! ${attackerStats.name} ha fallado estrepitosamente.\n${defenderStats.name} prepara su contraataque.\n(Haz clic para resolver la réplica)`);
+          await sleep(300);
+        }
         await resolveAttack(defender, attacker, 'attack', {
           allowCounter: false,
           skipTurnAdvance: true,
           actionLabelOverride: 'Réplica',
+          showPopup,
+          logHistory,
         });
-        if (!skipTurnAdvance) registerActionUsage(attacker, { showPopup: false });
-        return;
+        if (!skipTurnAdvance && showPopup) registerActionUsage(attacker, { showPopup: false });
+        return { success, damageApplied, roll, needed, effectiveDefense };
       }
 
       const hasDoubleAttack = hasPassive(attackerStats, 'doble ataque c/c');
@@ -1966,17 +1979,19 @@ async function resolveAttack(attacker, defender, actionKey = 'attack', options =
           defenderStats.currentVida > 0 && defender.dataset.eliminated !== 'true' &&
           attackerStats.currentVida > 0 && attacker.dataset.eliminated !== 'true') {
         
-        await showTurnPopup(`${popupMessage}\n\n[DOBLE ATAQUE]\n(Clic para el segundo golpe)`);
-        await sleep(300);
+        if (showPopup) {
+          await showTurnPopup(`${popupMessage}\n\n[DOBLE ATAQUE]\n(Clic para el segundo golpe)`);
+          await sleep(300);
+        }
         await resolveAttack(attacker, defender, actionKey, {
           ...options,
           isSecondAttack: true, 
           actionLabelOverride: '2º Ataque c/c'
         });
-        return; 
+        return { success, damageApplied, roll, needed, effectiveDefense }; 
       }
 
-      if (!skipTurnAdvance) {
+      if (!skipTurnAdvance && showPopup) {
         hideTooltip();
         clearRangeHighlights();
         selectedTarget = null;
@@ -1984,6 +1999,7 @@ async function resolveAttack(attacker, defender, actionKey = 'attack', options =
         await showTurnPopup(popupMessage);
         registerActionUsage(attacker, { showPopup: false });
       }
+      return { success, damageApplied, roll, needed, effectiveDefense };
     }
 
 async function resolveExplosion(attacker, centerTarget) {
@@ -3463,9 +3479,15 @@ function startGame() {
           danoBonus: 1,
         };
         victimStats.telekinesisCasterName = attackerStats.name;
+        const boostedAtaque = victimStats.ataque;
 
+        let attackSummary = null;
         try {
-          await resolveAttack(victim, targetPiece, 'telekinesis-ally-throw', { skipTurnAdvance: true });
+          attackSummary = await resolveAttack(victim, targetPiece, 'telekinesis-ally-throw', {
+            skipTurnAdvance: true,
+            showPopup: false,
+            logHistory: false,
+          });
         } finally {
           victimStats.ataque = originalAtaque;
           victimStats.dano = originalDano;
@@ -3523,6 +3545,23 @@ function startGame() {
           await animatePieceToSquare(victim, landingSquare, { duration: 600 });
         }
 
+        const attackNeeded = attackSummary?.needed ?? Math.max(2, targetStats.defensa - boostedAtaque);
+        const attackRoll = attackSummary?.roll ?? 0;
+        const attackSuccess = attackSummary?.success ?? false;
+        const attackDamage = attackSummary?.damageApplied ?? 0;
+        const defenseValue = attackSummary?.effectiveDefense ?? targetStats.defensa;
+        const damageLabel = attackDamage === 1 ? 'punto' : 'puntos';
+
+        const header = `${attackerStats.name} realiza un lanzamiento telekinético de aliado. Lanza a ${victimStats.name} contra ${targetStats.name}.`;
+        const impactData = `${victimStats.name} tiene ${boostedAtaque} de Ataque y ${targetStats.name} tiene ${defenseValue} de Defensa.`;
+        const rollText = `${victimStats.name} necesita un ${attackNeeded} y consigue un ${attackRoll}.`;
+        const resultText = attackSuccess
+          ? `El impacto causa ${attackDamage} ${damageLabel} de Daño Infligido a ${targetStats.name}.`
+          : `${victimStats.name} falla el impacto y no causa daño.`;
+        const msg = `${header} ${impactData} ${rollText} ${resultText}`;
+
+        addHistoryEntry(attacker.dataset.team, msg, { attacker, defenders: [victim, targetPiece] });
+        await showTurnPopup(msg);
         cancelTelekinesis();
         registerActionUsage(attacker, { showPopup: false });
         return;
