@@ -775,12 +775,14 @@ function registerTurnSound({ damageDealt = 0, attackFailed = false, zeroDamageHi
         'curar',
         'telekinesis',
       ];
-      const orderedPowers = [...allPowers].sort((left, right) => {
-        const leftHas = activeKeys.has(left);
-        const rightHas = activeKeys.has(right);
-        if (leftHas === rightHas) return 0;
-        return leftHas ? -1 : 1;
-      });
+      const activePowers = allPowers.filter((key) => activeKeys.has(key));
+      const inactivePowers = allPowers.filter((key) => !activeKeys.has(key));
+      const splitIndex = Math.ceil(inactivePowers.length / 2);
+      const orderedPowers = [
+        ...inactivePowers.slice(0, splitIndex),
+        ...activePowers,
+        ...inactivePowers.slice(splitIndex),
+      ];
 
       orderedPowers.forEach((key) => {
         const hasPower = activeKeys.has(key);
