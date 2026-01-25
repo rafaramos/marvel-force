@@ -2278,7 +2278,7 @@ async function resolveBarrier(attacker, targetSquare) {
       const lista = details.length > 0 ? formatter.format(details) : '';
       
       const message = affected.length 
-        ? `${attackerStats.name} aplica ${label} sobre ${targetStats?.name ?? 'sí mismo'}: ${label} afecta a: ${lista}.`
+        ? `${attackerStats.name} aplica ${label} sobre ${targetStats?.name ?? 'sí mismo'}. ${label} afecta a: ${lista}.`
         : `${attackerStats.name} intenta aplicar ${label} sobre ${targetStats?.name ?? 'sí mismo'}, pero nadie se beneficia.`;
 
       // CORRECCIÓN 2: Pasamos 'defenders: affected' para que salgan sus fotos
