@@ -1678,24 +1678,36 @@ function chooseSupportBuffTarget(attacker, stats, allies) {
         { key: 'mejora de critico', stat: 'critico' },
     ];
 
+    const isBuffed = (candidateStats, stat) => {
+        if (!candidateStats) return false;
+        return stat === 'critico'
+            ? Boolean(candidateStats.critBuff)
+            : Boolean(candidateStats.statBuffs?.[stat]);
+    };
+
     let best = null;
     buffs.forEach(({ key, stat }) => {
         if (!hasPower(stats, key)) return;
-        allies.forEach((ally) => {
+        const inRangeAllies = allies.filter((ally) => canUseSupportAction(attacker, ally, key, 'ally'));
+        inRangeAllies.forEach((ally) => {
             const allyStats = pieceMap.get(ally);
-            if (!allyStats) return;
-            const alreadyBuffed = stat === 'critico'
-                ? Boolean(allyStats.critBuff)
-                : Boolean(allyStats.statBuffs?.[stat]);
-            if (alreadyBuffed) return;
+            if (!allyStats || isBuffed(allyStats, stat)) return;
+            const allySquare = getPieceSquare(ally);
+            if (!allySquare) return;
+            let score = 1;
+            inRangeAllies.forEach((other) => {
+                if (other === ally) return;
+                const otherStats = pieceMap.get(other);
+                if (!otherStats || isBuffed(otherStats, stat)) return;
+                const otherSquare = getPieceSquare(other);
+                if (!otherSquare) return;
+                if (areAdjacentSquares(allySquare, otherSquare)) {
+                    score += 1;
+                }
+            });
             const strength = allyStrengthScore(allyStats);
-            const inRange = Boolean(attacker && canUseSupportAction(attacker, ally, key, 'ally'));
-            if (
-                !best ||
-                (inRange && !best.inRange) ||
-                (inRange === best.inRange && strength > best.strength)
-            ) {
-                best = { actionKey: key, target: ally, targetType: 'ally', strength, inRange };
+            if (!best || score > best.score || (score === best.score && strength > best.strength)) {
+                best = { actionKey: key, target: ally, targetType: 'ally', score, strength };
             }
         });
     });
