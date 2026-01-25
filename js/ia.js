@@ -205,94 +205,25 @@ async function performEnemyTurn(piece) {
     const enemiesInRange = getEnemiesInRange(piece);
     const alliesInRange = getAlliesInRange(piece);
     const enemiesReachable = getEnemiesInMoveRange(piece);
-    const hasSupportAllyInRange = Boolean(findSupportDecision(piece, stats, { requireInRange: true, alliesOnly: true }));
+    const allEnemies = getVisibleEnemies(piece, { requireVisibility: false });
+
+    if (allEnemies.length === 0) {
+        playEffectSound(passTurnSound);
+        finishTurn(piece);
+        return;
+    }
 
     if (highDamageProfile) {
-        if (enemiesInRange.length === 0 && alliesInRange.length === 0 && enemiesReachable.length === 0) {
-            await handleHighDamageNoTargets(piece, stats);
-            return;
-        }
-
-        if (enemiesInRange.length === 0 && alliesInRange.length > 0) {
-            await handleHighDamageAlliesOnlyInRange(piece, stats);
-            return;
-        }
-
-        if (enemiesInRange.length > 0 && alliesInRange.length > 0) {
-            await handleHighDamageInRange(piece, stats, enemiesInRange);
-            return;
-        }
-
-        if (enemiesReachable.length > 0) {
-            await handleHighDamageMoveRange(piece, stats, enemiesReachable);
-            return;
-        }
-
-        if (enemiesInRange.length > 0) {
-            await handleHighDamageInRange(piece, stats, enemiesInRange);
-            return;
-        }
-
-        await handleHighDamageNoTargets(piece, stats);
+        await handleHighDamageFlow(piece, stats, { enemiesInRange, alliesInRange, enemiesReachable });
         return;
     }
 
     if (mediumDamageProfile) {
-        if (enemiesInRange.length === 0 && alliesInRange.length === 0 && enemiesReachable.length === 0) {
-            await handleMediumDamageNoTargets(piece, stats);
-            return;
-        }
-
-        if (enemiesInRange.length === 0 && alliesInRange.length > 0) {
-            await handleMediumDamageAlliesOnlyInRange(piece, stats);
-            return;
-        }
-
-        if (enemiesInRange.length > 0 && alliesInRange.length > 0) {
-            await handleMediumDamageAlliesInRange(piece, stats, enemiesInRange);
-            return;
-        }
-
-        if (enemiesReachable.length > 0) {
-            await handleMediumDamageMoveRange(piece, stats, enemiesReachable);
-            return;
-        }
-
-        if (enemiesInRange.length > 0) {
-            await handleMediumDamageEnemiesOnlyInRange(piece, stats, enemiesInRange);
-            return;
-        }
-
-        await handleMediumDamageNoTargets(piece, stats);
+        await handleMediumDamageFlow(piece, stats, { enemiesInRange, alliesInRange, enemiesReachable });
         return;
     }
 
-    if (enemiesInRange.length === 0 && alliesInRange.length === 0 && enemiesReachable.length === 0) {
-        await handleLowDamageNoTargets(piece, stats);
-        return;
-    }
-
-    if (enemiesInRange.length === 0 && alliesInRange.length > 0) {
-        await handleLowDamageAlliesOnlyInRange(piece, stats);
-        return;
-    }
-
-    if (enemiesInRange.length > 0 && hasSupportAllyInRange) {
-        await handleLowDamageAlliesInRange(piece, stats, enemiesInRange);
-        return;
-    }
-
-    if (enemiesInRange.length > 0) {
-        await handleLowDamageEnemiesOnlyInRange(piece, stats, enemiesInRange);
-        return;
-    }
-
-    if (enemiesReachable.length > 0) {
-        await handleLowDamageMoveRange(piece, stats, enemiesReachable);
-        return;
-    }
-
-    await handleLowDamageNoRange(piece, stats);
+    await handleLowDamageFlow(piece, stats, { enemiesInRange, alliesInRange, enemiesReachable });
 }
 
 async function waitForPopupsToClose() {
@@ -357,6 +288,406 @@ function getEnemiesInMoveRange(piece) {
 function canReachTargetWithAction(piece, target, actionKey) {
     if (canUseSupportAction(piece, target, actionKey, 'enemy')) return true;
     return Boolean(findSupportMoveSquare(piece, target, actionKey, 'enemy'));
+}
+
+function passAITurn(piece) {
+    playEffectSound(passTurnSound);
+    finishTurn(piece);
+}
+
+async function performSupportActionIfInRange(attacker, target, actionKey, targetType = 'ally') {
+    if (!canUseSupportAction(attacker, target, actionKey, targetType)) return false;
+    await waitForPopupsToClose();
+    await sleep(ENEMY_ACTION_DELAY_MS);
+    await executeSupportAction(attacker, target, actionKey);
+    return true;
+}
+
+async function tryHealSelfInRange(piece, stats) {
+    if (!hasPower(stats, 'Curar')) return false;
+    const selfStats = pieceMap.get(piece);
+    if (!selfStats || selfStats.currentVida >= selfStats.maxVida) return false;
+    return performSupportActionIfInRange(piece, piece, 'curar', 'ally');
+}
+
+async function tryHealAllyInRange(piece, stats) {
+    if (!hasPower(stats, 'Curar')) return false;
+    const ally = findDamagedAlly(piece);
+    if (!ally) return false;
+    return performSupportActionIfInRange(piece, ally, 'curar', 'ally');
+}
+
+async function tryBuffAllyInRange(piece, stats) {
+    const allies = getAllies(piece).filter((ally) => ally !== piece);
+    const decision = chooseSupportBuffTarget(piece, stats, allies);
+    if (!decision) return false;
+    return performSupportActionIfInRange(piece, decision.target, decision.actionKey, 'ally');
+}
+
+async function tryBuffSelfInRange(piece, stats) {
+    const selfBuffAction = chooseSelfBuffAction(piece, stats);
+    if (!selfBuffAction) return false;
+    return performSupportActionIfInRange(piece, piece, selfBuffAction, 'ally');
+}
+
+async function trySupportSequenceInRange(piece, stats, sequence) {
+    for (const step of sequence) {
+        if (step === 'heal-self' && await tryHealSelfInRange(piece, stats)) return true;
+        if (step === 'heal-ally' && await tryHealAllyInRange(piece, stats)) return true;
+        if (step === 'buff-ally' && await tryBuffAllyInRange(piece, stats)) return true;
+        if (step === 'buff-self' && await tryBuffSelfInRange(piece, stats)) return true;
+    }
+    return false;
+}
+
+async function executeAttackPriority(piece, stats, enemies, steps) {
+    for (const step of steps) {
+        if (step === 'attack-none') {
+            const target = chooseTargetByDurability(enemies, ['none']);
+            if (target && await performTargetedAction(piece, target, 'attack')) return true;
+        }
+        if (step === 'control mental' && hasPower(stats, 'Control Mental')) {
+            const target = chooseDangerousEnemy(enemies);
+            if (await performTargetedAction(piece, target, 'control mental')) return true;
+        }
+        if (step === 'incapacitar' && hasPower(stats, 'Incapacitar')) {
+            const target = chooseDangerousEnemy(enemies);
+            if (await performTargetedAction(piece, target, 'incapacitar')) return true;
+        }
+        if (step === 'attack-dureza') {
+            const target = chooseTargetByDurability(enemies, ['dureza']);
+            if (target && await performTargetedAction(piece, target, 'attack')) return true;
+        }
+        if (step === 'attack-invulnerable') {
+            const target = chooseTargetByDurability(enemies, ['invulnerable']);
+            if (target && await performTargetedAction(piece, target, 'attack')) return true;
+        }
+    }
+    return false;
+}
+
+async function handleHighDamageFlow(piece, stats, { enemiesInRange, alliesInRange, enemiesReachable }) {
+    if (enemiesInRange.length === 0 && alliesInRange.length === 0 && enemiesReachable.length === 0) {
+        await moveTowardEnemy(piece);
+        const updatedEnemies = getEnemiesInRange(piece);
+        const updatedAllies = getAlliesInRange(piece);
+        if (updatedEnemies.length > 0) {
+            if (await executeAttackPriority(piece, stats, updatedEnemies, [
+                'attack-none',
+                'control mental',
+                'attack-dureza',
+                'attack-invulnerable',
+            ])) return;
+        }
+        if (updatedAllies.length > 0) {
+            if (await trySupportSequenceInRange(piece, stats, [
+                'heal-self',
+                'heal-ally',
+                'buff-ally',
+                'buff-self',
+            ])) return;
+        } else {
+            if (await trySupportSequenceInRange(piece, stats, ['heal-self', 'buff-self'])) return;
+        }
+        passAITurn(piece);
+        return;
+    }
+
+    if (enemiesInRange.length === 0 && alliesInRange.length > 0) {
+        await moveTowardEnemy(piece);
+        const updatedEnemies = getEnemiesInRange(piece);
+        const updatedAllies = getAlliesInRange(piece);
+        if (updatedEnemies.length > 0) {
+            if (await executeAttackPriority(piece, stats, updatedEnemies, [
+                'attack-none',
+                'control mental',
+                'attack-dureza',
+                'attack-invulnerable',
+            ])) return;
+        }
+        if (updatedAllies.length > 0) {
+            if (await trySupportSequenceInRange(piece, stats, [
+                'heal-self',
+                'heal-ally',
+                'buff-ally',
+                'buff-self',
+            ])) return;
+        } else {
+            if (await trySupportSequenceInRange(piece, stats, ['heal-self', 'buff-self'])) return;
+        }
+        passAITurn(piece);
+        return;
+    }
+
+    if (enemiesInRange.length > 0 && alliesInRange.length > 0) {
+        if (hasPower(stats, 'Pulso') && countAdjacentEnemies(piece) >= 3) {
+            handleActionClick('pulso', { bypassVisuals: true });
+            return;
+        }
+        const explosionTarget = findExplosionTarget(piece, enemiesInRange);
+        if (explosionTarget) {
+            await performTargetedAction(piece, explosionTarget, 'explosion');
+            return;
+        }
+        if (enemiesInRange.length === 1) {
+            if (await executeAttackPriority(piece, stats, enemiesInRange, [
+                'attack-none',
+                'control mental',
+                'attack-dureza',
+                'attack-invulnerable',
+            ])) return;
+        }
+    }
+
+    if (enemiesReachable.length > 0) {
+        const explosionTarget = findExplosionTarget(piece, enemiesReachable);
+        if (explosionTarget) {
+            if (await performTargetedAction(piece, explosionTarget, 'explosion')) return;
+        }
+        if (enemiesReachable.length === 1) {
+            if (await executeAttackPriority(piece, stats, enemiesReachable, [
+                'attack-none',
+                'control mental',
+                'attack-dureza',
+                'attack-invulnerable',
+            ])) return;
+        }
+    }
+
+    if (enemiesInRange.length > 0) {
+        if (await executeAttackPriority(piece, stats, enemiesInRange, [
+            'attack-none',
+            'control mental',
+            'attack-dureza',
+            'attack-invulnerable',
+        ])) return;
+    }
+
+    passAITurn(piece);
+}
+
+async function handleMediumDamageFlow(piece, stats, { enemiesInRange, alliesInRange, enemiesReachable }) {
+    if (enemiesInRange.length === 0 && alliesInRange.length === 0 && enemiesReachable.length === 0) {
+        await moveTowardEnemy(piece);
+        const updatedEnemies = getEnemiesInRange(piece);
+        const updatedAllies = getAlliesInRange(piece);
+        if (updatedEnemies.length > 0) {
+            if (await executeAttackPriority(piece, stats, updatedEnemies, [
+                'attack-none',
+                'control mental',
+                'attack-dureza',
+                'incapacitar',
+                'attack-invulnerable',
+            ])) return;
+        }
+        if (updatedAllies.length > 0) {
+            if (await trySupportSequenceInRange(piece, stats, [
+                'heal-self',
+                'heal-ally',
+                'buff-ally',
+                'buff-self',
+            ])) return;
+        } else {
+            if (await trySupportSequenceInRange(piece, stats, ['heal-self', 'buff-self'])) return;
+        }
+        passAITurn(piece);
+        return;
+    }
+
+    if (enemiesInRange.length === 0 && alliesInRange.length > 0) {
+        await moveTowardEnemy(piece);
+        const updatedEnemies = getEnemiesInRange(piece);
+        const updatedAllies = getAlliesInRange(piece);
+        if (updatedEnemies.length > 0) {
+            if (await executeAttackPriority(piece, stats, updatedEnemies, [
+                'attack-none',
+                'control mental',
+                'attack-dureza',
+                'incapacitar',
+                'attack-invulnerable',
+            ])) return;
+        }
+        if (updatedAllies.length > 0) {
+            if (await trySupportSequenceInRange(piece, stats, [
+                'heal-self',
+                'heal-ally',
+                'buff-ally',
+                'buff-self',
+            ])) return;
+        } else {
+            if (await trySupportSequenceInRange(piece, stats, ['heal-self', 'buff-self'])) return;
+        }
+        passAITurn(piece);
+        return;
+    }
+
+    if (enemiesInRange.length > 0 && alliesInRange.length > 0) {
+        if (hasPower(stats, 'Pulso') && countAdjacentEnemies(piece) >= 3) {
+            handleActionClick('pulso', { bypassVisuals: true });
+            return;
+        }
+        const explosionTarget = findExplosionTarget(piece, enemiesInRange);
+        if (explosionTarget) {
+            await performTargetedAction(piece, explosionTarget, 'explosion');
+            return;
+        }
+        if (enemiesInRange.length === 1) {
+            if (await executeAttackPriority(piece, stats, enemiesInRange, [
+                'attack-none',
+                'control mental',
+                'attack-dureza',
+                'incapacitar',
+            ])) return;
+            if (await trySupportSequenceInRange(piece, stats, [
+                'heal-self',
+                'heal-ally',
+                'buff-ally',
+                'buff-self',
+            ])) return;
+            if (await executeAttackPriority(piece, stats, enemiesInRange, ['attack-invulnerable'])) return;
+        }
+    }
+
+    if (enemiesReachable.length > 0) {
+        const explosionTarget = findExplosionTarget(piece, enemiesReachable);
+        if (explosionTarget) {
+            if (await performTargetedAction(piece, explosionTarget, 'explosion')) return;
+        }
+        if (enemiesReachable.length === 1) {
+            if (await executeAttackPriority(piece, stats, enemiesReachable, [
+                'attack-none',
+                'control mental',
+                'attack-dureza',
+                'incapacitar',
+                'attack-invulnerable',
+            ])) return;
+        }
+    }
+
+    if (enemiesInRange.length > 0) {
+        if (await executeAttackPriority(piece, stats, enemiesInRange, [
+            'attack-none',
+            'control mental',
+            'attack-dureza',
+            'incapacitar',
+            'attack-invulnerable',
+        ])) return;
+    }
+
+    passAITurn(piece);
+}
+
+async function handleLowDamageFlow(piece, stats, { enemiesInRange, alliesInRange, enemiesReachable }) {
+    if (enemiesInRange.length === 0 && alliesInRange.length === 0 && enemiesReachable.length === 0) {
+        await moveTowardEnemy(piece);
+        const updatedEnemies = getEnemiesInRange(piece);
+        const updatedAllies = getAlliesInRange(piece);
+        if (updatedEnemies.length > 0) {
+            if (await executeAttackPriority(piece, stats, updatedEnemies, [
+                'control mental',
+                'incapacitar',
+                'attack-none',
+                'attack-dureza',
+                'attack-invulnerable',
+            ])) return;
+        }
+        if (updatedAllies.length > 0) {
+            if (await trySupportSequenceInRange(piece, stats, [
+                'heal-ally',
+                'buff-ally',
+                'heal-self',
+                'buff-self',
+            ])) return;
+        } else {
+            if (await trySupportSequenceInRange(piece, stats, ['heal-self', 'buff-self'])) return;
+        }
+        passAITurn(piece);
+        return;
+    }
+
+    if (enemiesInRange.length === 0 && alliesInRange.length > 0) {
+        await moveTowardEnemy(piece);
+        const updatedEnemies = getEnemiesInRange(piece);
+        const updatedAllies = getAlliesInRange(piece);
+        if (updatedEnemies.length > 0) {
+            if (await executeAttackPriority(piece, stats, updatedEnemies, [
+                'control mental',
+                'incapacitar',
+                'attack-none',
+                'attack-dureza',
+                'attack-invulnerable',
+            ])) return;
+        }
+        if (updatedAllies.length > 0) {
+            if (await trySupportSequenceInRange(piece, stats, [
+                'heal-ally',
+                'buff-ally',
+                'heal-self',
+                'buff-self',
+            ])) return;
+        } else {
+            if (await trySupportSequenceInRange(piece, stats, ['heal-self', 'buff-self'])) return;
+        }
+        passAITurn(piece);
+        return;
+    }
+
+    if (enemiesInRange.length > 0 && alliesInRange.length > 0) {
+        if (hasPower(stats, 'Pulso') && countAdjacentEnemies(piece) >= 3) {
+            handleActionClick('pulso', { bypassVisuals: true });
+            return;
+        }
+        const explosionTarget = findExplosionTarget(piece, enemiesInRange);
+        if (explosionTarget) {
+            await performTargetedAction(piece, explosionTarget, 'explosion');
+            return;
+        }
+        if (enemiesInRange.length === 1) {
+            if (await executeAttackPriority(piece, stats, enemiesInRange, [
+                'control mental',
+                'incapacitar',
+            ])) return;
+            if (await trySupportSequenceInRange(piece, stats, [
+                'heal-ally',
+                'buff-ally',
+                'buff-self',
+                'heal-self',
+            ])) return;
+            if (await executeAttackPriority(piece, stats, enemiesInRange, [
+                'attack-none',
+                'attack-dureza',
+                'attack-invulnerable',
+            ])) return;
+        }
+    }
+
+    if (enemiesReachable.length > 0) {
+        const explosionTarget = findExplosionTarget(piece, enemiesReachable);
+        if (explosionTarget) {
+            if (await performTargetedAction(piece, explosionTarget, 'explosion')) return;
+        }
+        if (enemiesReachable.length === 1) {
+            if (await executeAttackPriority(piece, stats, enemiesReachable, [
+                'control mental',
+                'incapacitar',
+                'attack-none',
+                'attack-dureza',
+                'attack-invulnerable',
+            ])) return;
+        }
+    }
+
+    if (enemiesInRange.length > 0) {
+        if (await executeAttackPriority(piece, stats, enemiesInRange, [
+            'control mental',
+            'incapacitar',
+            'attack-none',
+            'attack-dureza',
+            'attack-invulnerable',
+        ])) return;
+    }
+
+    passAITurn(piece);
 }
 
 function findExplosionTarget(piece, enemies) {
