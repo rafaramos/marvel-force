@@ -2334,7 +2334,7 @@ async function resolveHeal(attacker, target) {
           
           const msg = `${sentence1} ${sentence2} ${sentence3} ${sentence4}`;
           
-          addHistoryEntry(attacker.dataset.team, msg, { attacker });
+          addHistoryEntry(attacker.dataset.team, msg, { attacker, defenders: [target] });
           renderLifeCards();
           await showTurnPopup(msg);
       } else {
