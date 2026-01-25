@@ -825,6 +825,7 @@ async function movePieceToSquare(piece, square) {
     const distance = movementDistances.get(square) ?? 0;
     clearHighlights();
     highlightMovement(piece);
+    highlightRange(piece);
     square.classList.add('square--target');
     await sleep(ENEMY_ACTION_DELAY_MS);
     await animatePieceToSquare(piece, square);
@@ -1355,6 +1356,7 @@ async function performSniperFlow(piece, stats) {
         const distance = movementDistances.get(square) ?? 0;
         clearHighlights();
         highlightMovement(piece);
+        highlightRange(piece);
         square.classList.add('square--target');
         await sleep(ENEMY_ACTION_DELAY_MS);
         await animatePieceToSquare(piece, square);
@@ -1379,6 +1381,7 @@ async function performSniperFlow(piece, stats) {
         const distance = movementDistances.get(chaseSquare) ?? 0;
         clearHighlights();
         highlightMovement(piece);
+        highlightRange(piece);
         chaseSquare.classList.add('square--target');
         await sleep(ENEMY_ACTION_DELAY_MS);
         await animatePieceToSquare(piece, chaseSquare);
@@ -1485,6 +1488,7 @@ async function performWildcardTurn(piece, stats) {
             const distance = movementDistances.get(moveSquare) ?? 0;
             clearHighlights();
             highlightMovement(piece);
+            highlightRange(piece);
             moveSquare.classList.add('square--target');
             await sleep(ENEMY_ACTION_DELAY_MS);
             await animatePieceToSquare(piece, moveSquare);
@@ -1538,6 +1542,7 @@ async function performSupportActionFlow(piece, decision) {
         const distance = movementDistances.get(moveSquare) ?? 0;
         clearHighlights();
         highlightMovement(piece);
+        highlightRange(piece);
         moveSquare.classList.add('square--target');
         await sleep(ENEMY_ACTION_DELAY_MS);
         await animatePieceToSquare(piece, moveSquare);
@@ -1560,6 +1565,7 @@ async function performSupportActionFlow(piece, decision) {
         const distance = movementDistances.get(chaseSquare) ?? 0;
         clearHighlights();
         highlightMovement(piece);
+        highlightRange(piece);
         chaseSquare.classList.add('square--target');
         await sleep(ENEMY_ACTION_DELAY_MS);
         await animatePieceToSquare(piece, chaseSquare);

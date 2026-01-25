@@ -116,6 +116,7 @@ const board = document.querySelector('.board');
       let isPlayerVsAI = false;
       let isAIVsAI = false;
       let gameStarted = false;
+      const playerControl = { player1: 'manual', player2: 'manual' };
       const PROBABILIDAD_DURATION = 2;
       const SUPPORT_POWERS = new Set([
         'probabilidad',
@@ -136,10 +137,58 @@ const board = document.querySelector('.board');
         return isAIVsAI || (isPlayerVsAI && playerId === 'player2');
       }
 
+      function playerIdForPiece(piece) {
+        if (!piece) return null;
+        return piece.dataset.team === 'aliado' ? 'player1' : 'player2';
+      }
+
       function isCPUControlledPiece(piece) {
         if (!piece) return false;
+        const playerId = playerIdForPiece(piece);
+        if (playerId && playerControl[playerId]) {
+          return playerControl[playerId] === 'auto';
+        }
         if (isAIVsAI) return true;
         return isPlayerVsAI && piece.dataset.team === 'enemigo';
+      }
+
+      function updateControlToggleButton(button, playerId) {
+        if (!button) return;
+        const mode = playerControl[playerId] || 'manual';
+        const label = playerId === 'player1' ? 'J1' : 'J2';
+        button.textContent = `${label}: ${mode.toUpperCase()}`;
+        button.classList.toggle('is-auto', mode === 'auto');
+        button.classList.toggle('is-manual', mode === 'manual');
+      }
+
+      function updateControlToggles() {
+        updateControlToggleButton(controlToggleP1, 'player1');
+        updateControlToggleButton(controlToggleP2, 'player2');
+      }
+
+      function triggerAITurnIfActive(playerId) {
+        const activePiece = turnOrder[turnIndex];
+        if (!activePiece) return;
+        if (playerIdForPiece(activePiece) !== playerId) return;
+        if (!isCPUControlledPiece(activePiece)) return;
+        if (actionUsedThisTurn) return;
+        passButton.disabled = true;
+        attackButton.disabled = true;
+        setTimeout(() => performEnemyTurn(activePiece), 0);
+      }
+
+      function setPlayerControlMode(playerId, mode) {
+        playerControl[playerId] = mode;
+        updateControlToggles();
+        const activePiece = turnOrder[turnIndex];
+        if (activePiece && playerIdForPiece(activePiece) === playerId) {
+          if (mode === 'auto') {
+            triggerAITurnIfActive(playerId);
+          } else {
+            passButton.disabled = false;
+            attackButton.disabled = false;
+          }
+        }
       }
 
       // --- NUEVA VARIABLE DE ESTADO ---
@@ -172,6 +221,20 @@ let activeBarriers = []; // Nueva lista para rastrear barreras activas
       playButton.addEventListener('click', () => {
         revealModes();
       });
+
+      if (controlToggleP1) {
+        controlToggleP1.addEventListener('click', () => {
+          const nextMode = playerControl.player1 === 'auto' ? 'manual' : 'auto';
+          setPlayerControlMode('player1', nextMode);
+        });
+      }
+
+      if (controlToggleP2) {
+        controlToggleP2.addEventListener('click', () => {
+          const nextMode = playerControl.player2 === 'auto' ? 'manual' : 'auto';
+          setPlayerControlMode('player2', nextMode);
+        });
+      }
 
       let initialPositions = [];
 
@@ -254,6 +317,8 @@ let activeBarriers = []; // Nueva lista para rastrear barreras activas
     const movementInfo = document.getElementById('movementInfo');
     const allyCards = document.getElementById('allyCards');
     const enemyCards = document.getElementById('enemyCards');
+    const controlToggleP1 = document.getElementById('controlToggleP1');
+    const controlToggleP2 = document.getElementById('controlToggleP2');
 
     const AI_DELAY_MS = 1200;
     const TURN_DELAY_MS = 600;
@@ -902,6 +967,7 @@ function computeReachableSquares(piece) {
     // 2. Definir reglas de paso
     const canPassBarriers = hasFlight || hasPhasing; 
     const canPassEnemies = hasFlight || hasPhasing || hasJump;
+    const canPassObjects = hasFlight || hasPhasing || hasJump || hasSuperStrength;
 
     const maxMove = remainingMovement(piece);
     const visited = new Map();
@@ -938,10 +1004,13 @@ function computeReachableSquares(piece) {
             if (isBarrierSquare(square) && !canPassBarriers) continue;
 
             const occupant = square.querySelector('.piece');
+            const hasObject = square.querySelector('.object-token');
             // B) ENEMIGOS
             if (occupant && occupant.dataset.team !== piece.dataset.team && !canPassEnemies) {
                 continue;
             }
+            // C) OBJETOS
+            if (hasObject && !canPassObjects) continue;
             
             visited.set(key, nextCost);
             queue.push({ row: nr, col: nc, cost: nextCost });
@@ -1070,29 +1139,34 @@ function highlightRange(piece) {
             // LÓGICA DE SIGILO
             const isHiddenByStealth = dist > 3 && hasPassive(targetStats, 'sigilo');
 
-            if (isSupport && isAlly) {
+            if (isTelekinesis) {
+              if (isAlly) {
+                targetPiece.classList.add('valid-target-blue');
+                targetsFound = true;
+              } else if (!isHiddenByStealth) {
+                targetPiece.classList.add('valid-target');
+                targetsFound = true;
+              }
+            } else if (isSupport && isAlly) {
               targetPiece.classList.add('valid-target-blue');
               targetsFound = true;
-            }
-            else if (!isSupport && !isAlly) {
+            } else if (!isSupport && !isAlly) {
               // Si NO está oculto, marcamos. Si está oculto, NO marcamos (y se verá gris)
               if (!isHiddenByStealth) {
-                  targetPiece.classList.add('valid-target');
-                  targetsFound = true;
+                targetPiece.classList.add('valid-target');
+                targetsFound = true;
+              }
+            } else if (!isSupport && isAlly && pieceMap.get(targetPiece)?.mindControlled) {
+              if (!isHiddenByStealth) {
+                targetPiece.classList.add('valid-target');
+                targetsFound = true;
               }
             }
-            else if (!isSupport && isAlly && pieceMap.get(targetPiece)?.mindControlled) {
-               if (!isHiddenByStealth) {
-                  targetPiece.classList.add('valid-target');
-                  targetsFound = true;
-              }
+          } else if (hasObject) {
+            if (isTelekinesis) {
+              hasObject.classList.add('valid-target'); 
+              targetsFound = true;
             }
-          }
-          else if (hasObject) {
-              if (isTelekinesis) {
-                  hasObject.classList.add('valid-target'); 
-                  targetsFound = true;
-              }
           }
         }
       });
@@ -1590,16 +1664,56 @@ function attachTooltipEvents(piece) {
             return `${part1} ${part2} ${part3}`;
         }
 
-        if (actionKey === 'control mental') {
+      if (actionKey === 'control mental') {
             const part1 = `${attackerStats.name} realiza un ataque de Control Mental con ${attackerStats.ataque} de Ataque a ${defenderStats.name} que tiene ${defDisplay} de Defensa.`;
             const part2 = `${attackerStats.name} necesita un ${needed} y consigue un ${rollText}.`;
             const part3 = success 
                 ? `${defenderStats.name} es controlado por ${attackerStats.name} por 1 turno.`
                 : `${attackerStats.name} falla el ataque de Control Mental contra ${defenderStats.name}.`;
-            return `${part1} ${part2} ${part3}`;
+        return `${part1} ${part2} ${part3}`;
+      }
+
+      if (actionKey === 'telekinesis-ally-throw') {
+        const casterName = attackerStats.telekinesisCasterName ?? attackerStats.name;
+        const boost = attackerStats.telekinesisBoost;
+        const baseAtaque = boost?.baseAtaque ?? attackerStats.ataque;
+        const ataqueBonus = boost?.ataqueBonus ?? 0;
+        const baseDano = boost?.baseDano ?? attackerStats.dano ?? 0;
+        const danoBonus = boost?.danoBonus ?? 0;
+        const attackDisplay = ataqueBonus
+          ? `${attackerStats.ataque} (${baseAtaque} + ${ataqueBonus})`
+          : `${attackerStats.ataque}`;
+
+        const part1 = `${casterName} realiza un lanzamiento telekinético de compañero (${attackerStats.name}).`;
+        const part2 = `${attackerStats.name} tiene ${attackDisplay} de Ataque y ${defenderStats.name} tiene ${defDisplay} de Defensa.`;
+        const part3 = `${attackerStats.name} necesita un ${needed} y consigue un ${rollText}.`;
+
+        if (!success) {
+          return `${part1} ${part2} ${part3} ${casterName} falla el lanzamiento telekinético y no causa daño.`;
         }
 
-        // --- ATAQUE NORMAL (C/C o A/D) ---
+        let damageText = '';
+        let resistanceText = `la Resistencia de ${defenderStats.name} es ${resistance}.`;
+
+        if (clawsRoll !== null) {
+          const clawsBase = baseDamageAfterClaws ?? rawDamage;
+          const clawsDamage = critical ? clawsBase * 2 : clawsBase;
+          const bonusText = danoBonus ? ` (${clawsRoll} + ${danoBonus})` : '';
+          const critSuffix = critical ? `${bonusText} X 2` : bonusText;
+          damageText = `${attackerStats.name} realiza una tirada de Cuchillas/Garras/Colmillos y saca un ${clawsRoll}, con lo que su Daño es ${clawsDamage}${critSuffix}.`;
+          resistanceText = `${defenderStats.name} tiene una resistencia de ${resistance}.`;
+        } else {
+          const breakdown = danoBonus ? ` (${baseDano} + ${danoBonus})` : '';
+          damageText = `El Daño de ${attackerStats.name} es ${rawDamage}${breakdown} y ${resistanceText}`;
+        }
+
+        const sentence3 = (clawsRoll !== null) ? `${damageText} ${resistanceText}` : damageText;
+        const damageLabel = damage === 1 ? 'punto' : 'puntos';
+        const sentence4 = `${attackerStats.name} le causa ${damage} ${damageLabel} de Daño Infligido a ${defenderStats.name}.`;
+        return `${part1} ${part2} ${part3} ${sentence3} ${sentence4}`;
+      }
+
+      // --- ATAQUE NORMAL (C/C o A/D) ---
         const attackType = isMelee ? 'ataque cuerpo a cuerpo' : 'ataque a distancia';
         const sentence1 = `${attackerStats.name} realiza un ${attackType} con ${attackerStats.ataque} de Ataque a ${defenderStats.name} que tiene ${defDisplay} de Defensa.`;
         const sentence2 = `${attackerStats.name} necesita un ${needed} y consigue un ${rollText}.`;
@@ -1731,6 +1845,8 @@ async function resolveAttack(attacker, defender, actionKey = 'attack', options =
       const { 
         allowCounter = true, 
         skipTurnAdvance = false, 
+        showPopup = true,
+        logHistory = true,
         actionLabelOverride = null, 
         isSecondAttack = false 
       } = options;
@@ -1808,6 +1924,10 @@ async function resolveAttack(attacker, defender, actionKey = 'attack', options =
 
       const { totalDamage, clawsRoll, isMelee, resistance, rawDamage, baseDamageBeforeClaws, baseDamageAfterClaws } = 
         calculateDamage(attackerStats, defenderStats, distance, critical);
+      const effectiveDefense = (!isMelee && hasPassive(defenderStats, 'defensa a/d'))
+        ? defenderStats.defensa + 2
+        : defenderStats.defensa;
+      const needed = Math.max(2, effectiveDefense - attackerStats.ataque);
 
       const isStatusAttack = actionKey === 'incapacitar' || actionKey === 'control mental';
       const damageApplied = success && !isStatusAttack ? totalDamage : 0;
@@ -1872,7 +1992,9 @@ async function resolveAttack(attacker, defender, actionKey = 'attack', options =
       }
       // -------------------------------------------------------
 
-      addHistoryEntry(attacker.dataset.team, popupMessage, { attacker, defenders: [defender] });
+      if (logHistory) {
+        addHistoryEntry(attacker.dataset.team, popupMessage, { attacker, defenders: [defender] });
+      }
 
       // Gestión de Muerte
       if (success && !isStatusAttack && defenderStats.currentVida <= 0) {
@@ -1901,15 +2023,19 @@ async function resolveAttack(attacker, defender, actionKey = 'attack', options =
 
       // Flujo de Pifia / Doble Ataque / Fin de Turno
       if (shouldCounter && defenderStats.currentVida > 0 && defender.dataset.eliminated !== 'true') {
-        await showTurnPopup(`¡PIFIA! ${attackerStats.name} ha fallado estrepitosamente.\n${defenderStats.name} prepara su contraataque.\n(Haz clic para resolver la réplica)`);
-        await sleep(300);
+        if (showPopup) {
+          await showTurnPopup(`¡PIFIA! ${attackerStats.name} ha fallado estrepitosamente.\n${defenderStats.name} prepara su contraataque.\n(Haz clic para resolver la réplica)`);
+          await sleep(300);
+        }
         await resolveAttack(defender, attacker, 'attack', {
           allowCounter: false,
           skipTurnAdvance: true,
           actionLabelOverride: 'Réplica',
+          showPopup,
+          logHistory,
         });
-        if (!skipTurnAdvance) registerActionUsage(attacker, { showPopup: false });
-        return;
+        if (!skipTurnAdvance && showPopup) registerActionUsage(attacker, { showPopup: false });
+        return { success, damageApplied, roll, needed, effectiveDefense };
       }
 
       const hasDoubleAttack = hasPassive(attackerStats, 'doble ataque c/c');
@@ -1917,17 +2043,19 @@ async function resolveAttack(attacker, defender, actionKey = 'attack', options =
           defenderStats.currentVida > 0 && defender.dataset.eliminated !== 'true' &&
           attackerStats.currentVida > 0 && attacker.dataset.eliminated !== 'true') {
         
-        await showTurnPopup(`${popupMessage}\n\n[DOBLE ATAQUE]\n(Clic para el segundo golpe)`);
-        await sleep(300);
+        if (showPopup) {
+          await showTurnPopup(`${popupMessage}\n\n[DOBLE ATAQUE]\n(Clic para el segundo golpe)`);
+          await sleep(300);
+        }
         await resolveAttack(attacker, defender, actionKey, {
           ...options,
           isSecondAttack: true, 
           actionLabelOverride: '2º Ataque c/c'
         });
-        return; 
+        return { success, damageApplied, roll, needed, effectiveDefense }; 
       }
 
-      if (!skipTurnAdvance) {
+      if (!skipTurnAdvance && showPopup) {
         hideTooltip();
         clearRangeHighlights();
         selectedTarget = null;
@@ -1935,6 +2063,7 @@ async function resolveAttack(attacker, defender, actionKey = 'attack', options =
         await showTurnPopup(popupMessage);
         registerActionUsage(attacker, { showPopup: false });
       }
+      return { success, damageApplied, roll, needed, effectiveDefense };
     }
 
 async function resolveExplosion(attacker, centerTarget) {
@@ -2330,7 +2459,9 @@ async function resolveHeal(attacker, target) {
       const wounds = Math.max(targetStats.maxVida - targetStats.currentVida, 0);
       
       if (wounds === 0) {
-        await showTurnPopup(`${attackerStats.name} intenta curar a ${targetStats.name}, pero ya está al máximo de salud.`);
+        const msg = `${attackerStats.name} intenta curar a ${targetStats.name}, pero ya está al máximo de salud.`;
+        addHistoryEntry(attacker.dataset.team, msg, { attacker, defenders: [target] });
+        await showTurnPopup(msg);
         registerActionUsage(attacker, { showPopup: false });
         return;
       }
@@ -2370,7 +2501,7 @@ async function resolveHeal(attacker, target) {
       } else {
           const msg = `${sentence1} ${sentence2} ${attackerStats.name} falla la curación.`;
           playEffectSound(failureSound);
-          addHistoryEntry(attacker.dataset.team, msg, { attacker });
+          addHistoryEntry(attacker.dataset.team, msg, { attacker, defenders: [target] });
           await showTurnPopup(msg);
       }
 
@@ -2762,12 +2893,9 @@ function handleActionClick(actionKey, options = {}) {
         const endRect = piece.getBoundingClientRect();
         const deltaX = startRect.left - endRect.left;
         const deltaY = startRect.top - endRect.top;
-        const isObject = piece.classList.contains('object-token');
-        const baseTransform = isObject ? '' : 'translate(-50%, -50%)';
-        const startTransform = isObject
-          ? `translate(${deltaX}px, ${deltaY}px)`
-          : `${baseTransform} translate(${deltaX}px, ${deltaY}px)`;
-        const endTransform = isObject ? 'translate(0px, 0px)' : baseTransform;
+        const baseTransform = 'translate(-50%, -50%)';
+        const startTransform = `${baseTransform} translate(${deltaX}px, ${deltaY}px)`;
+        const endTransform = baseTransform;
 
         const animation = piece.animate(
           [
@@ -3203,6 +3331,17 @@ function startTurn(piece) {
       // 1. CORRECCIÓN: Asignamos el modo correctamente
       isPlayerVsAI = (mode === 'ai');
       isAIVsAI = (mode === 'aivai');
+      if (mode === 'ai') {
+        playerControl.player1 = 'manual';
+        playerControl.player2 = 'auto';
+      } else if (mode === 'aivai') {
+        playerControl.player1 = 'auto';
+        playerControl.player2 = 'auto';
+      } else {
+        playerControl.player1 = 'manual';
+        playerControl.player2 = 'manual';
+      }
+      updateControlToggles();
 
       selections.player1 = [];
       selections.player2 = [];
@@ -3240,6 +3379,7 @@ function startGame() {
       // -----------------------------------------------
 
       startBackgroundMusic();
+      updateControlToggles();
       
       if (turnOrder.length > 0) {
         highlightRange(turnOrder[turnIndex]);
@@ -3368,11 +3508,11 @@ function startGame() {
         playEffectSound(failureSound);
       }
 
-      const sentence1 = `${attackerStats.name} lanza ${objectName} a ${targetStats.name}. Daño base: ${damage}. Resistencia: ${resistance}. Daño final: ${appliedDamage}.`;
-      const sentence2 = `${attackerStats.name} realiza un ataque a distancia de objeto (${objectName}) con ${attackerStats.ataque} de Ataque a ${targetStats.name} que tiene ${effectiveDefense} de Defensa. ${attackerStats.name} necesita un ${needed} y consigue un ${roll}.`;
-      const sentence3 = `El Daño del Objeto es ${damage} y la Resistencia de ${targetStats.name} es ${resistance}. ${attackerStats.name} le causa ${appliedDamage} puntos de Daño Infligido a ${targetStats.name}.`;
-      const failureMessage = `${attackerStats.name} realiza un ataque a distancia de objeto (${objectName}) con ${attackerStats.ataque} de Ataque a ${targetStats.name} que tiene ${effectiveDefense} de Defensa. ${attackerStats.name} necesita un ${needed} y consigue un ${roll}. ${attackerStats.name} falla el ataque contra ${targetStats.name}.`;
-      const msg = success ? `${sentence1} ${sentence2} ${sentence3}` : failureMessage;
+      const sentence2 = `${attackerStats.name} realiza un ataque telekinético de objeto (${objectName}) con ${attackerStats.ataque} de Ataque a ${targetStats.name} que tiene ${effectiveDefense} de Defensa. ${attackerStats.name} necesito un ${needed} y consigue un ${roll}.`;
+      const damageLabel = appliedDamage === 1 ? 'punto' : 'puntos';
+      const sentence3 = `El Daño del objeto es ${damage} y la Resistencia de ${targetStats.name} es ${resistance}. ${attackerStats.name} le causa ${appliedDamage} ${damageLabel} de Daño Infligido a ${targetStats.name}.`;
+      const failureMessage = `${attackerStats.name} realiza un ataque telekinético de objeto (${objectName}) con ${attackerStats.ataque} de Ataque a ${targetStats.name} que tiene ${effectiveDefense} de Defensa. ${attackerStats.name} necesita un ${needed} y consigue un ${roll}. ${attackerStats.name} falla el ataque contra ${targetStats.name}.`;
+      const msg = success ? `${sentence2} ${sentence3}` : failureMessage;
 
       addHistoryEntry(attacker.dataset.team, msg, { attacker, defenders: [targetPiece] });
 
@@ -3401,19 +3541,75 @@ function startGame() {
       const targetSquare = getPieceSquare(targetPiece);
 
       if (isAllyThrow) {
-        const offsets = [[1, 0], [-1, 0], [0, 1], [0, -1]];
-        const landingSquare = offsets
-          .map(([dr, dc]) => getSquareAt(Number(targetSquare.dataset.row) + dr, Number(targetSquare.dataset.col) + dc))
-          .find((square) => {
-            if (!square) return false;
-            if (square.querySelector('.piece')) return false;
-            if (square.querySelector('.object-token')) return false;
-            if (isBarrierSquare(square)) return false;
-            return true;
+        await animatePieceToSquare(victim, targetSquare, { duration: 600 });
+        playEffectSound(telekinesisSound);
+
+        const originalAtaque = victimStats.ataque;
+        const originalDano = victimStats.dano;
+        victimStats.ataque = originalAtaque + 2;
+        victimStats.dano = (originalDano ?? 0) + 1;
+        victimStats.telekinesisBoost = {
+          baseAtaque: originalAtaque,
+          ataqueBonus: 2,
+          baseDano: originalDano ?? 0,
+          danoBonus: 1,
+        };
+        victimStats.telekinesisCasterName = attackerStats.name;
+        const boostedAtaque = victimStats.ataque;
+
+        let attackSummary = null;
+        try {
+          attackSummary = await resolveAttack(victim, targetPiece, 'telekinesis-ally-throw', {
+            skipTurnAdvance: true,
+            showPopup: false,
+            logHistory: false,
           });
+        } finally {
+          victimStats.ataque = originalAtaque;
+          victimStats.dano = originalDano;
+          delete victimStats.telekinesisBoost;
+          delete victimStats.telekinesisCasterName;
+        }
+
+        const targetAlive = targetPiece.isConnected && targetPiece.dataset.eliminated !== 'true';
+        let landingSquare = null;
+
+        if (!targetAlive) {
+          landingSquare = targetSquare;
+        } else {
+          const limitRows = (typeof BOARD_ROWS !== 'undefined') ? BOARD_ROWS : (document.querySelectorAll('.board__row').length || 10);
+          const limitCols = (typeof BOARD_COLS !== 'undefined') ? BOARD_COLS : (document.querySelectorAll('.board__row:first-child .square').length || 10);
+          const startRow = Number(targetSquare.dataset.row);
+          const startCol = Number(targetSquare.dataset.col);
+          const queue = [{ row: startRow, col: startCol }];
+          const visited = new Set([`${startRow},${startCol}`]);
+          const deltas = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+
+          while (queue.length && !landingSquare) {
+            const { row, col } = queue.shift();
+            for (const [dr, dc] of deltas) {
+              const nr = row + dr;
+              const nc = col + dc;
+              if (nr < 1 || nr > limitRows || nc < 1 || nc > limitCols) continue;
+              const key = `${nr},${nc}`;
+              if (visited.has(key)) continue;
+              visited.add(key);
+              const square = getSquareAt(nr, nc);
+              if (!square) continue;
+              if (isBarrierSquare(square)) continue;
+              if (square.querySelector('.object-token')) continue;
+              if (square.querySelector('.piece')) {
+                queue.push({ row: nr, col: nc });
+                continue;
+              }
+              landingSquare = square;
+              break;
+            }
+          }
+        }
 
         if (!landingSquare) {
-          const msg = `No hay una casilla adyacente libre para lanzar a ${victimStats.name}.`;
+          const msg = `No hay una casilla libre cerca de ${targetStats.name} para aterrizar a ${victimStats.name}.`;
           addHistoryEntry(attacker.dataset.team, msg, { attacker, defenders: [targetPiece] });
           await showTurnPopup(msg);
           cancelTelekinesis();
@@ -3421,19 +3617,27 @@ function startGame() {
           return;
         }
 
-        await animatePieceToSquare(victim, landingSquare, { duration: 600 });
-        playEffectSound(telekinesisSound);
+        if (landingSquare !== targetSquare) {
+          await animatePieceToSquare(victim, landingSquare, { duration: 600 });
+        }
 
-        const originalAtaque = victimStats.ataque;
-        const originalDano = victimStats.dano;
-        victimStats.ataque = originalAtaque + 2;
-        victimStats.dano = originalDano + 1;
+        const attackNeeded = attackSummary?.needed ?? Math.max(2, targetStats.defensa - boostedAtaque);
+        const attackRoll = attackSummary?.roll ?? 0;
+        const attackSuccess = attackSummary?.success ?? false;
+        const attackDamage = attackSummary?.damageApplied ?? 0;
+        const defenseValue = attackSummary?.effectiveDefense ?? targetStats.defensa;
+        const damageLabel = attackDamage === 1 ? 'punto' : 'puntos';
 
-        await resolveAttack(victim, targetPiece, 'attack', { skipTurnAdvance: true });
+        const header = `${attackerStats.name} realiza un lanzamiento telekinético de aliado. Lanza a ${victimStats.name} contra ${targetStats.name}.`;
+        const impactData = `${victimStats.name} tiene ${boostedAtaque} de Ataque y ${targetStats.name} tiene ${defenseValue} de Defensa.`;
+        const rollText = `${victimStats.name} necesita un ${attackNeeded} y consigue un ${attackRoll}.`;
+        const resultText = attackSuccess
+          ? `El impacto causa ${attackDamage} ${damageLabel} de Daño Infligido a ${targetStats.name}.`
+          : `${victimStats.name} falla el impacto y no causa daño.`;
+        const msg = `${header} ${impactData} ${rollText} ${resultText}`;
 
-        victimStats.ataque = originalAtaque;
-        victimStats.dano = originalDano;
-
+        addHistoryEntry(attacker.dataset.team, msg, { attacker, defenders: [victim, targetPiece] });
+        await showTurnPopup(msg);
         cancelTelekinesis();
         registerActionUsage(attacker, { showPopup: false });
         return;
@@ -3473,10 +3677,12 @@ function startGame() {
         playEffectSound(failureSound);
       }
 
-      const sentence1 = `${attackerStats.name} lanza a ${victimStats.name} contra ${targetStats.name}.`;
-      const sentence2 = `${attackerStats.name} realiza un ataque telequinético con ${attackerStats.ataque} de Ataque a ${targetStats.name} que tiene ${effectiveDefense} de Defensa. ${attackerStats.name} necesita un ${needed} y consigue un ${roll}.`;
+      const sentence1 = `${attackerStats.name} realiza un lanzamiento telekinético de enemigos. Lanza a ${victimStats.name} contra ${targetStats.name}.`;
+      const sentence2 = `${attackerStats.name} tiene ${attackerStats.ataque} de Ataque y ${targetStats.name} tiene ${effectiveDefense} de Defensa. ${attackerStats.name} necesita un ${needed} y consigue un ${roll}.`;
+      const targetDamageLabel = targetDamage === 1 ? 'punto' : 'puntos';
+      const victimDamageLabel = victimDamage === 1 ? 'punto' : 'puntos';
       const sentence3 = success
-        ? `El impacto causa ${targetDamage} puntos de Daño Infligido a ${targetStats.name} y ${victimStats.name} recibe ${victimDamage}.`
+        ? `El impacto causa ${targetDamage} ${targetDamageLabel} de Daño Infligido a ${targetStats.name} y ${victimStats.name} recibe ${victimDamage} ${victimDamageLabel}.`
         : `${attackerStats.name} falla el lanzamiento y no causa daño.`;
       const msg = `${sentence1} ${sentence2} ${sentence3}`;
 

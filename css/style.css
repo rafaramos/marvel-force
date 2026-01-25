@@ -352,6 +352,55 @@ body {
   margin-bottom: 16px;
 }
 
+.control-toggle {
+  position: fixed;
+  top: 12px;
+  left: 0;
+  right: 0;
+  z-index: 40;
+  pointer-events: none;
+}
+
+.control-toggle__button {
+  pointer-events: auto;
+  position: absolute;
+  top: 0;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  background: rgba(0, 0, 0, 0.55);
+  color: #f2f2f2;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+  transition: transform 0.2s ease, background 0.2s ease, border-color 0.2s ease;
+}
+
+.control-toggle__button--left {
+  left: 12px;
+}
+
+.control-toggle__button--right {
+  right: 12px;
+}
+
+.control-toggle__button.is-auto {
+  background: rgba(192, 57, 43, 0.85);
+  border-color: rgba(255, 255, 255, 0.6);
+  color: #fff;
+}
+
+.control-toggle__button.is-manual {
+  background: rgba(39, 174, 96, 0.85);
+  border-color: rgba(255, 255, 255, 0.6);
+  color: #fff;
+}
+
+.control-toggle__button:hover {
+  transform: translateY(-1px);
+}
+
 .button {
   background: #f4f4f4;
   color: #0d3618;
@@ -741,7 +790,7 @@ body {
 
 .object-selected {
     filter: drop-shadow(0 0 8px cyan);
-    transform: scale(1.1);
+    transform: translate(-50%, -50%) scale(1.1);
     transition: all 0.2s;
 }
 
