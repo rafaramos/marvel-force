@@ -545,7 +545,7 @@ body {
   transform: translate(-50%, -50%);
   border-radius: 12px;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.35);
-  border: 4px solid rgba(255, 255, 255, 0.3);
+  border: 6px solid rgba(255, 255, 255, 0.3);
   display: grid;
   place-items: center;
   background: #0d0d0d;
@@ -591,7 +591,7 @@ body {
 /* 1. ACTIVO (TURNO) */
 .piece.piece--active {
   border-style: solid;
-  border-width: 4px;
+  border-width: 6px;
   /* IMPORTANTE: Bajamos de 100 a 20. 
      Así está por encima de otras fichas (z-index 3), 
      pero POR DEBAJO de los popups (z-index 30/40) */
@@ -599,12 +599,12 @@ body {
 }
 
 .piece.piece--active[data-team="aliado"] {
-  outline: 4px solid #00e5ff !important; 
+  outline: 6px solid #00e5ff !important; 
   box-shadow: 0 0 20px 5px rgba(0, 229, 255, 0.8) !important;
 }
 
 .piece.piece--active[data-team="enemigo"] {
-  outline: 4px solid #ff2a00 !important;
+  outline: 6px solid #ff2a00 !important;
   box-shadow: 0 0 20px 5px rgba(255, 42, 0, 0.8) !important;
 }
 
@@ -630,7 +630,7 @@ body {
   /* ELIMINADO: transform: translate(-50%, -50%) scale(1.2) !important; */
   /* AHORA: Solo translate, sin zoom */
   transform: translate(-50%, -50%) !important; 
-  border-width: 4px !important;
+  border-width: 6px !important;
   border-style: solid !important;
   animation: blinkSelection 0.6s ease-in-out infinite alternate;
 }
@@ -1279,7 +1279,7 @@ body {
   }
   
   .piece {
-     border-width: 2px;
+     border-width: 3px;
   }
   
   .piece__name {
@@ -1353,7 +1353,7 @@ body {
 /* 1. ACTIVO (TURNO) */
 .piece.piece--active {
   border-style: solid;
-  border-width: 4px;
+  border-width: 6px;
   z-index: 50 !important; /* Por encima de las demás fichas */
   animation: turnPulse 1.5s infinite;
 }
@@ -1361,13 +1361,13 @@ body {
 .piece.piece--active[data-team="aliado"] {
   --turn-glow: rgba(0, 229, 255, 0.95);
   --turn-glow-soft: rgba(0, 229, 255, 0.35);
-  outline: 4px solid #00e5ff !important;
+  outline: 6px solid #00e5ff !important;
 }
 
 .piece.piece--active[data-team="enemigo"] {
   --turn-glow: rgba(255, 42, 0, 0.95);
   --turn-glow-soft: rgba(255, 42, 0, 0.35);
-  outline: 4px solid #ff2a00 !important;
+  outline: 6px solid #ff2a00 !important;
 }
 /* --- Estados de la Pieza --- */
 
@@ -1381,7 +1381,7 @@ body {
 /* 1. ACTIVO (TURNO) */
 .piece.piece--active {
   border-style: solid;
-  border-width: 4px;
+  border-width: 6px;
   /* CORRECCIÓN: Bajamos de 50 a 20 para respetar los popups */
   z-index: 20 !important; 
   animation: turnPulse 1.5s infinite;
@@ -1390,13 +1390,13 @@ body {
 .piece.piece--active[data-team="aliado"] {
   --turn-glow: rgba(0, 229, 255, 0.95);
   --turn-glow-soft: rgba(0, 229, 255, 0.35);
-  outline: 4px solid #00e5ff !important;
+  outline: 6px solid #00e5ff !important;
 }
 
 .piece.piece--active[data-team="enemigo"] {
   --turn-glow: rgba(255, 42, 0, 0.95);
   --turn-glow-soft: rgba(255, 42, 0, 0.35);
-  outline: 4px solid #ff2a00 !important;
+  outline: 6px solid #ff2a00 !important;
 }
 /* --- Animación de Turno (Zoom + Parpadeo) --- */
 @keyframes turnPulse {
@@ -1416,7 +1416,7 @@ body {
 
 .piece.piece--active {
   border-style: solid;
-  border-width: 3px;
+  border-width: 6px;
   z-index: 20 !important;
   animation: turnPulse 1.5s infinite ease-in-out;
 }
@@ -1424,11 +1424,11 @@ body {
 .piece.piece--active[data-team="aliado"] {
   --turn-glow: rgba(0, 229, 255, 0.95);
   --turn-glow-soft: rgba(0, 229, 255, 0.35);
-  outline: 4px solid #00e5ff !important; /* Azul neón */
+  outline: 6px solid #00e5ff !important; /* Azul neón */
 }
 
 .piece.piece--active[data-team="enemigo"] {
   --turn-glow: rgba(255, 42, 0, 0.95);
   --turn-glow-soft: rgba(255, 42, 0, 0.35);
-  outline: 4px solid #ff2a00 !important; /* Rojo neón */
+  outline: 6px solid #ff2a00 !important; /* Rojo neón */
 }
