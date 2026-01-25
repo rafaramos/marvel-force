@@ -570,7 +570,8 @@ body {
 
 /* 1. ACTIVO (TURNO) */
 .piece.piece--active {
-  border: none !important;
+  border-style: solid;
+  border-width: 3px;
   /* IMPORTANTE: Bajamos de 100 a 20. 
      Así está por encima de otras fichas (z-index 3), 
      pero POR DEBAJO de los popups (z-index 30/40) */
@@ -654,13 +655,17 @@ body {
 /* --- Modo Targeting (Foco Visual) --- */
 .board.targeting .piece {
   opacity: 0.3;
-  filter: grayscale(0.8);
+  filter: none;
+  transition: all 0.3s ease;
+}
+
+.board.targeting .piece .piece__image {
+  filter: grayscale(1) brightness(0.4);
   transition: all 0.3s ease;
 }
 
 .board.targeting .piece.valid-target {
   opacity: 1;
-  filter: grayscale(0);
   z-index: 22; /* Intermedio */
   /* ELIMINADO: scale(1.05) */
   transform: translate(-50%, -50%); 
@@ -670,7 +675,6 @@ body {
 
 .board.targeting .piece.piece--active {
   opacity: 1;
-  filter: grayscale(0);
   z-index: 20;
   /* ELIMINADO: scale(1.1) */
   transform: translate(-50%, -50%);
@@ -678,7 +682,6 @@ body {
 
 .board.targeting .piece.valid-target-blue {
   opacity: 1;
-  filter: grayscale(0%);
   z-index: 22;
   /* ELIMINADO: scale(1.1) */
   transform: translate(-50%, -50%);
@@ -688,7 +691,6 @@ body {
 
 .board.targeting .piece.valid-ally {
   opacity: 1;
-  filter: grayscale(0);
   z-index: 22;
   /* ELIMINADO: scale(1.1) */
   transform: translate(-50%, -50%);
@@ -1269,14 +1271,14 @@ body {
 /* 1. ESTADO BASE (NO A RANGO) */
 /* Bajamos opacidad pero MANTENEMOS los colores del borde */
 .board.targeting .piece {
-  opacity: 0.5; /* Un poco más visible que antes */
+  opacity: 0.3;
   transition: all 0.3s ease;
   filter: none; /* Quitamos el filtro global */
 }
 
 /* Aplicamos el gris SOLO a la imagen interna */
 .board.targeting .piece .piece__image {
-  filter: grayscale(1);
+  filter: grayscale(1) brightness(0.4);
   transition: all 0.3s ease;
 }
 
@@ -1323,27 +1325,29 @@ body {
 
 /* Animación de Parpadeo de Turno */
 @keyframes turnPulse {
-  0% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.7); }
-  50% { box-shadow: 0 0 20px 10px rgba(255, 255, 255, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0); }
+  0% { box-shadow: 0 0 0 0 var(--turn-glow-soft); }
+  50% { box-shadow: 0 0 22px 6px var(--turn-glow); }
+  100% { box-shadow: 0 0 0 0 var(--turn-glow-soft); }
 }
 
 /* 1. ACTIVO (TURNO) */
 .piece.piece--active {
-  border: none !important;
+  border-style: solid;
+  border-width: 3px;
   z-index: 50 !important; /* Por encima de las demás fichas */
-  /* Quitamos el zoom fijo y ponemos la animación */
   animation: turnPulse 1.5s infinite;
 }
 
 .piece.piece--active[data-team="aliado"] {
-  outline: 4px solid #00e5ff !important;
-  box-shadow: 0 0 25px #00e5ff, inset 0 0 10px #00e5ff !important;
+  --turn-glow: rgba(0, 229, 255, 0.95);
+  --turn-glow-soft: rgba(0, 229, 255, 0.35);
+  outline: 3px solid #00e5ff !important;
 }
 
 .piece.piece--active[data-team="enemigo"] {
-  outline: 4px solid #ff2a00 !important;
-  box-shadow: 0 0 25px #ff2a00, inset 0 0 10px #ff2a00 !important;
+  --turn-glow: rgba(255, 42, 0, 0.95);
+  --turn-glow-soft: rgba(255, 42, 0, 0.35);
+  outline: 3px solid #ff2a00 !important;
 }
 /* --- Estados de la Pieza --- */
 
@@ -1356,47 +1360,55 @@ body {
 
 /* 1. ACTIVO (TURNO) */
 .piece.piece--active {
-  border: none !important;
+  border-style: solid;
+  border-width: 3px;
   /* CORRECCIÓN: Bajamos de 50 a 20 para respetar los popups */
   z-index: 20 !important; 
   animation: turnPulse 1.5s infinite;
 }
 
 .piece.piece--active[data-team="aliado"] {
-  outline: 4px solid #00e5ff !important;
-  box-shadow: 0 0 25px #00e5ff, inset 0 0 10px #00e5ff !important;
+  --turn-glow: rgba(0, 229, 255, 0.95);
+  --turn-glow-soft: rgba(0, 229, 255, 0.35);
+  outline: 3px solid #00e5ff !important;
 }
 
 .piece.piece--active[data-team="enemigo"] {
-  outline: 4px solid #ff2a00 !important;
-  box-shadow: 0 0 25px #ff2a00, inset 0 0 10px #ff2a00 !important;
+  --turn-glow: rgba(255, 42, 0, 0.95);
+  --turn-glow-soft: rgba(255, 42, 0, 0.35);
+  outline: 3px solid #ff2a00 !important;
 }
 /* --- Animación de Turno (Zoom + Parpadeo) --- */
 @keyframes turnPulse {
   0% { 
-    box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.4);
+    box-shadow: 0 0 0 0 var(--turn-glow-soft);
     outline-offset: 0px;
   }
   50% { 
-    box-shadow: 0 0 25px 10px rgba(255, 255, 255, 0);
+    box-shadow: 0 0 25px 10px var(--turn-glow);
     outline-offset: 4px; /* El borde se separa un poco al palpitar */
   }
   100% { 
-    box-shadow: 0 0 0 0 rgba(255, 255, 255, 0);
+    box-shadow: 0 0 0 0 var(--turn-glow-soft);
     outline-offset: 0px;
   }
 }
 
 .piece.piece--active {
+  border-style: solid;
+  border-width: 3px;
   z-index: 20 !important;
   animation: turnPulse 1.5s infinite ease-in-out;
-  /* El color se define abajo, aquí la animación lo hace latir */
 }
 
 .piece.piece--active[data-team="aliado"] {
-  outline: 4px solid #00e5ff !important; /* Azul neón */
+  --turn-glow: rgba(0, 229, 255, 0.95);
+  --turn-glow-soft: rgba(0, 229, 255, 0.35);
+  outline: 3px solid #00e5ff !important; /* Azul neón */
 }
 
 .piece.piece--active[data-team="enemigo"] {
-  outline: 4px solid #ff2a00 !important; /* Rojo neón */
+  --turn-glow: rgba(255, 42, 0, 0.95);
+  --turn-glow-soft: rgba(255, 42, 0, 0.35);
+  outline: 3px solid #ff2a00 !important; /* Rojo neón */
 }
