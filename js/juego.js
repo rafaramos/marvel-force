@@ -3083,15 +3083,33 @@ function startTurn(piece) {
     
 
     function buildPositionsFromSelections() {
-      const allySlots = generateSlots(selections.player1.length, {
-        startCol: 1,
-        direction: 1,
+      const buildPhalanxSlots = (count, { columns, rows, palette }) => {
+        const slots = [];
+        let colorIndex = 0;
+        columns.forEach((col) => {
+          rows.forEach((row) => {
+            if (slots.length >= count) return;
+            const className = palette[colorIndex % palette.length];
+            slots.push({ row, col, className });
+            colorIndex += 1;
+          });
+        });
+        return slots;
+      };
+
+      const formationRows = [4, 5, 6, 7];
+      const allyColumns = [3, 2, 1];
+      const enemyColumns = [9, 8, 7];
+
+      const allySlots = buildPhalanxSlots(selections.player1.length, {
+        columns: allyColumns,
+        rows: formationRows,
         palette: ALLY_COLORS,
       });
 
-      const enemySlots = generateSlots(selections.player2.length, {
-        startCol: BOARD_COLS,
-        direction: -1,
+      const enemySlots = buildPhalanxSlots(selections.player2.length, {
+        columns: enemyColumns,
+        rows: formationRows,
         palette: ENEMY_COLORS,
       });
 
