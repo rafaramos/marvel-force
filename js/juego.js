@@ -2411,13 +2411,15 @@ async function resolveHeal(attacker, target) {
               return;
           }
 
-          // OPCIÓN 2: LANZAR OBJETO (Clic en Enemigo)
-          if (isObject) {
-             const targetEnemy = square.querySelector('.piece');
-             if (targetEnemy && (targetEnemy.classList.contains('valid-target') || targetEnemy.classList.contains('valid-target-blue'))) {
-                 await resolveObjectThrow(attacker, victim, targetEnemy);
-                 return;
-             }
+          // OPCIÓN 2: LANZAR (Clic en Enemigo)
+          const targetEnemy = square.querySelector('.piece');
+          if (targetEnemy && (targetEnemy.classList.contains('valid-target') || targetEnemy.classList.contains('valid-target-blue'))) {
+              if (isObject) {
+                  await resolveObjectThrow(attacker, victim, targetEnemy);
+              } else {
+                  await resolveTelekinesisThrow(attacker, victim, targetEnemy);
+              }
+              return;
           }
           
           cancelTelekinesis();
@@ -2735,11 +2737,17 @@ function handleActionClick(actionKey, options = {}) {
         const endRect = piece.getBoundingClientRect();
         const deltaX = startRect.left - endRect.left;
         const deltaY = startRect.top - endRect.top;
+        const isObject = piece.classList.contains('object-token');
+        const baseTransform = isObject ? '' : 'translate(-50%, -50%)';
+        const startTransform = baseTransform
+          ? `${baseTransform} translate(${deltaX}px, ${deltaY}px)`
+          : `translate(${deltaX}px, ${deltaY}px)`;
+        const endTransform = baseTransform || 'none';
 
         const animation = piece.animate(
           [
-            { transform: `translate(-50%, -50%) translate(${deltaX}px, ${deltaY}px)` },
-            { transform: 'translate(-50%, -50%)' },
+            { transform: startTransform },
+            { transform: endTransform },
           ],
           {
             duration,
@@ -3269,9 +3277,8 @@ function startGame() {
              validMoves++;
          }
 
-         // 2. CASILLAS ROJAS (Para lanzar objeto contra enemigo)
-         // Solo si tenemos un objeto levantado
-         if (isObject && occupant && occupant.dataset.team !== attacker.dataset.team) {
+         // 2. CASILLAS ROJAS (Para lanzar contra enemigo)
+         if (occupant && occupant.dataset.team !== attacker.dataset.team) {
              // Chequeo extra: Linea de visión para lanzar
              if (hasLineOfSight(origin, square)) {
                  occupant.classList.add('valid-target'); // Borde rojo
@@ -3283,9 +3290,7 @@ function startGame() {
       const combatBox = document.getElementById('combatInfo');
       if (combatBox) {
           let instruction = `Moviendo a ${victimName}. Selecciona casilla AZUL para dejarlo.`;
-          if (isObject) {
-              instruction += ` O selecciona un ENEMIGO para lanzárselo.`;
-          }
+          instruction += ` O selecciona un ENEMIGO para lanzarlo.`;
           combatBox.textContent = instruction;
           combatBox.style.display = 'block';
       }
@@ -3297,59 +3302,173 @@ function startGame() {
     }
 
     async function resolveObjectThrow(attacker, objectElement, targetPiece) {
-    const attackerStats = pieceMap.get(attacker);
-    const targetStats = pieceMap.get(targetPiece);
-    const objectType = objectElement.dataset.type; // 'heavy' o 'light'
-    const objectName = objectElement.dataset.name;
-    
-    // Daño fijo según tipo
-    const damage = objectType === 'heavy' ? 3 : 2;
-    
-    // Animación visual (Simple: movemos el objeto encima del enemigo)
-    const targetSquare = getPieceSquare(targetPiece);
-    await animatePieceToSquare(objectElement, targetSquare, { duration: 600 });
-    
-    // Sonido impacto
-    playEffectSound(punchSound);
+      const attackerStats = pieceMap.get(attacker);
+      const targetStats = pieceMap.get(targetPiece);
+      const objectType = objectElement.dataset.type; // 'heavy' o 'light'
+      const objectName = objectElement.dataset.name;
 
-    // Aplicar daño
-    // NOTA: Los objetos lanzados ignoran defensa, es daño directo (salvo invulnerabilidad si quisieras programarlo)
-    // Aquí aplicamos lógica simple de daño directo.
-    let appliedDamage = damage;
-    
-    // Reducción por dureza/invulnerable (Opcional, pero consistente con el juego)
-    let resistance = 0;
-    if (hasPassive(targetStats, 'dureza')) resistance = 1;
-    if (hasPassive(targetStats, 'invulnerable')) resistance = 2;
-    appliedDamage = Math.max(0, damage - resistance);
+      // Daño fijo según tipo
+      const damage = objectType === 'heavy' ? 3 : 2;
 
-    targetStats.currentVida = Math.max(0, targetStats.currentVida - appliedDamage);
-    
-    // Puntos
-    if (isEnemy(attacker, targetPiece)) {
-        addPoints(attacker, appliedDamage * SCORE_PER_DAMAGE);
-    }
+      const attackerSquare = getPieceSquare(attacker);
+      const targetSquare = getPieceSquare(targetPiece);
+      const distance = attackDistance(attackerSquare, targetSquare);
+      const defenseBonus = distance > 1 && hasPassive(targetStats, 'defensa a/d') ? 2 : 0;
+      const effectiveDefense = targetStats.defensa + defenseBonus;
 
-    // Mensaje
-    const msg = `${attackerStats.name} lanza ${objectName} a ${targetStats.name}.\nDaño base: ${damage}. Resistencia: ${resistance}.\nDaño final: ${appliedDamage}.`;
-    addHistoryEntry(attacker.dataset.team, msg, { attacker, defenders: [targetPiece] });
+      const die1 = Math.floor(Math.random() * 6) + 1;
+      const die2 = Math.floor(Math.random() * 6) + 1;
+      const roll = die1 + die2;
+      const attackValue = attackerStats.ataque + roll;
+      const success = attackValue >= effectiveDefense;
+      const needed = Math.max(2, effectiveDefense - attackerStats.ataque);
 
-    // Destruir objeto
-    objectElement.remove();
+      // Reducción por dureza/invulnerable
+      let resistance = 0;
+      if (hasPassive(targetStats, 'dureza')) resistance = 1;
+      if (hasPassive(targetStats, 'invulnerable')) resistance = 2;
 
-    // Comprobar muerte
-    if (targetStats.currentVida <= 0) {
+      const appliedDamage = success ? Math.max(0, damage - resistance) : 0;
+
+      // Animación visual (Simple: movemos el objeto encima del enemigo)
+      await animatePieceToSquare(objectElement, targetSquare, { duration: 600 });
+
+      if (success) {
+        playEffectSound(punchSound);
+        targetStats.currentVida = Math.max(0, targetStats.currentVida - appliedDamage);
+        if (isEnemy(attacker, targetPiece)) {
+          addPoints(attacker, appliedDamage * SCORE_PER_DAMAGE);
+        }
+      } else {
+        playEffectSound(failureSound);
+      }
+
+      const sentence1 = `${attackerStats.name} lanza ${objectName} a ${targetStats.name}. Daño base: ${damage}. Resistencia: ${resistance}. Daño final: ${appliedDamage}.`;
+      const sentence2 = `${attackerStats.name} realiza un ataque a distancia de objeto (${objectName}) con ${attackerStats.ataque} de Ataque a ${targetStats.name} que tiene ${effectiveDefense} de Defensa. ${attackerStats.name} necesita un ${needed} y consigue un ${roll}.`;
+      const sentence3 = `El Daño del Objeto es ${damage} y la Resistencia de ${targetStats.name} es ${resistance}. ${attackerStats.name} le causa ${appliedDamage} puntos de Daño Infligido a ${targetStats.name}.`;
+      const msg = `${sentence1} ${sentence2} ${sentence3}`;
+
+      addHistoryEntry(attacker.dataset.team, msg, { attacker, defenders: [targetPiece] });
+
+      objectElement.remove();
+
+      if (success && targetStats.currentVida <= 0) {
         queueDeathMessage(`${targetStats.name} eliminado por impacto de objeto.`);
         if (isEnemy(attacker, targetPiece)) addPoints(attacker, SCORE_PER_KILL);
         eliminatePiece(targetPiece);
+      }
+
+      renderLifeCards();
+      cancelTelekinesis();
+
+      await showTurnPopup(msg);
+      registerActionUsage(attacker, { showPopup: false });
     }
-    
-    renderLifeCards();
-    cancelTelekinesis(); // Limpia estados
-    
-    await showTurnPopup(msg);
-    registerActionUsage(attacker, { showPopup: false });
-}
+
+    async function resolveTelekinesisThrow(attacker, victim, targetPiece) {
+      const attackerStats = pieceMap.get(attacker);
+      const victimStats = pieceMap.get(victim);
+      const targetStats = pieceMap.get(targetPiece);
+      if (!attackerStats || !victimStats || !targetStats) return;
+
+      const isAllyThrow = victim.dataset.team === attacker.dataset.team;
+      const targetSquare = getPieceSquare(targetPiece);
+
+      if (isAllyThrow) {
+        const offsets = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+        const landingSquare = offsets
+          .map(([dr, dc]) => getSquareAt(Number(targetSquare.dataset.row) + dr, Number(targetSquare.dataset.col) + dc))
+          .find((square) => {
+            if (!square) return false;
+            if (square.querySelector('.piece')) return false;
+            if (square.querySelector('.object-token')) return false;
+            if (isBarrierSquare(square)) return false;
+            return true;
+          });
+
+        if (!landingSquare) {
+          const msg = `No hay una casilla adyacente libre para lanzar a ${victimStats.name}.`;
+          addHistoryEntry(attacker.dataset.team, msg, { attacker, defenders: [targetPiece] });
+          await showTurnPopup(msg);
+          cancelTelekinesis();
+          registerActionUsage(attacker, { showPopup: false });
+          return;
+        }
+
+        await animatePieceToSquare(victim, landingSquare, { duration: 600 });
+        playEffectSound(telekinesisSound);
+
+        const originalAtaque = victimStats.ataque;
+        const originalDano = victimStats.dano;
+        victimStats.ataque = originalAtaque + 2;
+        victimStats.dano = originalDano + 1;
+
+        await resolveAttack(victim, targetPiece, 'attack', { skipTurnAdvance: true });
+
+        victimStats.ataque = originalAtaque;
+        victimStats.dano = originalDano;
+
+        cancelTelekinesis();
+        registerActionUsage(attacker, { showPopup: false });
+        return;
+      }
+
+      const attackerSquare = getPieceSquare(attacker);
+      const distance = attackDistance(attackerSquare, targetSquare);
+      const defenseBonus = distance > 1 && hasPassive(targetStats, 'defensa a/d') ? 2 : 0;
+      const effectiveDefense = targetStats.defensa + defenseBonus;
+
+      const die1 = Math.floor(Math.random() * 6) + 1;
+      const die2 = Math.floor(Math.random() * 6) + 1;
+      const roll = die1 + die2;
+      const attackValue = attackerStats.ataque + roll;
+      const success = attackValue >= effectiveDefense;
+      const needed = Math.max(2, effectiveDefense - attackerStats.ataque);
+
+      let impactBonus = 0;
+      if (hasPassive(victimStats, 'dureza')) impactBonus += 1;
+      if (hasPassive(victimStats, 'invulnerable')) impactBonus += 2;
+      if (hasPassive(victimStats, 'superfuerza')) impactBonus += 1;
+
+      const impactRoll = Math.floor(Math.random() * 6) + 1;
+      const impactDamage = impactRoll + impactBonus;
+      const victimDamage = Math.floor(impactDamage / 2);
+
+      if (success) {
+        playEffectSound(punchSound);
+        targetStats.currentVida = Math.max(0, targetStats.currentVida - impactDamage);
+        victimStats.currentVida = Math.max(0, victimStats.currentVida - victimDamage);
+        if (isEnemy(attacker, targetPiece)) {
+          addPoints(attacker, impactDamage * SCORE_PER_DAMAGE);
+        }
+      } else {
+        playEffectSound(failureSound);
+      }
+
+      const sentence1 = `${attackerStats.name} lanza a ${victimStats.name} contra ${targetStats.name}.`;
+      const sentence2 = `${attackerStats.name} realiza un ataque telequinético con ${attackerStats.ataque} de Ataque a ${targetStats.name} que tiene ${effectiveDefense} de Defensa. ${attackerStats.name} necesita un ${needed} y consigue un ${roll}.`;
+      const sentence3 = success
+        ? `El impacto causa ${impactDamage} puntos de Daño Infligido a ${targetStats.name} y ${victimStats.name} recibe ${victimDamage}.`
+        : `${attackerStats.name} falla el lanzamiento y no causa daño.`;
+      const msg = `${sentence1} ${sentence2} ${sentence3}`;
+
+      addHistoryEntry(attacker.dataset.team, msg, { attacker, defenders: [victim, targetPiece] });
+
+      if (success && targetStats.currentVida <= 0) {
+        queueDeathMessage(`${targetStats.name} eliminado por impacto telequinético.`);
+        if (isEnemy(attacker, targetPiece)) addPoints(attacker, SCORE_PER_KILL);
+        eliminatePiece(targetPiece);
+      }
+      if (success && victimStats.currentVida <= 0) {
+        queueDeathMessage(`${victimStats.name} eliminado por el impacto telequinético.`);
+        eliminatePiece(victim);
+      }
+
+      renderLifeCards();
+      cancelTelekinesis();
+      await showTurnPopup(msg);
+      registerActionUsage(attacker, { showPopup: false });
+    }
 
     function cancelTelekinesis() {
       pendingTelekinesis = null;
