@@ -8,10 +8,11 @@ const board = document.querySelector('.board');
       const draftGrid = document.getElementById('draftGrid');
       const draftPrompt = document.getElementById('draftPrompt');
       const draftPicker = document.getElementById('draftPicker');
-      const draftTurn = document.getElementById('draftTurn');
-      const draftCounter = document.getElementById('draftCounter');
-      const draftInfo = document.getElementById('draftInfo');
-      const draftSubtitle = document.getElementById('draftSubtitle');
+    const draftTurn = document.getElementById('draftTurn');
+    const draftCounter = document.getElementById('draftCounter');
+    const draftInfo = document.getElementById('draftInfo');
+    const draftSubtitle = document.getElementById('draftSubtitle');
+    const draftFinalizeButton = document.getElementById('draftFinalizeButton');
       const pieceStats =
         (typeof personajes !== 'undefined' && personajes) ||
         (typeof window !== 'undefined' ? window.personajes : {});
@@ -112,11 +113,20 @@ const board = document.querySelector('.board');
       introMusic.loop = true; // Para que se repita si tardas mucho en elegir
       introMusic.volume = 0.4; // Ajusta el volumen si quieres
 
+<<<<<<< HEAD
       let backgroundStarted = false;
       let isPlayerVsAI = false;
       let isAIVsAI = false;
       let gameStarted = false;
       const PROBABILIDAD_DURATION = 2;
+=======
+      let backgroundStarted = false;
+      let isPlayerVsAI = false;
+      let isAIVsAI = false;
+      let gameStarted = false;
+      const playerControl = { player1: 'manual', player2: 'manual' };
+      const PROBABILIDAD_DURATION = 2;
+>>>>>>> codex/fix-visual-bug-in-healing-action-0x8a1c
       const SUPPORT_POWERS = new Set([
         'probabilidad',
         'mejora de ataque',
@@ -129,7 +139,9 @@ const board = document.querySelector('.board');
       let draftIndex = 0;
       let firstPicker = 'player1';
       let draftActive = false;
+      const draftFinalized = { player1: false, player2: false };
       const selections = { player1: [], player2: [] };
+<<<<<<< HEAD
       let availableCharacters = [];
 
       function shouldAIPick(playerId) {
@@ -141,6 +153,67 @@ const board = document.querySelector('.board');
         if (isAIVsAI) return true;
         return isPlayerVsAI && piece.dataset.team === 'enemigo';
       }
+=======
+      let availableCharacters = [];
+
+      function shouldAIPick(playerId) {
+        return isAIVsAI || (isPlayerVsAI && playerId === 'player2');
+      }
+
+      function playerIdForPiece(piece) {
+        if (!piece) return null;
+        return piece.dataset.team === 'aliado' ? 'player1' : 'player2';
+      }
+
+      function isCPUControlledPiece(piece) {
+        if (!piece) return false;
+        const playerId = playerIdForPiece(piece);
+        if (playerId && playerControl[playerId]) {
+          return playerControl[playerId] === 'auto';
+        }
+        if (isAIVsAI) return true;
+        return isPlayerVsAI && piece.dataset.team === 'enemigo';
+      }
+
+      function updateControlToggleButton(button, playerId) {
+        if (!button) return;
+        const mode = playerControl[playerId] || 'manual';
+        const label = playerId === 'player1' ? 'J1' : 'J2';
+        button.textContent = `${label}: ${mode.toUpperCase()}`;
+        button.classList.toggle('is-auto', mode === 'auto');
+        button.classList.toggle('is-manual', mode === 'manual');
+      }
+
+      function updateControlToggles() {
+        updateControlToggleButton(document.getElementById('controlToggleP1'), 'player1');
+        updateControlToggleButton(document.getElementById('controlToggleP2'), 'player2');
+      }
+
+      function triggerAITurnIfActive(playerId) {
+        const activePiece = turnOrder[turnIndex];
+        if (!activePiece) return;
+        if (playerIdForPiece(activePiece) !== playerId) return;
+        if (!isCPUControlledPiece(activePiece)) return;
+        if (actionUsedThisTurn) return;
+        passButton.disabled = true;
+        attackButton.disabled = true;
+        setTimeout(() => performEnemyTurn(activePiece), 0);
+      }
+
+      function setPlayerControlMode(playerId, mode) {
+        playerControl[playerId] = mode;
+        updateControlToggles();
+        const activePiece = turnOrder[turnIndex];
+        if (activePiece && playerIdForPiece(activePiece) === playerId) {
+          if (mode === 'auto') {
+            triggerAITurnIfActive(playerId);
+          } else {
+            passButton.disabled = false;
+            attackButton.disabled = false;
+          }
+        }
+      }
+>>>>>>> codex/fix-visual-bug-in-healing-action-0x8a1c
 
       // --- NUEVA VARIABLE DE ESTADO ---
     let pendingTelekinesis = null; // Guardará { attacker, victim } mientras eliges destino
@@ -172,6 +245,43 @@ let activeBarriers = []; // Nueva lista para rastrear barreras activas
       playButton.addEventListener('click', () => {
         revealModes();
       });
+
+      const controlToggleP1Button = document.getElementById('controlToggleP1');
+      if (controlToggleP1Button) {
+        controlToggleP1Button.addEventListener('click', () => {
+          const nextMode = playerControl.player1 === 'auto' ? 'manual' : 'auto';
+          setPlayerControlMode('player1', nextMode);
+        });
+      }
+
+      const controlToggleP2Button = document.getElementById('controlToggleP2');
+      if (controlToggleP2Button) {
+        controlToggleP2Button.addEventListener('click', () => {
+          const nextMode = playerControl.player2 === 'auto' ? 'manual' : 'auto';
+          setPlayerControlMode('player2', nextMode);
+        });
+      }
+
+      if (draftFinalizeButton) {
+        draftFinalizeButton.addEventListener('click', () => {
+          if (!draftActive || !canFinalizeDraft()) return;
+          advanceDraftIndex();
+          const pickerId = draftOrder[draftIndex];
+          if (!pickerId || draftFinalized[pickerId]) return;
+          draftFinalized[pickerId] = true;
+          updateDraftFinalizeButton();
+          advanceDraftIndex();
+          if (draftIsComplete()) {
+            finalizeDraft();
+            return;
+          }
+          updateDraftLabels();
+          const nextPicker = draftOrder[draftIndex];
+          if (shouldAIPick(nextPicker)) {
+            setTimeout(performAIPick, 600);
+          }
+        });
+      }
 
       let initialPositions = [];
 
@@ -900,9 +1010,15 @@ function computeReachableSquares(piece) {
     const hasSuperStrength = hasPassive(stats, 'superfuerza');
 
     // 2. Definir reglas de paso
+<<<<<<< HEAD
     const canPassBarriers = hasFlight || hasPhasing; 
     const canPassEnemies = hasFlight || hasPhasing || hasJump;
     const canPassObjects = hasFlight || hasPhasing || hasJump || hasSuperStrength;
+=======
+    const canPassBarriers = hasFlight || hasPhasing; 
+    const canPassEnemies = hasFlight || hasPhasing || hasJump;
+    const canPassObjects = hasFlight || hasPhasing || hasJump || hasSuperStrength;
+>>>>>>> codex/fix-visual-bug-in-healing-action-0x8a1c
 
     const maxMove = remainingMovement(piece);
     const visited = new Map();
@@ -932,6 +1048,7 @@ function computeReachableSquares(piece) {
             if (nextCost > maxMove) continue;
             if (visited.has(key) && visited.get(key) <= nextCost) continue;
             
+<<<<<<< HEAD
             const square = getSquareAt(nr, nc);
             if (!square) continue;
             
@@ -946,6 +1063,22 @@ function computeReachableSquares(piece) {
             }
             // C) OBJETOS
             if (hasObject && !canPassObjects) continue;
+=======
+            const square = getSquareAt(nr, nc);
+            if (!square) continue;
+            
+            // A) BARRERAS
+            if (isBarrierSquare(square) && !canPassBarriers) continue;
+
+            const occupant = square.querySelector('.piece');
+            const hasObject = square.querySelector('.object-token');
+            // B) ENEMIGOS
+            if (occupant && occupant.dataset.team !== piece.dataset.team && !canPassEnemies) {
+                continue;
+            }
+            // C) OBJETOS
+            if (hasObject && !canPassObjects) continue;
+>>>>>>> codex/fix-visual-bug-in-healing-action-0x8a1c
             
             visited.set(key, nextCost);
             queue.push({ row: nr, col: nc, cost: nextCost });
@@ -1067,6 +1200,7 @@ function highlightRange(piece) {
         if (isValidSquare) {
           const targetPiece = square.querySelector('.piece');
           
+<<<<<<< HEAD
           if (targetPiece) {
             const targetStats = pieceMap.get(targetPiece); 
             const isAlly = targetPiece.dataset.team === piece.dataset.team;
@@ -1103,6 +1237,44 @@ function highlightRange(piece) {
               targetsFound = true;
             }
           }
+=======
+          if (targetPiece) {
+            const targetStats = pieceMap.get(targetPiece); 
+            const isAlly = targetPiece.dataset.team === piece.dataset.team;
+            
+            // LÓGICA DE SIGILO
+            const isHiddenByStealth = dist > 3 && hasPassive(targetStats, 'sigilo');
+
+            if (isTelekinesis) {
+              if (isAlly) {
+                targetPiece.classList.add('valid-target-blue');
+                targetsFound = true;
+              } else if (!isHiddenByStealth) {
+                targetPiece.classList.add('valid-target');
+                targetsFound = true;
+              }
+            } else if (isSupport && isAlly) {
+              targetPiece.classList.add('valid-target-blue');
+              targetsFound = true;
+            } else if (!isSupport && !isAlly) {
+              // Si NO está oculto, marcamos. Si está oculto, NO marcamos (y se verá gris)
+              if (!isHiddenByStealth) {
+                targetPiece.classList.add('valid-target');
+                targetsFound = true;
+              }
+            } else if (!isSupport && isAlly && pieceMap.get(targetPiece)?.mindControlled) {
+              if (!isHiddenByStealth) {
+                targetPiece.classList.add('valid-target');
+                targetsFound = true;
+              }
+            }
+          } else if (hasObject) {
+            if (isTelekinesis) {
+              hasObject.classList.add('valid-target'); 
+              targetsFound = true;
+            }
+          }
+>>>>>>> codex/fix-visual-bug-in-healing-action-0x8a1c
         }
       });
       
@@ -1590,6 +1762,7 @@ function attachTooltipEvents(piece) {
         const rollText = critical ? `${roll} (CRÍTICO)` : `${roll}`;
 
         // --- Casos Especiales ---
+<<<<<<< HEAD
         if (actionKey === 'incapacitar') {
             const part1 = `${attackerStats.name} realiza un ataque de Incapacitación con ${attackerStats.ataque} de Ataque a ${defenderStats.name} que tiene ${defDisplay} de Defensa.`;
             const part2 = `${attackerStats.name} necesita un ${needed} y consigue un ${rollText}.`;
@@ -1707,6 +1880,125 @@ function attachTooltipEvents(piece) {
         if (heldObject) {
              objectMsg = ` El objeto usado (${heldObject.name}) se rompe tras el ataque.`;
         }
+=======
+        if (actionKey === 'incapacitar') {
+            const part1 = `${attackerStats.name} realiza un ataque de Incapacitación con ${attackerStats.ataque} de Ataque a ${defenderStats.name} que tiene ${defDisplay} de Defensa.`;
+            const part2 = `${attackerStats.name} necesita un ${needed} y consigue un ${rollText}.`;
+            const part3 = success 
+                ? `${attackerStats.name} Incapacita a ${defenderStats.name}.`
+                : `${attackerStats.name} falla el ataque de Incapacitación contra ${defenderStats.name}.`;
+            return `${part1} ${part2} ${part3}`;
+        }
+
+      if (actionKey === 'control mental') {
+            const part1 = `${attackerStats.name} realiza un ataque de Control Mental con ${attackerStats.ataque} de Ataque a ${defenderStats.name} que tiene ${defDisplay} de Defensa.`;
+            const part2 = `${attackerStats.name} necesita un ${needed} y consigue un ${rollText}.`;
+            const part3 = success 
+                ? `${defenderStats.name} es controlado por ${attackerStats.name} por 1 turno.`
+                : `${attackerStats.name} falla el ataque de Control Mental contra ${defenderStats.name}.`;
+        return `${part1} ${part2} ${part3}`;
+      }
+
+      if (actionKey === 'telekinesis-ally-throw') {
+        const casterName = attackerStats.telekinesisCasterName ?? attackerStats.name;
+        const boost = attackerStats.telekinesisBoost;
+        const baseAtaque = boost?.baseAtaque ?? attackerStats.ataque;
+        const ataqueBonus = boost?.ataqueBonus ?? 0;
+        const baseDano = boost?.baseDano ?? attackerStats.dano ?? 0;
+        const danoBonus = boost?.danoBonus ?? 0;
+        const attackDisplay = ataqueBonus
+          ? `${attackerStats.ataque} (${baseAtaque} + ${ataqueBonus})`
+          : `${attackerStats.ataque}`;
+
+        const part1 = `${casterName} realiza un lanzamiento telekinético de compañero (${attackerStats.name}).`;
+        const part2 = `${attackerStats.name} tiene ${attackDisplay} de Ataque y ${defenderStats.name} tiene ${defDisplay} de Defensa.`;
+        const part3 = `${attackerStats.name} necesita un ${needed} y consigue un ${rollText}.`;
+
+        if (!success) {
+          return `${part1} ${part2} ${part3} ${casterName} falla el lanzamiento telekinético y no causa daño.`;
+        }
+
+        let damageText = '';
+        let resistanceText = `la Resistencia de ${defenderStats.name} es ${resistance}.`;
+
+        if (clawsRoll !== null) {
+          const clawsBase = baseDamageAfterClaws ?? rawDamage;
+          const clawsDamage = critical ? clawsBase * 2 : clawsBase;
+          const bonusText = danoBonus ? ` (${clawsRoll} + ${danoBonus})` : '';
+          const critSuffix = critical ? `${bonusText} X 2` : bonusText;
+          damageText = `${attackerStats.name} realiza una tirada de Cuchillas/Garras/Colmillos y saca un ${clawsRoll}, con lo que su Daño es ${clawsDamage}${critSuffix}.`;
+          resistanceText = `${defenderStats.name} tiene una resistencia de ${resistance}.`;
+        } else {
+          const breakdown = danoBonus ? ` (${baseDano} + ${danoBonus})` : '';
+          damageText = `El Daño de ${attackerStats.name} es ${rawDamage}${breakdown} y ${resistanceText}`;
+        }
+
+        const sentence3 = (clawsRoll !== null) ? `${damageText} ${resistanceText}` : damageText;
+        const damageLabel = damage === 1 ? 'punto' : 'puntos';
+        const sentence4 = `${attackerStats.name} le causa ${damage} ${damageLabel} de Daño Infligido a ${defenderStats.name}.`;
+        return `${part1} ${part2} ${part3} ${sentence3} ${sentence4}`;
+      }
+
+      // --- ATAQUE NORMAL (C/C o A/D) ---
+        const attackType = isMelee ? 'ataque cuerpo a cuerpo' : 'ataque a distancia';
+        const sentence1 = `${attackerStats.name} realiza un ${attackType} con ${attackerStats.ataque} de Ataque a ${defenderStats.name} que tiene ${defDisplay} de Defensa.`;
+        const sentence2 = `${attackerStats.name} necesita un ${needed} y consigue un ${rollText}.`;
+
+        // FALLO
+        if (!success) {
+            let failMsg = `${sentence1} ${sentence2} ${attackerStats.name} falla el ataque contra ${defenderStats.name}.`;
+            if (heldObject) failMsg += ` El objeto usado (${heldObject.name}) se rompe tras el ataque.`;
+            return failMsg;
+        }
+
+        // ÉXITO
+        let damageText = '';
+        let resistanceText = `la Resistencia de ${defenderStats.name} es ${resistance}.`;
+
+        // A) GARRAS
+        if (clawsRoll !== null) {
+             const clawsBase = baseDamageAfterClaws ?? rawDamage;
+             const clawsDamage = critical ? clawsBase * 2 : clawsBase;
+             const critSuffix = critical ? ` (${clawsBase} X 2)` : '';
+             damageText = `${attackerStats.name} realiza una tirada de Cuchillas/Garras/Colmillos y saca un ${clawsRoll}, con lo que su Daño es ${clawsDamage}${critSuffix}.`;
+             resistanceText = `${defenderStats.name} tiene una resistencia de ${resistance}.`;
+        } 
+        // B) NORMAL / OBJETO
+        else {
+            let breakdown = '';
+            if (heldObject && attackerStats.originalDano !== undefined) {
+                const base = attackerStats.originalDano;
+                const bonus = attackerStats.dano - base;
+                breakdown = critical
+                    ? ` ((${base} + ${bonus}) X 2)`
+                    : ` (${base} + ${bonus})`;
+            } else if (!isMelee && hasPassive(attackerStats, 'experto a/d')) {
+                breakdown = critical
+                    ? ` ((${attackerStats.dano} + 2) X 2)`
+                    : ` (${attackerStats.dano} + 2)`;
+            } else if (critical) {
+                const base = rawDamage / 2;
+                breakdown = ` (${base} X 2)`;
+            }
+            damageText = `El Daño de ${attackerStats.name} es ${rawDamage}${breakdown} y ${resistanceText}`;
+        }
+
+        // Unimos frase de Daño + Resistencia
+        let sentence3 = (clawsRoll !== null) ? `${damageText} ${resistanceText}` : damageText;
+
+        // Frase 4: Daño Final y Eliminación
+        let sentence4 = `${attackerStats.name} le causa ${damage} puntos de Daño Infligido a ${defenderStats.name}.`;
+        
+        if (defenderStats.currentVida <= 0) {
+            sentence4 += ` ${defenderStats.name} es ELIMINADO.`;
+        }
+
+        // Frase Objeto siempre al final y limpia
+        let objectMsg = '';
+        if (heldObject) {
+             objectMsg = ` El objeto usado (${heldObject.name}) se rompe tras el ataque.`;
+        }
+>>>>>>> codex/fix-visual-bug-in-healing-action-0x8a1c
 
         return `${sentence1} ${sentence2} ${sentence3} ${sentence4}${objectMsg}`;
     }
@@ -1776,6 +2068,7 @@ function attachTooltipEvents(piece) {
 
 // --- BLOQUE DE COMBATE OPTIMIZADO ---
 
+<<<<<<< HEAD
 async function resolveAttack(attacker, defender, actionKey = 'attack', options = {}) {
       const { 
         allowCounter = true, 
@@ -1785,6 +2078,17 @@ async function resolveAttack(attacker, defender, actionKey = 'attack', options =
         actionLabelOverride = null, 
         isSecondAttack = false 
       } = options;
+=======
+async function resolveAttack(attacker, defender, actionKey = 'attack', options = {}) {
+      const { 
+        allowCounter = true, 
+        skipTurnAdvance = false, 
+        showPopup = true,
+        logHistory = true,
+        actionLabelOverride = null, 
+        isSecondAttack = false 
+      } = options;
+>>>>>>> codex/fix-visual-bug-in-healing-action-0x8a1c
 
       const attackerStats = pieceMap.get(attacker);
       const defenderStats = pieceMap.get(defender);
@@ -1857,12 +2161,21 @@ async function resolveAttack(attacker, defender, actionKey = 'attack', options =
       if (critical) playEffectSound(criticoSound);
       if (isPifia) playEffectSound(pifiaSound);
 
+<<<<<<< HEAD
       const { totalDamage, clawsRoll, isMelee, resistance, rawDamage, baseDamageBeforeClaws, baseDamageAfterClaws } = 
         calculateDamage(attackerStats, defenderStats, distance, critical);
       const effectiveDefense = (!isMelee && hasPassive(defenderStats, 'defensa a/d'))
         ? defenderStats.defensa + 2
         : defenderStats.defensa;
       const needed = Math.max(2, effectiveDefense - attackerStats.ataque);
+=======
+      const { totalDamage, clawsRoll, isMelee, resistance, rawDamage, baseDamageBeforeClaws, baseDamageAfterClaws } = 
+        calculateDamage(attackerStats, defenderStats, distance, critical);
+      const effectiveDefense = (!isMelee && hasPassive(defenderStats, 'defensa a/d'))
+        ? defenderStats.defensa + 2
+        : defenderStats.defensa;
+      const needed = Math.max(2, effectiveDefense - attackerStats.ataque);
+>>>>>>> codex/fix-visual-bug-in-healing-action-0x8a1c
 
       const isStatusAttack = actionKey === 'incapacitar' || actionKey === 'control mental';
       const damageApplied = success && !isStatusAttack ? totalDamage : 0;
@@ -1927,9 +2240,15 @@ async function resolveAttack(attacker, defender, actionKey = 'attack', options =
       }
       // -------------------------------------------------------
 
+<<<<<<< HEAD
       if (logHistory) {
         addHistoryEntry(attacker.dataset.team, popupMessage, { attacker, defenders: [defender] });
       }
+=======
+      if (logHistory) {
+        addHistoryEntry(attacker.dataset.team, popupMessage, { attacker, defenders: [defender] });
+      }
+>>>>>>> codex/fix-visual-bug-in-healing-action-0x8a1c
 
       // Gestión de Muerte
       if (success && !isStatusAttack && defenderStats.currentVida <= 0) {
@@ -1957,6 +2276,7 @@ async function resolveAttack(attacker, defender, actionKey = 'attack', options =
       updateCombatInfo();
 
       // Flujo de Pifia / Doble Ataque / Fin de Turno
+<<<<<<< HEAD
       if (shouldCounter && defenderStats.currentVida > 0 && defender.dataset.eliminated !== 'true') {
         if (showPopup) {
           await showTurnPopup(`¡PIFIA! ${attackerStats.name} ha fallado estrepitosamente.\n${defenderStats.name} prepara su contraataque.\n(Haz clic para resolver la réplica)`);
@@ -2000,6 +2320,51 @@ async function resolveAttack(attacker, defender, actionKey = 'attack', options =
       }
       return { success, damageApplied, roll, needed, effectiveDefense };
     }
+=======
+      if (shouldCounter && defenderStats.currentVida > 0 && defender.dataset.eliminated !== 'true') {
+        if (showPopup) {
+          await showTurnPopup(`¡PIFIA! ${attackerStats.name} ha fallado estrepitosamente.\n${defenderStats.name} prepara su contraataque.\n(Haz clic para resolver la réplica)`);
+          await sleep(300);
+        }
+        await resolveAttack(defender, attacker, 'attack', {
+          allowCounter: false,
+          skipTurnAdvance: true,
+          actionLabelOverride: 'Réplica',
+          showPopup,
+          logHistory,
+        });
+        if (!skipTurnAdvance && showPopup) registerActionUsage(attacker, { showPopup: false });
+        return { success, damageApplied, roll, needed, effectiveDefense };
+      }
+
+      const hasDoubleAttack = hasPassive(attackerStats, 'doble ataque c/c');
+      if (isMelee && hasDoubleAttack && !isSecondAttack && !options.actionLabelOverride && !isStatusAttack &&
+          defenderStats.currentVida > 0 && defender.dataset.eliminated !== 'true' &&
+          attackerStats.currentVida > 0 && attacker.dataset.eliminated !== 'true') {
+        
+        if (showPopup) {
+          await showTurnPopup(`${popupMessage}\n\n[DOBLE ATAQUE]\n(Clic para el segundo golpe)`);
+          await sleep(300);
+        }
+        await resolveAttack(attacker, defender, actionKey, {
+          ...options,
+          isSecondAttack: true, 
+          actionLabelOverride: '2º Ataque c/c'
+        });
+        return { success, damageApplied, roll, needed, effectiveDefense }; 
+      }
+
+      if (!skipTurnAdvance && showPopup) {
+        hideTooltip();
+        clearRangeHighlights();
+        selectedTarget = null;
+        attackButton.classList.remove('button--pulse');
+        await showTurnPopup(popupMessage);
+        registerActionUsage(attacker, { showPopup: false });
+      }
+      return { success, damageApplied, roll, needed, effectiveDefense };
+    }
+>>>>>>> codex/fix-visual-bug-in-healing-action-0x8a1c
 
 async function resolveExplosion(attacker, centerTarget) {
   const attackerStats = pieceMap.get(attacker);
@@ -2393,6 +2758,7 @@ async function resolveHeal(attacker, target) {
       // Cálculo de Daño Infligido (Heridas)
       const wounds = Math.max(targetStats.maxVida - targetStats.currentVida, 0);
       
+<<<<<<< HEAD
       if (wounds === 0) {
         const msg = `${attackerStats.name} intenta curar a ${targetStats.name}, pero ya está al máximo de salud.`;
         addHistoryEntry(attacker.dataset.team, msg, { attacker, defenders: [target] });
@@ -2400,6 +2766,15 @@ async function resolveHeal(attacker, target) {
         registerActionUsage(attacker, { showPopup: false });
         return;
       }
+=======
+      if (wounds === 0) {
+        const msg = `${attackerStats.name} intenta curar a ${targetStats.name}, pero ya está al máximo de salud.`;
+        addHistoryEntry(attacker.dataset.team, msg, { attacker, defenders: [target] });
+        await showTurnPopup(msg);
+        registerActionUsage(attacker, { showPopup: false });
+        return;
+      }
+>>>>>>> codex/fix-visual-bug-in-healing-action-0x8a1c
 
       const die1 = Math.floor(Math.random() * 6) + 1;
       const die2 = Math.floor(Math.random() * 6) + 1;
@@ -2426,6 +2801,7 @@ async function resolveHeal(attacker, target) {
           playEffectSound(curarSound);
           
           const sentence3 = `${attackerStats.name} lanza el dado de curar y consigue un ${healRoll}.`;
+<<<<<<< HEAD
           const sentence4 = `${attackerStats.name} cura ${healed} Puntos de Vida a ${targetStats.name}.`;
           
           const msg = `${sentence1} ${sentence2} ${sentence3} ${sentence4}`;
@@ -2439,6 +2815,21 @@ async function resolveHeal(attacker, target) {
           addHistoryEntry(attacker.dataset.team, msg, { attacker, defenders: [target] });
           await showTurnPopup(msg);
       }
+=======
+          const sentence4 = `${attackerStats.name} cura ${healed} Puntos de Vida a ${targetStats.name}.`;
+          
+          const msg = `${sentence1} ${sentence2} ${sentence3} ${sentence4}`;
+          
+          addHistoryEntry(attacker.dataset.team, msg, { attacker, defenders: [target] });
+          renderLifeCards();
+          await showTurnPopup(msg);
+      } else {
+          const msg = `${sentence1} ${sentence2} ${attackerStats.name} falla la curación.`;
+          playEffectSound(failureSound);
+          addHistoryEntry(attacker.dataset.team, msg, { attacker, defenders: [target] });
+          await showTurnPopup(msg);
+      }
+>>>>>>> codex/fix-visual-bug-in-healing-action-0x8a1c
 
       registerActionUsage(attacker, { showPopup: false });
 }
@@ -2823,6 +3214,7 @@ function handleActionClick(actionKey, options = {}) {
           return;
         }
 
+<<<<<<< HEAD
         const startRect = piece.getBoundingClientRect();
         square.appendChild(piece);
         const endRect = piece.getBoundingClientRect();
@@ -2841,6 +3233,26 @@ function handleActionClick(actionKey, options = {}) {
             duration,
             easing: 'ease-in-out',
           },
+=======
+        const startRect = piece.getBoundingClientRect();
+        square.appendChild(piece);
+        const endRect = piece.getBoundingClientRect();
+        const deltaX = startRect.left - endRect.left;
+        const deltaY = startRect.top - endRect.top;
+        const baseTransform = 'translate(-50%, -50%)';
+        const startTransform = `${baseTransform} translate(${deltaX}px, ${deltaY}px)`;
+        const endTransform = baseTransform;
+
+        const animation = piece.animate(
+          [
+            { transform: startTransform },
+            { transform: endTransform },
+          ],
+          {
+            duration,
+            easing: 'ease-in-out',
+          },
+>>>>>>> codex/fix-visual-bug-in-healing-action-0x8a1c
         );
 
         animation.addEventListener('finish', resolve);
@@ -3078,6 +3490,34 @@ function startTurn(piece) {
       return availableCharacters.filter((key) => !selections.player1.includes(key) && !selections.player2.includes(key));
     }
 
+    function canFinalizeDraft() {
+      return selections.player1.length > 0 && selections.player2.length > 0;
+    }
+
+    function updateDraftFinalizeButton() {
+      if (!draftFinalizeButton) return;
+      draftFinalizeButton.disabled = !canFinalizeDraft();
+    }
+
+    function isTeamLocked(playerId) {
+      return draftFinalized[playerId] || selections[playerId].length >= 12;
+    }
+
+    function advanceDraftIndex() {
+      while (draftIndex < draftOrder.length) {
+        const pickerId = draftOrder[draftIndex];
+        if (!pickerId) {
+          draftIndex += 1;
+          continue;
+        }
+        if (isTeamLocked(pickerId)) {
+          draftIndex += 1;
+          continue;
+        }
+        break;
+      }
+    }
+
     function renderDraftCards() {
       draftGrid.innerHTML = '';
       const ownership = new Map();
@@ -3127,9 +3567,12 @@ function startTurn(piece) {
 
         draftGrid.appendChild(card);
       });
+
+      updateDraftFinalizeButton();
     }
 
     function updateDraftLabels() {
+      advanceDraftIndex();
       if (draftIndex >= draftOrder.length) {
         finalizeDraft();
         return;
@@ -3143,16 +3586,19 @@ function startTurn(piece) {
       const remaining = 12 - selections[pickerId].length;
       draftPrompt.textContent = `${ownerLabel(pickerId)} selecciona (${remaining} plazas restantes en su equipo).`;
       draftInfo.textContent = 'Los personajes elegidos no se pueden repetir. Tras la última elección comenzará la partida.';
+      updateDraftFinalizeButton();
     }
 
     function draftIsComplete() {
       const teamsFull = selections.player1.length === 12 && selections.player2.length === 12;
+      const teamsFinalized = draftFinalized.player1 && draftFinalized.player2;
       const outOfTurns = draftIndex >= draftOrder.length;
-      return teamsFull || outOfTurns;
+      return teamsFull || teamsFinalized || outOfTurns;
     }
 
     function handleDraftPick(key) {
       if (!draftActive) return;
+      advanceDraftIndex();
       if (draftIndex >= draftOrder.length) {
         finalizeDraft();
         return;
@@ -3161,11 +3607,12 @@ function startTurn(piece) {
       const pickerId = draftOrder[draftIndex];
       if (!pickerId) return;
       if (!availablePool().includes(key)) return;
-      if (selections[pickerId].length >= 12) return;
+      if (isTeamLocked(pickerId)) return;
 
       selections[pickerId].push(key);
       draftIndex = Math.min(draftIndex + 1, draftOrder.length);
       renderDraftCards();
+      updateDraftFinalizeButton();
 
       if (selections.player1.length === 12 && selections.player2.length === 12) {
         finalizeDraft();
@@ -3262,6 +3709,7 @@ function startTurn(piece) {
       draftScreen.style.visibility = 'visible';
     }
 
+<<<<<<< HEAD
     function beginDraft(mode) {
       // 1. CORRECCIÓN: Asignamos el modo correctamente
       isPlayerVsAI = (mode === 'ai');
@@ -3270,6 +3718,29 @@ function startTurn(piece) {
       selections.player1 = [];
       selections.player2 = [];
       availableCharacters = Object.keys(pieceStats);
+=======
+    function beginDraft(mode) {
+      // 1. CORRECCIÓN: Asignamos el modo correctamente
+      isPlayerVsAI = (mode === 'ai');
+      isAIVsAI = (mode === 'aivai');
+      if (mode === 'ai') {
+        playerControl.player1 = 'manual';
+        playerControl.player2 = 'auto';
+      } else if (mode === 'aivai') {
+        playerControl.player1 = 'auto';
+        playerControl.player2 = 'auto';
+      } else {
+        playerControl.player1 = 'manual';
+        playerControl.player2 = 'manual';
+      }
+      updateControlToggles();
+
+      selections.player1 = [];
+      selections.player2 = [];
+      draftFinalized.player1 = false;
+      draftFinalized.player2 = false;
+      availableCharacters = Object.keys(pieceStats);
+>>>>>>> codex/fix-visual-bug-in-healing-action-0x8a1c
       
       firstPicker = Math.random() < 0.5 ? 'player1' : 'player2';
       draftOrder = generateDraftOrder(firstPicker);
@@ -3303,6 +3774,7 @@ function startGame() {
       // -----------------------------------------------
 
       startBackgroundMusic();
+      updateControlToggles();
       
       if (turnOrder.length > 0) {
         highlightRange(turnOrder[turnIndex]);
@@ -3389,6 +3861,7 @@ function startGame() {
       }
     }
 
+<<<<<<< HEAD
     async function resolveObjectThrow(attacker, objectElement, targetPiece) {
       const attackerStats = pieceMap.get(attacker);
       const targetStats = pieceMap.get(targetPiece);
@@ -3626,6 +4099,245 @@ function startGame() {
       await showTurnPopup(msg);
       registerActionUsage(attacker, { showPopup: false });
     }
+=======
+    async function resolveObjectThrow(attacker, objectElement, targetPiece) {
+      const attackerStats = pieceMap.get(attacker);
+      const targetStats = pieceMap.get(targetPiece);
+      const objectType = objectElement.dataset.type; // 'heavy' o 'light'
+      const objectName = objectElement.dataset.name;
+
+      // Daño fijo según tipo
+      const damage = objectType === 'heavy' ? 3 : 2;
+
+      const attackerSquare = getPieceSquare(attacker);
+      const targetSquare = getPieceSquare(targetPiece);
+      const distance = attackDistance(attackerSquare, targetSquare);
+      const defenseBonus = distance > 1 && hasPassive(targetStats, 'defensa a/d') ? 2 : 0;
+      const effectiveDefense = targetStats.defensa + defenseBonus;
+
+      const die1 = Math.floor(Math.random() * 6) + 1;
+      const die2 = Math.floor(Math.random() * 6) + 1;
+      const roll = die1 + die2;
+      const attackValue = attackerStats.ataque + roll;
+      const success = attackValue >= effectiveDefense;
+      const needed = Math.max(2, effectiveDefense - attackerStats.ataque);
+
+      // Reducción por dureza/invulnerable
+      let resistance = 0;
+      if (hasPassive(targetStats, 'dureza')) resistance = 1;
+      if (hasPassive(targetStats, 'invulnerable')) resistance = 2;
+
+      const appliedDamage = success ? Math.max(0, damage - resistance) : 0;
+
+      // Animación visual (Simple: movemos el objeto encima del enemigo)
+      await animatePieceToSquare(objectElement, targetSquare, { duration: 600 });
+
+      if (success) {
+        playEffectSound(punchSound);
+        targetStats.currentVida = Math.max(0, targetStats.currentVida - appliedDamage);
+        if (isEnemy(attacker, targetPiece)) {
+          addPoints(attacker, appliedDamage * SCORE_PER_DAMAGE);
+        }
+      } else {
+        playEffectSound(failureSound);
+      }
+
+      const sentence2 = `${attackerStats.name} realiza un ataque telekinético de objeto (${objectName}) con ${attackerStats.ataque} de Ataque a ${targetStats.name} que tiene ${effectiveDefense} de Defensa. ${attackerStats.name} necesito un ${needed} y consigue un ${roll}.`;
+      const damageLabel = appliedDamage === 1 ? 'punto' : 'puntos';
+      const sentence3 = `El Daño del objeto es ${damage} y la Resistencia de ${targetStats.name} es ${resistance}. ${attackerStats.name} le causa ${appliedDamage} ${damageLabel} de Daño Infligido a ${targetStats.name}.`;
+      const failureMessage = `${attackerStats.name} realiza un ataque telekinético de objeto (${objectName}) con ${attackerStats.ataque} de Ataque a ${targetStats.name} que tiene ${effectiveDefense} de Defensa. ${attackerStats.name} necesita un ${needed} y consigue un ${roll}. ${attackerStats.name} falla el ataque contra ${targetStats.name}.`;
+      const msg = success ? `${sentence2} ${sentence3}` : failureMessage;
+
+      addHistoryEntry(attacker.dataset.team, msg, { attacker, defenders: [targetPiece] });
+
+      objectElement.remove();
+
+      if (success && targetStats.currentVida <= 0) {
+        queueDeathMessage(`${targetStats.name} eliminado por impacto de objeto.`);
+        if (isEnemy(attacker, targetPiece)) addPoints(attacker, SCORE_PER_KILL);
+        eliminatePiece(targetPiece);
+      }
+
+      renderLifeCards();
+      cancelTelekinesis();
+
+      await showTurnPopup(msg);
+      registerActionUsage(attacker, { showPopup: false });
+    }
+
+    async function resolveTelekinesisThrow(attacker, victim, targetPiece) {
+      const attackerStats = pieceMap.get(attacker);
+      const victimStats = pieceMap.get(victim);
+      const targetStats = pieceMap.get(targetPiece);
+      if (!attackerStats || !victimStats || !targetStats) return;
+
+      const isAllyThrow = victim.dataset.team === attacker.dataset.team;
+      const targetSquare = getPieceSquare(targetPiece);
+
+      if (isAllyThrow) {
+        await animatePieceToSquare(victim, targetSquare, { duration: 600 });
+        playEffectSound(telekinesisSound);
+
+        const originalAtaque = victimStats.ataque;
+        const originalDano = victimStats.dano;
+        victimStats.ataque = originalAtaque + 2;
+        victimStats.dano = (originalDano ?? 0) + 1;
+        victimStats.telekinesisBoost = {
+          baseAtaque: originalAtaque,
+          ataqueBonus: 2,
+          baseDano: originalDano ?? 0,
+          danoBonus: 1,
+        };
+        victimStats.telekinesisCasterName = attackerStats.name;
+        const boostedAtaque = victimStats.ataque;
+
+        let attackSummary = null;
+        try {
+          attackSummary = await resolveAttack(victim, targetPiece, 'telekinesis-ally-throw', {
+            skipTurnAdvance: true,
+            showPopup: false,
+            logHistory: false,
+          });
+        } finally {
+          victimStats.ataque = originalAtaque;
+          victimStats.dano = originalDano;
+          delete victimStats.telekinesisBoost;
+          delete victimStats.telekinesisCasterName;
+        }
+
+        const targetAlive = targetPiece.isConnected && targetPiece.dataset.eliminated !== 'true';
+        let landingSquare = null;
+
+        if (!targetAlive) {
+          landingSquare = targetSquare;
+        } else {
+          const limitRows = (typeof BOARD_ROWS !== 'undefined') ? BOARD_ROWS : (document.querySelectorAll('.board__row').length || 10);
+          const limitCols = (typeof BOARD_COLS !== 'undefined') ? BOARD_COLS : (document.querySelectorAll('.board__row:first-child .square').length || 10);
+          const startRow = Number(targetSquare.dataset.row);
+          const startCol = Number(targetSquare.dataset.col);
+          const queue = [{ row: startRow, col: startCol }];
+          const visited = new Set([`${startRow},${startCol}`]);
+          const deltas = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+
+          while (queue.length && !landingSquare) {
+            const { row, col } = queue.shift();
+            for (const [dr, dc] of deltas) {
+              const nr = row + dr;
+              const nc = col + dc;
+              if (nr < 1 || nr > limitRows || nc < 1 || nc > limitCols) continue;
+              const key = `${nr},${nc}`;
+              if (visited.has(key)) continue;
+              visited.add(key);
+              const square = getSquareAt(nr, nc);
+              if (!square) continue;
+              if (isBarrierSquare(square)) continue;
+              if (square.querySelector('.object-token')) continue;
+              if (square.querySelector('.piece')) {
+                queue.push({ row: nr, col: nc });
+                continue;
+              }
+              landingSquare = square;
+              break;
+            }
+          }
+        }
+
+        if (!landingSquare) {
+          const msg = `No hay una casilla libre cerca de ${targetStats.name} para aterrizar a ${victimStats.name}.`;
+          addHistoryEntry(attacker.dataset.team, msg, { attacker, defenders: [targetPiece] });
+          await showTurnPopup(msg);
+          cancelTelekinesis();
+          registerActionUsage(attacker, { showPopup: false });
+          return;
+        }
+
+        if (landingSquare !== targetSquare) {
+          await animatePieceToSquare(victim, landingSquare, { duration: 600 });
+        }
+
+        const attackNeeded = attackSummary?.needed ?? Math.max(2, targetStats.defensa - boostedAtaque);
+        const attackRoll = attackSummary?.roll ?? 0;
+        const attackSuccess = attackSummary?.success ?? false;
+        const attackDamage = attackSummary?.damageApplied ?? 0;
+        const defenseValue = attackSummary?.effectiveDefense ?? targetStats.defensa;
+        const damageLabel = attackDamage === 1 ? 'punto' : 'puntos';
+
+        const header = `${attackerStats.name} realiza un lanzamiento telekinético de aliado. Lanza a ${victimStats.name} contra ${targetStats.name}.`;
+        const impactData = `${victimStats.name} tiene ${boostedAtaque} de Ataque y ${targetStats.name} tiene ${defenseValue} de Defensa.`;
+        const rollText = `${victimStats.name} necesita un ${attackNeeded} y consigue un ${attackRoll}.`;
+        const resultText = attackSuccess
+          ? `El impacto causa ${attackDamage} ${damageLabel} de Daño Infligido a ${targetStats.name}.`
+          : `${victimStats.name} falla el impacto y no causa daño.`;
+        const msg = `${header} ${impactData} ${rollText} ${resultText}`;
+
+        addHistoryEntry(attacker.dataset.team, msg, { attacker, defenders: [victim, targetPiece] });
+        await showTurnPopup(msg);
+        cancelTelekinesis();
+        registerActionUsage(attacker, { showPopup: false });
+        return;
+      }
+
+      const attackerSquare = getPieceSquare(attacker);
+      const distance = attackDistance(attackerSquare, targetSquare);
+      const defenseBonus = distance > 1 && hasPassive(targetStats, 'defensa a/d') ? 2 : 0;
+      const effectiveDefense = targetStats.defensa + defenseBonus;
+
+      const die1 = Math.floor(Math.random() * 6) + 1;
+      const die2 = Math.floor(Math.random() * 6) + 1;
+      const roll = die1 + die2;
+      const attackValue = attackerStats.ataque + roll;
+      const success = attackValue >= effectiveDefense;
+      const needed = Math.max(2, effectiveDefense - attackerStats.ataque);
+
+      let targetResistance = 0;
+      if (hasPassive(targetStats, 'dureza')) targetResistance = 1;
+      if (hasPassive(targetStats, 'invulnerable')) targetResistance = 2;
+
+      let victimResistance = 0;
+      if (hasPassive(victimStats, 'dureza')) victimResistance = 1;
+      if (hasPassive(victimStats, 'invulnerable')) victimResistance = 2;
+
+      const targetDamage = Math.max((victimStats.dano ?? 0) - targetResistance, 0);
+      const victimDamage = Math.max((targetStats.dano ?? 0) - victimResistance, 0);
+
+      if (success) {
+        playEffectSound(punchSound);
+        targetStats.currentVida = Math.max(0, targetStats.currentVida - targetDamage);
+        victimStats.currentVida = Math.max(0, victimStats.currentVida - victimDamage);
+        if (isEnemy(attacker, targetPiece)) {
+          addPoints(attacker, targetDamage * SCORE_PER_DAMAGE);
+        }
+      } else {
+        playEffectSound(failureSound);
+      }
+
+      const sentence1 = `${attackerStats.name} realiza un lanzamiento telekinético de enemigos. Lanza a ${victimStats.name} contra ${targetStats.name}.`;
+      const sentence2 = `${attackerStats.name} tiene ${attackerStats.ataque} de Ataque y ${targetStats.name} tiene ${effectiveDefense} de Defensa. ${attackerStats.name} necesita un ${needed} y consigue un ${roll}.`;
+      const targetDamageLabel = targetDamage === 1 ? 'punto' : 'puntos';
+      const victimDamageLabel = victimDamage === 1 ? 'punto' : 'puntos';
+      const sentence3 = success
+        ? `El impacto causa ${targetDamage} ${targetDamageLabel} de Daño Infligido a ${targetStats.name} y ${victimStats.name} recibe ${victimDamage} ${victimDamageLabel}.`
+        : `${attackerStats.name} falla el lanzamiento y no causa daño.`;
+      const msg = `${sentence1} ${sentence2} ${sentence3}`;
+
+      addHistoryEntry(attacker.dataset.team, msg, { attacker, defenders: [victim, targetPiece] });
+
+      if (success && targetStats.currentVida <= 0) {
+        queueDeathMessage(`${targetStats.name} eliminado por impacto telequinético.`);
+        if (isEnemy(attacker, targetPiece)) addPoints(attacker, SCORE_PER_KILL);
+        eliminatePiece(targetPiece);
+      }
+      if (success && victimStats.currentVida <= 0) {
+        queueDeathMessage(`${victimStats.name} eliminado por el impacto telequinético.`);
+        eliminatePiece(victim);
+      }
+
+      renderLifeCards();
+      cancelTelekinesis();
+      await showTurnPopup(msg);
+      registerActionUsage(attacker, { showPopup: false });
+    }
+>>>>>>> codex/fix-visual-bug-in-healing-action-0x8a1c
 
     function cancelTelekinesis() {
       pendingTelekinesis = null;
