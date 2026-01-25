@@ -902,6 +902,7 @@ function computeReachableSquares(piece) {
     // 2. Definir reglas de paso
     const canPassBarriers = hasFlight || hasPhasing; 
     const canPassEnemies = hasFlight || hasPhasing || hasJump;
+    const canPassObjects = hasFlight || hasPhasing || hasJump || hasSuperStrength;
 
     const maxMove = remainingMovement(piece);
     const visited = new Map();
@@ -938,10 +939,13 @@ function computeReachableSquares(piece) {
             if (isBarrierSquare(square) && !canPassBarriers) continue;
 
             const occupant = square.querySelector('.piece');
+            const hasObject = square.querySelector('.object-token');
             // B) ENEMIGOS
             if (occupant && occupant.dataset.team !== piece.dataset.team && !canPassEnemies) {
                 continue;
             }
+            // C) OBJETOS
+            if (hasObject && !canPassObjects) continue;
             
             visited.set(key, nextCost);
             queue.push({ row: nr, col: nc, cost: nextCost });
