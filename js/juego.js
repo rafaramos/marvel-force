@@ -1912,6 +1912,7 @@ async function resolveAttack(attacker, defender, actionKey = 'attack', options =
 
 async function resolveExplosion(attacker, centerTarget) {
   const attackerStats = pieceMap.get(attacker);
+  const centerTargetStats = pieceMap.get(centerTarget);
   const attackerSquare = getPieceSquare(attacker);
   const centerSquare = getPieceSquare(centerTarget);
   
@@ -1973,7 +1974,7 @@ async function resolveExplosion(attacker, centerTarget) {
   const formatter = new Intl.ListFormat('es', { style: 'long', type: 'conjunction' });
   const listaAfectados = targetsDetails.length > 0 ? formatter.format(targetsDetails) : 'Ninguno';
 
-  const msg = `${attackerStats.name} ejecuta una Explosión. ${attackerStats.name} tiene ${attackerStats.ataque} de Ataque y consigue en la tirada un ${roll}. ${attackerStats.name} tiene un daño base para Explosión de ${baseDmg}. Afectados: ${listaAfectados}.`;
+  const msg = `${attackerStats.name} ejecuta una Explosión sobre ${centerTargetStats?.name ?? 'objetivo'}. ${attackerStats.name} tiene ${attackerStats.ataque} de Ataque y consigue en la tirada un ${roll}. ${attackerStats.name} tiene un daño base para Explosión de ${baseDmg}. Afectados: ${listaAfectados}.`;
 
   // --- CORRECCIÓN: Pasar defenders para que salgan las imágenes ---
   addHistoryEntry(attacker.dataset.team, msg, { attacker, defenders: affectedPieces });
@@ -2051,7 +2052,7 @@ async function resolvePulse(attacker) {
   const formatter = new Intl.ListFormat('es', { style: 'long', type: 'conjunction' });
   const listaAfectados = targetsDetails.length > 0 ? formatter.format(targetsDetails) : 'Ninguno';
 
-  const msg = `${attackerStats.name} ejecuta un Pulso. ${attackerStats.name} tiene ${attackerStats.ataque} de Ataque y consigue en la tirada un ${roll}. ${attackerStats.name} tiene un daño base para Pulso de ${baseRaw}. Afectados: ${listaAfectados}.`;
+  const msg = `${attackerStats.name} ejecuta un Pulso sobre sí mismo. ${attackerStats.name} tiene ${attackerStats.ataque} de Ataque y consigue en la tirada un ${roll}. ${attackerStats.name} tiene un daño base para Pulso de ${baseRaw}. Afectados: ${listaAfectados}.`;
 
   playEffectSound(pulsoSound);
   
@@ -2180,6 +2181,7 @@ async function resolveBarrier(attacker, targetSquare) {
 
     function applyProbabilidad(attacker, target) {
       const attackerStats = pieceMap.get(attacker);
+      const targetStats = pieceMap.get(target);
       const centerSquare = getPieceSquare(target);
       if (!attackerStats || !centerSquare) return;
 
@@ -2198,8 +2200,8 @@ async function resolveBarrier(attacker, targetSquare) {
         renderLifeCards();
       }
       const message = validAffected.length
-        ? `${attackerStats.name} aplica Probabilidad sobre ${recipientNames}.`
-        : `${attackerStats.name} intenta aplicar Probabilidad, pero nadie se beneficia.`;
+        ? `${attackerStats.name} aplica Probabilidad sobre ${targetStats?.name ?? 'sí mismo'}: Probabilidad afecta a: ${recipientNames}.`
+        : `${attackerStats.name} intenta aplicar Probabilidad sobre ${targetStats?.name ?? 'sí mismo'}, pero nadie se beneficia.`;
 
       addHistoryEntry(attacker.dataset.team, message, {
         attacker,
@@ -2228,6 +2230,7 @@ async function resolveBarrier(attacker, targetSquare) {
 
    function applyStatBuff(attacker, target, { stat, label }) {
       const attackerStats = pieceMap.get(attacker);
+      const targetStats = pieceMap.get(target);
       const centerSquare = getPieceSquare(target);
       if (!attackerStats || !centerSquare) return;
 
@@ -2275,8 +2278,8 @@ async function resolveBarrier(attacker, targetSquare) {
       const lista = details.length > 0 ? formatter.format(details) : '';
       
       const message = affected.length 
-        ? `${attackerStats.name} aplica ${label} sobre: ${lista}.`
-        : `${attackerStats.name} intenta aplicar ${label}, pero nadie se beneficia.`;
+        ? `${attackerStats.name} aplica ${label} sobre ${targetStats?.name ?? 'sí mismo'}: ${label} afecta a: ${lista}.`
+        : `${attackerStats.name} intenta aplicar ${label} sobre ${targetStats?.name ?? 'sí mismo'}, pero nadie se beneficia.`;
 
       // CORRECCIÓN 2: Pasamos 'defenders: affected' para que salgan sus fotos
       addHistoryEntry(attacker.dataset.team, message, { 
