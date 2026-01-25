@@ -744,31 +744,48 @@ function registerTurnSound({ damageDealt = 0, attackFailed = false, zeroDamageHi
       const stats = pieceMap.get(piece);
       if (!stats) return;
       const actives = stats.poderes?.activos || [];
-      actives.forEach((ability) => {
-        const key = normalizePowerKey(ability?.nombre ?? ability);
-        
-        
+      const activeKeys = new Set(
+        actives.map((ability) => normalizePowerKey(ability?.nombre ?? ability))
+      );
+      const labels = {
+        incapacitar: 'Incapacitar',
+        'control mental': 'Control Mental',
+        explosion: 'Explosión',
+        pulso: 'Pulso',
+        barrera: 'Barrera',
+        probabilidad: 'Probabilidad',
+        'mejora de ataque': 'Mejora de Ataque',
+        'mejora de defensa': 'Mejora de Defensa',
+        'mejora de agilidad': 'Mejora de Agilidad',
+        'mejora de critico': 'Mejora de Crítico',
+        curar: 'Curar',
+        telekinesis: 'Telekinesis',
+      };
+      const allPowers = [
+        'incapacitar',
+        'control mental',
+        'explosion',
+        'pulso',
+        'barrera',
+        'probabilidad',
+        'mejora de ataque',
+        'mejora de defensa',
+        'mejora de agilidad',
+        'mejora de critico',
+        'curar',
+        'telekinesis',
+      ];
 
+      allPowers.forEach((key) => {
+        const hasPower = activeKeys.has(key);
         const btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'button';
-        const labels = {
-          incapacitar: 'Incapacitar',
-          explosion: 'Explosión',
-          pulso: 'Pulso',
-          barrera: 'Barrera',
-          probabilidad: 'Probabilidad',
-          'mejora de ataque': 'Mejora de Ataque',
-          'mejora de defensa': 'Mejora de Defensa',
-          'mejora de agilidad': 'Mejora de Agilidad',
-          'mejora de critico': 'Mejora de Crítico',
-          curar: 'Curar',
-          'telekinesis': 'Telekinesis'
-        };
-        
-        btn.textContent = labels[key] || ability?.nombre || ability;
-        btn.disabled = actionUsedThisTurn;
-        btn.addEventListener('click', () => handleActionClick(key));
+        btn.textContent = labels[key] || key;
+        btn.disabled = actionUsedThisTurn || !hasPower;
+        if (hasPower) {
+          btn.addEventListener('click', () => handleActionClick(key));
+        }
         powerControls.appendChild(btn);
       });
     }
