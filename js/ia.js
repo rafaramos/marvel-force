@@ -208,8 +208,6 @@ async function performEnemyTurn(piece) {
     const allEnemies = getVisibleEnemies(piece, { requireVisibility: false });
 
     if (allEnemies.length === 0) {
-        playEffectSound(passTurnSound);
-        finishTurn(piece);
         return;
     }
 
@@ -416,14 +414,14 @@ async function handleHighDamageFlow(piece, stats, { enemiesInRange, alliesInRang
         if (explosionTarget) {
             if (await performTargetedAction(piece, explosionTarget, 'explosion')) return;
         }
-        if (await executeAttackPriority(piece, stats, enemiesReachable, ['attack-none'])) return;
-        if (hasPower(stats, 'Control Mental')) {
-            const target = chooseDangerousEnemy(enemiesReachable);
-            if (await performTargetedAction(piece, target, 'control mental')) return;
-        }
-        if (await executeAttackPriority(piece, stats, enemiesReachable, ['attack-dureza'])) return;
+        if (await executeAttackPriority(piece, stats, enemiesReachable, [
+            'attack-none',
+            'control mental',
+            'attack-dureza',
+            'attack-invulnerable',
+        ])) return;
         if (await attemptMoveAndTelekinesisObjectThrow(piece, stats, enemiesReachable)) return;
-        if (await executeAttackPriority(piece, stats, enemiesReachable, ['attack-invulnerable'])) return;
+        await moveTowardEnemy(piece);
         passAITurn(piece);
         return;
     }
