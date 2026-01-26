@@ -367,118 +367,82 @@ async function executeAttackPriority(piece, stats, enemies, steps) {
 }
 
 async function handleHighDamageFlow(piece, stats, { enemiesInRange, alliesInRange, enemiesReachable }) {
-    if (enemiesInRange.length === 0 && alliesInRange.length === 0 && enemiesReachable.length === 0) {
-        await moveTowardEnemy(piece);
-        const updatedEnemies = getEnemiesInRange(piece);
-        const updatedAllies = getAlliesInRange(piece);
-        if (updatedEnemies.length > 0) {
-            if (hasPower(stats, 'Pulso') && countAdjacentEnemies(piece) >= 3) {
-                handleActionClick('pulso', { bypassVisuals: true });
-                return;
-            }
-            const explosionTarget = findExplosionTarget(piece, updatedEnemies);
-            if (explosionTarget) {
-                await performTargetedAction(piece, explosionTarget, 'explosion');
-                return;
-            }
-            if (await executeAttackPriority(piece, stats, updatedEnemies, [
-                'attack-none',
-                'control mental',
-                'attack-dureza',
-                'attack-invulnerable',
-            ])) return;
-        }
-        if (updatedAllies.length > 0) {
-            if (await trySupportSequenceInRange(piece, stats, [
-                'heal-self',
-                'heal-ally',
-                'buff-ally',
-                'buff-self',
-            ])) return;
-        } else {
-            if (await trySupportSequenceInRange(piece, stats, ['heal-self', 'buff-self'])) return;
-        }
-        passAITurn(piece);
-        return;
-    }
-
-    if (enemiesInRange.length === 0 && alliesInRange.length > 0) {
-        await moveTowardEnemy(piece);
-        const updatedEnemies = getEnemiesInRange(piece);
-        const updatedAllies = getAlliesInRange(piece);
-        if (updatedEnemies.length > 0) {
-            if (hasPower(stats, 'Pulso') && countAdjacentEnemies(piece) >= 3) {
-                handleActionClick('pulso', { bypassVisuals: true });
-                return;
-            }
-            const explosionTarget = findExplosionTarget(piece, updatedEnemies);
-            if (explosionTarget) {
-                await performTargetedAction(piece, explosionTarget, 'explosion');
-                return;
-            }
-            if (await executeAttackPriority(piece, stats, updatedEnemies, [
-                'attack-none',
-                'control mental',
-                'attack-dureza',
-                'attack-invulnerable',
-            ])) return;
-        }
-        if (updatedAllies.length > 0) {
-            if (await trySupportSequenceInRange(piece, stats, [
-                'heal-self',
-                'heal-ally',
-                'buff-ally',
-                'buff-self',
-            ])) return;
-        } else {
-            if (await trySupportSequenceInRange(piece, stats, ['heal-self', 'buff-self'])) return;
-        }
-        passAITurn(piece);
-        return;
-    }
-
-    if (enemiesInRange.length > 0 && alliesInRange.length > 0) {
+    if (enemiesInRange.length > 0 && alliesInRange.length === 0) {
         if (hasPower(stats, 'Pulso') && countAdjacentEnemies(piece) >= 3) {
             handleActionClick('pulso', { bypassVisuals: true });
             return;
         }
-        const explosionTarget = findExplosionTarget(piece, enemiesInRange);
+        const explosionTarget = findExplosionTargetWithMinEnemies(piece, enemiesInRange, 2);
         if (explosionTarget) {
             await performTargetedAction(piece, explosionTarget, 'explosion');
             return;
         }
-        if (enemiesInRange.length === 1) {
-            if (await executeAttackPriority(piece, stats, enemiesInRange, [
-                'attack-none',
-                'control mental',
-                'attack-dureza',
-                'attack-invulnerable',
-            ])) return;
-        }
-    }
-
-    if (enemiesReachable.length > 0) {
-        const explosionTarget = findExplosionTarget(piece, enemiesReachable);
-        if (explosionTarget) {
-            if (await performTargetedAction(piece, explosionTarget, 'explosion')) return;
-        }
-        if (enemiesReachable.length === 1) {
-            if (await executeAttackPriority(piece, stats, enemiesReachable, [
-                'attack-none',
-                'control mental',
-                'attack-dureza',
-                'attack-invulnerable',
-            ])) return;
-        }
-    }
-
-    if (enemiesInRange.length > 0) {
+        if (await attemptTelekinesisEnemyThrow(piece, stats, enemiesInRange)) return;
         if (await executeAttackPriority(piece, stats, enemiesInRange, [
             'attack-none',
             'control mental',
             'attack-dureza',
             'attack-invulnerable',
         ])) return;
+        passAITurn(piece);
+        return;
+    }
+
+    if (enemiesInRange.length > 0 && alliesInRange.length > 0) {
+        if (hasPower(stats, 'Pulso') && countAdjacentEnemies(piece) >= 3 && countAdjacentAllies(piece) === 0) {
+            handleActionClick('pulso', { bypassVisuals: true });
+            return;
+        }
+        const explosionTarget = findExplosionTargetWithMinEnemies(piece, enemiesInRange, 2, { avoidAllies: true });
+        if (explosionTarget) {
+            await performTargetedAction(piece, explosionTarget, 'explosion');
+            return;
+        }
+        if (await attemptTelekinesisEnemyThrow(piece, stats, enemiesInRange)) return;
+        if (await executeAttackPriority(piece, stats, enemiesInRange, [
+            'attack-none',
+            'control mental',
+            'attack-dureza',
+        ])) return;
+        if (await attemptTelekinesisAllyThrow(piece, stats, enemiesInRange)) return;
+        if (await attemptTelekinesisObjectThrow(piece, stats, enemiesInRange)) return;
+        if (await executeAttackPriority(piece, stats, enemiesInRange, ['attack-invulnerable'])) return;
+        passAITurn(piece);
+        return;
+    }
+
+    if (enemiesInRange.length === 0 && enemiesReachable.length > 0) {
+        const explosionTarget = findExplosionTargetWithMinEnemies(piece, enemiesReachable, 2);
+        if (explosionTarget) {
+            if (await performTargetedAction(piece, explosionTarget, 'explosion')) return;
+        }
+        if (await executeAttackPriority(piece, stats, enemiesReachable, ['attack-none'])) return;
+        if (hasPower(stats, 'Control Mental')) {
+            const target = chooseDangerousEnemy(enemiesReachable);
+            if (await performTargetedAction(piece, target, 'control mental')) return;
+        }
+        if (await executeAttackPriority(piece, stats, enemiesReachable, ['attack-dureza'])) return;
+        if (await attemptMoveAndTelekinesisObjectThrow(piece, stats, enemiesReachable)) return;
+        if (await executeAttackPriority(piece, stats, enemiesReachable, ['attack-invulnerable'])) return;
+        passAITurn(piece);
+        return;
+    }
+
+    if (enemiesInRange.length === 0 && alliesInRange.length > 0 && enemiesReachable.length === 0) {
+        if (await tryHealSelfInRange(piece, stats)) return;
+        if (await tryHealAllyInRange(piece, stats)) return;
+        await moveWithThreatZoning(piece);
+        if (await tryBuffAllyInRange(piece, stats)) return;
+        if (await tryBuffSelfInRange(piece, stats)) return;
+        passAITurn(piece);
+        return;
+    }
+
+    if (enemiesInRange.length === 0 && alliesInRange.length === 0 && enemiesReachable.length === 0) {
+        if (await tryHealSelfInRange(piece, stats)) return;
+        await moveWithThreatZoning(piece);
+        passAITurn(piece);
+        return;
     }
 
     passAITurn(piece);
@@ -1874,6 +1838,218 @@ function countAdjacentEnemies(piece) {
         count += 1;
     });
     return count;
+}
+
+function countAdjacentAllies(piece) {
+    const origin = getPieceSquare(piece);
+    if (!origin) return 0;
+    const deltas = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+    let count = 0;
+    deltas.forEach(([dr, dc]) => {
+        const square = getSquareAt(
+            Number(origin.dataset.row) + dr,
+            Number(origin.dataset.col) + dc
+        );
+        const occupant = square?.querySelector?.('.piece');
+        if (!occupant) return;
+        if (occupant.dataset.team !== piece.dataset.team) return;
+        count += 1;
+    });
+    return count;
+}
+
+function getAdjacentAllies(piece) {
+    const origin = getPieceSquare(piece);
+    if (!origin) return [];
+    const deltas = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+    const allies = [];
+    deltas.forEach(([dr, dc]) => {
+        const square = getSquareAt(
+            Number(origin.dataset.row) + dr,
+            Number(origin.dataset.col) + dc
+        );
+        const occupant = square?.querySelector?.('.piece');
+        if (!occupant) return;
+        if (occupant.dataset.team !== piece.dataset.team) return;
+        allies.push(occupant);
+    });
+    return allies;
+}
+
+function isExplosionSafeForAllies(attacker, target) {
+    const targetSquare = getPieceSquare(target);
+    if (!targetSquare) return false;
+    const deltas = [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]];
+    return !deltas.some(([dr, dc]) => {
+        const square = getSquareAt(
+            Number(targetSquare.dataset.row) + dr,
+            Number(targetSquare.dataset.col) + dc
+        );
+        const occupant = square?.querySelector?.('.piece');
+        if (!occupant) return false;
+        if (occupant.dataset.team !== attacker.dataset.team) return false;
+        return true;
+    });
+}
+
+function countExplosionEnemies(attacker, target) {
+    const targetSquare = getPieceSquare(target);
+    if (!targetSquare) return 0;
+    const deltas = [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]];
+    let count = 0;
+    deltas.forEach(([dr, dc]) => {
+        const square = getSquareAt(
+            Number(targetSquare.dataset.row) + dr,
+            Number(targetSquare.dataset.col) + dc
+        );
+        const occupant = square?.querySelector?.('.piece');
+        if (!occupant) return;
+        if (occupant.dataset.team === attacker.dataset.team) return;
+        const occStats = pieceMap.get(occupant);
+        if (occStats?.mindControlled && occStats.originalTeam === attacker.dataset.team) return;
+        count += 1;
+    });
+    return count;
+}
+
+function findExplosionTargetWithMinEnemies(attacker, enemies, minCount, { avoidAllies = false } = {}) {
+    if (!hasPower(pieceMap.get(attacker), 'Explosión')) return null;
+    let best = null;
+    let bestCount = 0;
+    enemies.forEach((enemy) => {
+        const count = countExplosionEnemies(attacker, enemy);
+        if (count < minCount) return;
+        if (avoidAllies && !isExplosionSafeForAllies(attacker, enemy)) return;
+        if (!best || count > bestCount) {
+            best = enemy;
+            bestCount = count;
+        }
+    });
+    return best;
+}
+
+function canTelekinesisReachTarget(attacker, target, originSquare = null) {
+    const origin = originSquare ?? getPieceSquare(attacker);
+    if (!origin) return false;
+    const targetSquare = getPieceSquare(target);
+    if (!targetSquare) return false;
+    const range = rangeForAction(attacker, 'telekinesis');
+    const distance = attackDistance(origin, targetSquare);
+    if (distance > range) return false;
+    if (target.classList?.contains('object-token')) {
+        if (distance > 1 && !hasLineOfSight(origin, targetSquare)) return false;
+        return true;
+    }
+    return isVisibleTarget(attacker, target, origin);
+}
+
+function getEnemiesInTelekinesisRange(piece, enemies, originSquare = null) {
+    const origin = originSquare ?? getPieceSquare(piece);
+    if (!origin) return [];
+    return enemies.filter((enemy) => canTelekinesisReachTarget(piece, enemy, origin));
+}
+
+function getTelekinesisObjectsInRange(piece, originSquare = null) {
+    const origin = originSquare ?? getPieceSquare(piece);
+    if (!origin) return [];
+    const objects = Array.from(document.querySelectorAll('.object-token'));
+    return objects.filter((object) => canTelekinesisReachTarget(piece, object, origin));
+}
+
+async function attemptTelekinesisEnemyThrow(piece, stats, enemies) {
+    if (!hasPower(stats, 'Telekinesis')) return false;
+    const candidates = getEnemiesInTelekinesisRange(piece, enemies);
+    if (candidates.length < 2) return false;
+    const sorted = candidates.slice().sort((a, b) => enemyDangerScore(pieceMap.get(b)) - enemyDangerScore(pieceMap.get(a)));
+    const victim = sorted[0];
+    const target = sorted.find((enemy) => enemy !== victim);
+    if (!target) return false;
+    if (!canTelekinesisReachTarget(piece, target)) return false;
+    await resolveTelekinesisThrow(piece, victim, target);
+    return true;
+}
+
+async function attemptTelekinesisAllyThrow(piece, stats, enemies) {
+    if (!hasPower(stats, 'Telekinesis')) return false;
+    const adjacentAllies = getAdjacentAllies(piece);
+    if (adjacentAllies.length === 0) return false;
+    const tkEnemies = getEnemiesInTelekinesisRange(piece, enemies);
+    if (tkEnemies.length === 0) return false;
+    const target = chooseTargetByDurability(tkEnemies, ['none', 'dureza', 'invulnerable']);
+    if (!target) return false;
+    await resolveTelekinesisThrow(piece, adjacentAllies[0], target);
+    return true;
+}
+
+async function attemptTelekinesisObjectThrow(piece, stats, enemies, originSquare = null) {
+    if (!hasPower(stats, 'Telekinesis')) return false;
+    const objects = getTelekinesisObjectsInRange(piece, originSquare);
+    if (objects.length === 0) return false;
+    const tkEnemies = getEnemiesInTelekinesisRange(piece, enemies, originSquare);
+    if (tkEnemies.length === 0) return false;
+    const target = chooseTargetByDurability(tkEnemies, ['none', 'dureza', 'invulnerable']);
+    if (!target) return false;
+    await resolveObjectThrow(piece, objects[0], target);
+    return true;
+}
+
+async function attemptMoveAndTelekinesisObjectThrow(piece, stats, enemies) {
+    if (!hasPower(stats, 'Telekinesis')) return false;
+    computeReachableSquares(piece);
+    if (movementDistances.size === 0) return false;
+    const candidates = Array.from(movementDistances.entries())
+        .map(([square, moveCost]) => ({ square, moveCost }))
+        .sort((a, b) => a.moveCost - b.moveCost);
+
+    for (const candidate of candidates) {
+        const tkObjects = getTelekinesisObjectsInRange(piece, candidate.square);
+        if (tkObjects.length === 0) continue;
+        const tkEnemies = getEnemiesInTelekinesisRange(piece, enemies, candidate.square);
+        if (tkEnemies.length === 0) continue;
+        const target = chooseTargetByDurability(tkEnemies, ['none', 'dureza', 'invulnerable']);
+        if (!target) continue;
+        await movePieceToSquare(piece, candidate.square);
+        await resolveObjectThrow(piece, tkObjects[0], target);
+        return true;
+    }
+
+    return false;
+}
+
+async function moveWithThreatZoning(piece) {
+    const enemyTarget = findClosestEnemy(piece);
+    if (!enemyTarget) return false;
+    const enemyStats = pieceMap.get(enemyTarget);
+    if (!enemyStats) return false;
+    const threatRange = (enemyStats.movimiento ?? 0) + (enemyStats.rango ?? 0);
+    const minDistance = threatRange + 1;
+    const targetSquare = getPieceSquare(enemyTarget);
+    if (!targetSquare) return false;
+
+    computeReachableSquares(piece);
+    if (movementDistances.size === 0) return false;
+
+    let best = null;
+    let fallback = null;
+    movementDistances.forEach((moveCost, square) => {
+        if (moveCost > remainingMovement(piece)) return;
+        const distance = attackDistance(square, targetSquare);
+        const candidate = { square, moveCost, distance };
+        if (distance >= minDistance) {
+            if (!best || distance < best.distance || (distance === best.distance && moveCost > best.moveCost)) {
+                best = candidate;
+            }
+        } else {
+            if (!fallback || distance > fallback.distance || (distance === fallback.distance && moveCost < fallback.moveCost)) {
+                fallback = candidate;
+            }
+        }
+    });
+
+    const chosen = best ?? fallback;
+    if (!chosen) return false;
+    await movePieceToSquare(piece, chosen.square);
+    return true;
 }
 
 function allyStrengthScore(stats) {
