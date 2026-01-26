@@ -1388,7 +1388,7 @@ function rangeForAction(attacker, actionKey) {
     
 
   function evaluateAttackRoll(attackerStats, defenderStats, roll, distance, options = {}) {
-      const { allowCounter = false } = options;
+      const { allowCounter = true } = options;
       
       // 1. Gestión de Defensa a/d (sigue siendo un modificador numérico válido)
       let effectiveDefense = defenderStats.defensa;
@@ -1410,8 +1410,9 @@ function rangeForAction(attacker, actionKey) {
       const isIncapacitated = (defenderStats.incapacitatedTurns || 0) > 0;
       const defenderRange = effectiveRangeFromStats(defenderStats);
       const isWithinDefenderRange = distance <= defenderRange;
+      const isAdjacent = distance === 1;
 
-      const shouldCounter = allowCounter && isPifia && !isIncapacitated && isWithinDefenderRange;
+      const shouldCounter = allowCounter && isPifia && !isIncapacitated && (isWithinDefenderRange || isAdjacent);
       
       return { success, critical, isPifia, shouldCounter };
     }
