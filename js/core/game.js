@@ -41,6 +41,7 @@ const board = document.querySelector('.board');
       });
       const SCORE_PER_DAMAGE = 10;
       const SCORE_PER_KILL = 50;
+      const gameState = { mode: null };
       
       const punchSound = new Audio('assets/audio/sfx/punch.mp3');
       const ohSound = new Audio('assets/audio/sfx/oh.mp3');
@@ -219,10 +220,6 @@ let activeBarriers = []; // Nueva lista para rastrear barreras activas
       startScreen.hidden = true;
       startScreen.style.display = 'none';
     }
-
-      playButton.addEventListener('click', () => {
-        revealModes();
-      });
 
       const controlToggleP1Button = document.getElementById('controlToggleP1');
       if (controlToggleP1Button) {
@@ -3457,17 +3454,21 @@ function startGame() {
 
 
 
-    function handleModeSelection(mode) {
+    function initGame(selectedMode) {
       if (draftActive || gameStarted) return;
+      gameState.mode = selectedMode;
+      hideStartScreen();
       showDraftScreen();
-      beginDraft(mode);
+      if (typeof beginDraft === 'function') {
+        beginDraft(selectedMode);
+      } else {
+        console.log('Iniciando Draft en modo:', selectedMode);
+      }
     }
 
-    modeSelection.addEventListener('click', (event) => {
-      const button = event.target.closest('[data-mode]');
-      if (!button) return;
-      handleModeSelection(button.dataset.mode);
-    });
+    function handleModeSelection(mode) {
+      initGame(mode);
+    }
 
     function prepareDefaultSelections() {
       const characters = Object.keys(pieceStats);
