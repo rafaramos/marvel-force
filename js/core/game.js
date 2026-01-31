@@ -1051,106 +1051,31 @@ function highlightRange(piece) {
       const origin = getPieceSquare(piece);
       if (!origin) return;
       
-      const stats = pieceMap.get(piece);
       const physRange = rangeForPiece(piece);
-      const mentalFloor = getMentalRangeFloor(piece);
-      const maxCheck = Math.max(physRange, mentalFloor);
-      const isSupport = isSupportPower(currentAction);
-      
-      const isTelekinesis = currentAction === 'telekinesis'; 
-      
-      const attackerFlies = hasPassive(stats, 'volar') || hasPassive(stats, 'vuelo');
-      
       board.classList.add('targeting');
 
       let targetsFound = false;
-      let rangeSquaresFound = false; // Nueva variable para detectar si hay casillas de rango
+      let rangeSquaresFound = false;
 
       squares.forEach((square) => {
         const dist = attackDistance(origin, square);
-        if (dist > maxCheck) return;
+        if (dist > physRange) return;
         if (isBarrierSquare(square)) return;
-        if (dist === 0 && !isSupport) return;
-        
-        const hasObject = square.querySelector('.object-token');
-        const hasPiece = square.querySelector('.piece');
+        if (dist === 0) return;
 
-        // VISIÓN AÉREA
         const blockedByLOS = dist > 1 && !hasLineOfSight(origin, square);
-        let canSeeThroughBarrier = false;
+        if (blockedByLOS) return;
 
-        if (blockedByLOS && !isSupport && attackerFlies) {
-            const targetPiece = square.querySelector('.piece');
-            if (targetPiece) {
-                const targetStats = pieceMap.get(targetPiece);
-                if (targetStats && (hasPassive(targetStats, 'volar') || hasPassive(targetStats, 'vuelo'))) {
-                    canSeeThroughBarrier = true;
-                }
-            } else {
-                canSeeThroughBarrier = true;
-            }
-        }
-        
-        if (blockedByLOS && !canSeeThroughBarrier) return;
+        square.classList.add('square--range');
+        rangeSquaresFound = true;
 
-        let isValidSquare = false;
-        const shouldHighlight = true; 
-
-        if (dist <= physRange) {
-          if (shouldHighlight) square.classList.add('square--range');
-          isValidSquare = true;
-          rangeSquaresFound = true; // Marcamos que hemos pintado rango
-        } else if (dist <= maxCheck) {
-          if (shouldHighlight) square.classList.add('square--range-special');
-          isValidSquare = true;
-          rangeSquaresFound = true; // Marcamos que hemos pintado rango
-        }
-
-        if (isValidSquare) {
-          const targetPiece = square.querySelector('.piece');
-          
-          if (targetPiece) {
-            const targetStats = pieceMap.get(targetPiece); 
-            const isAlly = targetPiece.dataset.team === piece.dataset.team;
-            
-            // LÓGICA DE SIGILO
-            const isHiddenByStealth = dist > 3 && hasPassive(targetStats, 'sigilo');
-
-            if (isTelekinesis) {
-              if (isAlly) {
-                targetPiece.classList.add('valid-target-blue');
-                targetsFound = true;
-              } else if (!isHiddenByStealth) {
-                targetPiece.classList.add('valid-target');
-                targetsFound = true;
-              }
-            } else if (isSupport && isAlly) {
-              targetPiece.classList.add('valid-target-blue');
-              targetsFound = true;
-            } else if (!isSupport && !isAlly) {
-              // Si NO está oculto, marcamos. Si está oculto, NO marcamos (y se verá gris)
-              if (!isHiddenByStealth) {
-                targetPiece.classList.add('valid-target');
-                targetsFound = true;
-              }
-            } else if (!isSupport && isAlly && pieceMap.get(targetPiece)?.mindControlled) {
-              if (!isHiddenByStealth) {
-                targetPiece.classList.add('valid-target');
-                targetsFound = true;
-              }
-            }
-          } else if (hasObject) {
-            if (isTelekinesis) {
-              hasObject.classList.add('valid-target'); 
-              targetsFound = true;
-            }
-          }
+        const targetPiece = square.querySelector('.piece');
+        if (targetPiece && targetPiece.dataset.team !== piece.dataset.team) {
+          targetPiece.classList.add('valid-target');
+          targetsFound = true;
         }
       });
       
-      // CORRECCIÓN: Solo quitamos el modo 'targeting' si no hay objetivos Y TAMPOCO hay rango visual.
-      // Si hay rango (casillas naranjas) pero no objetivos (por Sigilo), mantenemos el oscurecimiento
-      // para que los enemigos ocultos se vean grises ("apagados").
       if (!targetsFound && !rangeSquaresFound) {
           board.classList.remove('targeting');
       }
@@ -1283,106 +1208,40 @@ function effectiveRangeFromStats(stats) {
   return raw === 0 ? 1 : raw;
 }
 
-function rangeForAction(attacker, actionKey) {
+function rangeForAction(attacker) {
   const stats = pieceMap.get(attacker);
-  const baseRange = effectiveRangeFromStats(stats);
-  if (actionKey === 'control mental' || actionKey === 'telekinesis') {
-    return Math.max(baseRange, getMentalRangeFloor(attacker));
-  }
-  return baseRange;
+  return effectiveRangeFromStats(stats);
 }
 
-   function calculateDamage(attackerStats, defenderStats, distance, isCritical) {
+   function calculateDamage(attackerStats, distance, isCritical) {
       const isMelee = distance <= 1;
-      
-      let baseDamageBeforeClaws = attackerStats.dano ?? 0;
-
-      if (!isMelee && hasPassive(attackerStats, 'experto a/d')) {
-        baseDamageBeforeClaws += 2;
-      }
-      
-      let clawsRoll = null;
-      const hasClaws = isMelee && hasPassive(attackerStats, 'cuchillas/garras/colmillos'); 
-
-      if (hasClaws) {
-        clawsRoll = Math.floor(Math.random() * 6) + 1;
-      }
-      
-      const baseDamageAfterClaws = hasClaws
-        ? Math.max(baseDamageBeforeClaws, clawsRoll)
-        : baseDamageBeforeClaws;
-      
-      const baseDamageWithCrit = isCritical ? baseDamageAfterClaws * 2 : baseDamageAfterClaws;
-      
-      // 4. Cálculo de Resistencia
-      let valDureza = 0;
-      let valInvulnerable = 0;
-      
-      // --- CAMBIO: HEMOS ELIMINADO LA LÍNEA DE 'defensa a/d' DE AQUÍ ---
-      // Ya no reduce daño, solo ayuda a esquivar.
-      
-      if (hasPassive(defenderStats, 'dureza')) valDureza = 1;
-      if (hasPassive(defenderStats, 'invulnerable')) valInvulnerable = 2;
-      
-      const resistance = Math.max(valDureza, valInvulnerable);
-      // -----------------------------------------------------------------
-      
-      const totalDamage = Math.max(baseDamageWithCrit - resistance, 0);
-      
+      const baseDamage = attackerStats.dano ?? 0;
+      const totalDamage = isCritical ? baseDamage * 2 : baseDamage;
       return {
         totalDamage,
         isMelee,
-        clawsRoll,
-        rawDamage: baseDamageWithCrit,
-        resistance,
-        baseDamageBeforeClaws,
-        baseDamageAfterClaws,
+        rawDamage: totalDamage,
       };
     }
     
 
   function evaluateAttackRoll(attackerStats, defenderStats, roll, distance, options = {}) {
       const { allowCounter = true } = options;
-      
-      // 1. Gestión de Defensa a/d (sigue siendo un modificador numérico válido)
-      let effectiveDefense = defenderStats.defensa;
-      if (distance > 1 && hasPassive(defenderStats, 'defensa a/d')) {
-          effectiveDefense += 2;
-      }
-
-      // 2. REGLA SUPREMA: MATEMÁTICAS PURAS
-      // Ataque + Tirada >= Defensa del Defensor
+      const effectiveDefense = defenderStats.defensa;
       const attackValue = attackerStats.ataque + roll;
       const success = attackValue >= effectiveDefense;
 
-      // 3. Gestión de Flags (Crítico y Pifia)
-      const critical = isCriticalRoll(attackerStats, roll);
-      const isPifia = (roll === 2); // Doble 1
+      const critical = roll === 12;
+      const isPifia = roll === 2;
 
-      // 4. Lógica de Contragolpe
-      // Se activa si es Pifia (2), INDEPENDIENTEMENTE de si el ataque acertó o no matemáticamente.
-      const isIncapacitated = (defenderStats.incapacitatedTurns || 0) > 0;
       const defenderRange = effectiveRangeFromStats(defenderStats);
-      const isWithinDefenderRange = distance <= defenderRange;
-      const isAdjacent = distance === 1;
-
-      const shouldCounter = allowCounter && isPifia && !isIncapacitated && (isWithinDefenderRange || isAdjacent);
+      const shouldCounter = allowCounter && isPifia && distance <= defenderRange;
       
       return { success, critical, isPifia, shouldCounter };
     }
     
 
-    function hasProbabilidad(stats) {
-      return Number(stats?.probabilidadTurns ?? 0) > 0;
-    }
-
-    function isCriticalRoll(attackerStats, roll) {
-      if (!roll) return false;
-      const hasAstucia = hasPassive(attackerStats, 'astucia');
-      const empowered = hasProbabilidad(attackerStats);
-      const critBuff = Boolean(attackerStats?.critBuff);
-      if ((empowered && hasAstucia) || (critBuff && (empowered || hasAstucia))) return roll >= 10;
-      if (empowered || hasAstucia || critBuff) return roll >= 11;
+    function isCriticalRoll(roll) {
       return roll === 12;
     }
 
@@ -1451,9 +1310,6 @@ function showTooltip(target, isDraft = false) {
       teamLabel = ""; 
   }
 
-  const activos = (stats.poderes?.activos || []).map(p => p.nombre || p).join('</li><li>');
-  const pasivos = (stats.poderes?.pasivos || []).map(p => p.nombre || p).join('</li><li>');
-
   let listaBuffos = [];
   if (stats.statBuffs) Object.values(stats.statBuffs).forEach(v => listaBuffos.push(v.label));
   if (stats.critBuff) listaBuffos.push(stats.critBuff.label);
@@ -1474,33 +1330,12 @@ function showTooltip(target, isDraft = false) {
       <li><strong>Rango:</strong> ${stats.rango}</li>
     </ul>
 
-    <div>
-        ${activos ? `<h4>Poderes Activos</h4><ul class="power-list"><li>${activos}</li></ul>` : ''}
-        ${pasivos ? `<h4>Poderes Pasivos</h4><ul class="power-list"><li>${pasivos}</li></ul>` : ''}
-    </div>
-    
     ${buffosTexto ? `<h4 style="color:#4ade80">Buffos Temporales</h4><div style="font-size:0.8rem; margin-left:10px;">${buffosTexto}</div>` : ''}
   `;
 
   tooltip.hidden = false;
   requestAnimationFrame(() => positionTooltip(target));
 }
-
-
-// Calcula el rango mínimo garantizado por poderes mentales
-    function getMentalRangeFloor(piece) {
-      const stats = pieceMap.get(piece);
-      if (!stats) return 0;
-
-      // Jerarquía: Telekinesis (3) > Control Mental (2)
-      // Si tiene Telekinesis, el suelo es 3 (tenga o no CM).
-      if (hasActive(stats, 'telekinesis')) return 3;
-      
-      // Si solo tiene Control Mental, el suelo es 2.
-      if (hasActive(stats, 'control mental')) return 2;
-
-      return 0;
-    }
 
 
 function hideTooltip() {
@@ -1566,39 +1401,13 @@ function attachTooltipEvents(piece) {
       piece.classList.add('piece--incapacitated');
     }
 
-   function actionLabel(actionKey) {
-      const labels = {
-        'incapacitar': 'Incapacitar',
-        'explosion': 'Explosión',
-        'pulso': 'Pulso',
-        'barrera': 'Barrera',
-        'probabilidad': 'Probabilidad',
-        'mejora de ataque': 'Mejora de Ataque',
-        'mejora de defensa': 'Mejora de Defensa',
-        'mejora de agilidad': 'Mejora de Agilidad',
-        'mejora de critico': 'Mejora de Crítico',
-        'curar': 'Curar',
-        'control mental': 'Control Mental',
-        'telekinesis': 'Telekinesis'
-      };
-      return labels[actionKey] || 'Ataque';
+   function actionLabel() {
+      return 'Ataque';
     }
 
-    function neededRollToHit(attackerStats, defenderStats, isMelee) {
+    function neededRollToHit(attackerStats, defenderStats) {
       if (!attackerStats || !defenderStats) return 0;
-      
-      let effectiveDefense = defenderStats.defensa;
-      
-      if (!isMelee && hasPassive(defenderStats, 'defensa a/d')) {
-          effectiveDefense += 2;
-      }
-      
-      // Fórmula: Necesito que (Ataque + Dado) >= Defensa
-      // Por tanto: Dado >= Defensa - Ataque
-      const needed = effectiveDefense - attackerStats.ataque;
-      
-      // Lo único que mantenemos es que el dado no puede sacar menos de 2.
-      // Si la matemática dice que necesitas un -5, te dirá que necesitas un 2 (lo mínimo posible).
+      const needed = defenderStats.defensa - attackerStats.ataque;
       return Math.max(2, needed);
     }
 
@@ -1609,149 +1418,24 @@ function attachTooltipEvents(piece) {
         success,
         damage,
         isMelee,
-        resistance,
-        rawDamage, 
-        actionKey,
-        clawsRoll,
-        critical,
-        heldObject,
-        baseDamageAfterClaws
+        critical
       }) {
-        
-        // 1. Defensa Visual
-        let defBase = defenderStats.defensa;
-        let defDisplay = `${defBase}`;
-        let effectiveDefense = defBase;
-
-        if (!isMelee && hasPassive(defenderStats, 'defensa a/d')) {
-            effectiveDefense = defBase + 2;
-            defDisplay = `${effectiveDefense} (${defBase} + 2)`;
-        }
-
-        // 2. Necesidad y Tirada
-        const needed = Math.max(2, effectiveDefense - attackerStats.ataque);
+        const defBase = defenderStats.defensa;
+        const needed = Math.max(2, defBase - attackerStats.ataque);
         const rollText = critical ? `${roll} (CRÍTICO)` : `${roll}`;
-
-        // --- Casos Especiales ---
-        if (actionKey === 'incapacitar') {
-            const part1 = `${attackerStats.name} realiza un ataque de Incapacitación con ${attackerStats.ataque} de Ataque a ${defenderStats.name} que tiene ${defDisplay} de Defensa.`;
-            const part2 = `${attackerStats.name} necesita un ${needed} y consigue un ${rollText}.`;
-            const part3 = success 
-                ? `${attackerStats.name} Incapacita a ${defenderStats.name}.`
-                : `${attackerStats.name} falla el ataque de Incapacitación contra ${defenderStats.name}.`;
-            return `${part1} ${part2} ${part3}`;
-        }
-
-      if (actionKey === 'control mental') {
-            const part1 = `${attackerStats.name} realiza un ataque de Control Mental con ${attackerStats.ataque} de Ataque a ${defenderStats.name} que tiene ${defDisplay} de Defensa.`;
-            const part2 = `${attackerStats.name} necesita un ${needed} y consigue un ${rollText}.`;
-            const part3 = success 
-                ? `${defenderStats.name} es controlado por ${attackerStats.name} por 1 turno.`
-                : `${attackerStats.name} falla el ataque de Control Mental contra ${defenderStats.name}.`;
-        return `${part1} ${part2} ${part3}`;
-      }
-
-      if (actionKey === 'telekinesis-ally-throw') {
-        const casterName = attackerStats.telekinesisCasterName ?? attackerStats.name;
-        const boost = attackerStats.telekinesisBoost;
-        const baseAtaque = boost?.baseAtaque ?? attackerStats.ataque;
-        const ataqueBonus = boost?.ataqueBonus ?? 0;
-        const baseDano = boost?.baseDano ?? attackerStats.dano ?? 0;
-        const danoBonus = boost?.danoBonus ?? 0;
-        const attackDisplay = ataqueBonus
-          ? `${attackerStats.ataque} (${baseAtaque} + ${ataqueBonus})`
-          : `${attackerStats.ataque}`;
-
-        const part1 = `${casterName} realiza un lanzamiento telekinético de compañero (${attackerStats.name}).`;
-        const part2 = `${attackerStats.name} tiene ${attackDisplay} de Ataque y ${defenderStats.name} tiene ${defDisplay} de Defensa.`;
-        const part3 = `${attackerStats.name} necesita un ${needed} y consigue un ${rollText}.`;
-
-        if (!success) {
-          return `${part1} ${part2} ${part3} ${casterName} falla el lanzamiento telekinético y no causa daño.`;
-        }
-
-        let damageText = '';
-        let resistanceText = `la Resistencia de ${defenderStats.name} es ${resistance}.`;
-
-        if (clawsRoll !== null) {
-          const clawsBase = baseDamageAfterClaws ?? rawDamage;
-          const clawsDamage = critical ? clawsBase * 2 : clawsBase;
-          const bonusText = danoBonus ? ` (${clawsRoll} + ${danoBonus})` : '';
-          const critSuffix = critical ? `${bonusText} X 2` : bonusText;
-          damageText = `${attackerStats.name} realiza una tirada de Cuchillas/Garras/Colmillos y saca un ${clawsRoll}, con lo que su Daño es ${clawsDamage}${critSuffix}.`;
-          resistanceText = `${defenderStats.name} tiene una resistencia de ${resistance}.`;
-        } else {
-          const breakdown = danoBonus ? ` (${baseDano} + ${danoBonus})` : '';
-          damageText = `El Daño de ${attackerStats.name} es ${rawDamage}${breakdown} y ${resistanceText}`;
-        }
-
-        const sentence3 = (clawsRoll !== null) ? `${damageText} ${resistanceText}` : damageText;
-        const damageLabel = damage === 1 ? 'punto' : 'puntos';
-        const sentence4 = `${attackerStats.name} le causa ${damage} ${damageLabel} de Daño Infligido a ${defenderStats.name}.`;
-        return `${part1} ${part2} ${part3} ${sentence3} ${sentence4}`;
-      }
-
-      // --- ATAQUE NORMAL (C/C o A/D) ---
         const attackType = isMelee ? 'ataque cuerpo a cuerpo' : 'ataque a distancia';
-        const sentence1 = `${attackerStats.name} realiza un ${attackType} con ${attackerStats.ataque} de Ataque a ${defenderStats.name} que tiene ${defDisplay} de Defensa.`;
+        const sentence1 = `${attackerStats.name} realiza un ${attackType} con ${attackerStats.ataque} de Ataque a ${defenderStats.name} que tiene ${defBase} de Defensa.`;
         const sentence2 = `${attackerStats.name} necesita un ${needed} y consigue un ${rollText}.`;
 
-        // FALLO
         if (!success) {
-            let failMsg = `${sentence1} ${sentence2} ${attackerStats.name} falla el ataque contra ${defenderStats.name}.`;
-            if (heldObject) failMsg += ` El objeto usado (${heldObject.name}) se rompe tras el ataque.`;
-            return failMsg;
+          return `${sentence1} ${sentence2} ${attackerStats.name} falla el ataque contra ${defenderStats.name}.`;
         }
 
-        // ÉXITO
-        let damageText = '';
-        let resistanceText = `la Resistencia de ${defenderStats.name} es ${resistance}.`;
-
-        // A) GARRAS
-        if (clawsRoll !== null) {
-             const clawsBase = baseDamageAfterClaws ?? rawDamage;
-             const clawsDamage = critical ? clawsBase * 2 : clawsBase;
-             const critSuffix = critical ? ` (${clawsBase} X 2)` : '';
-             damageText = `${attackerStats.name} realiza una tirada de Cuchillas/Garras/Colmillos y saca un ${clawsRoll}, con lo que su Daño es ${clawsDamage}${critSuffix}.`;
-             resistanceText = `${defenderStats.name} tiene una resistencia de ${resistance}.`;
-        } 
-        // B) NORMAL / OBJETO
-        else {
-            let breakdown = '';
-            if (heldObject && attackerStats.originalDano !== undefined) {
-                const base = attackerStats.originalDano;
-                const bonus = attackerStats.dano - base;
-                breakdown = critical
-                    ? ` ((${base} + ${bonus}) X 2)`
-                    : ` (${base} + ${bonus})`;
-            } else if (!isMelee && hasPassive(attackerStats, 'experto a/d')) {
-                breakdown = critical
-                    ? ` ((${attackerStats.dano} + 2) X 2)`
-                    : ` (${attackerStats.dano} + 2)`;
-            } else if (critical) {
-                const base = rawDamage / 2;
-                breakdown = ` (${base} X 2)`;
-            }
-            damageText = `El Daño de ${attackerStats.name} es ${rawDamage}${breakdown} y ${resistanceText}`;
-        }
-
-        // Unimos frase de Daño + Resistencia
-        let sentence3 = (clawsRoll !== null) ? `${damageText} ${resistanceText}` : damageText;
-
-        // Frase 4: Daño Final y Eliminación
-        let sentence4 = `${attackerStats.name} le causa ${damage} puntos de Daño Infligido a ${defenderStats.name}.`;
-        
+        let sentence3 = `${attackerStats.name} le causa ${damage} puntos de Daño a ${defenderStats.name}.`;
         if (defenderStats.currentVida <= 0) {
-            sentence4 += ` ${defenderStats.name} es ELIMINADO.`;
+          sentence3 += ` ${defenderStats.name} es ELIMINADO.`;
         }
-
-        // Frase Objeto siempre al final y limpia
-        let objectMsg = '';
-        if (heldObject) {
-             objectMsg = ` El objeto usado (${heldObject.name}) se rompe tras el ataque.`;
-        }
-
-        return `${sentence1} ${sentence2} ${sentence3} ${sentence4}${objectMsg}`;
+        return `${sentence1} ${sentence2} ${sentence3}`;
     }
 
 
@@ -1785,13 +1469,8 @@ function attachTooltipEvents(piece) {
         successText = info.success ? (info.critical ? ' (Crítico)' : ' (Éxito)') : ' (Fallo)';
       }
       const damageText = info.roll ? ` | Daño: ${info.damage} | Vida defensor: ${info.defenderVida}` : '';
-      
-      // --- CAMBIO AQUÍ: Nombre actualizado en la barra ---
-      const clawsText = info.clawsRoll ? ` | Cuchillas d6: ${info.clawsRoll}` : '';
-      // --------------------------------------------------
-      
       const noteText = info.note ? ` | ${info.note}` : '';
-      combatBox.textContent = `${info.action} ${info.attackerName} (${info.attacker}) vs ${info.defenderName} (${info.defender}) | Diferencia: ${info.difference}${rollText}${successText}${damageText}${clawsText}${noteText}`;
+      combatBox.textContent = `${info.action} ${info.attackerName} (${info.attacker}) vs ${info.defenderName} (${info.defender}) | Diferencia: ${info.difference}${rollText}${successText}${damageText}${noteText}`;
     }
 
     function prepareAttackInfo(attacker, defender, actionKey = 'attack') {
@@ -1836,25 +1515,8 @@ async function resolveAttack(attacker, defender, actionKey = 'attack', options =
 
       const attackerSquare = getPieceSquare(attacker);
       const targetSquare = getPieceSquare(defender);
-      const maxRange = rangeForAction(attacker, actionKey);
+      const maxRange = rangeForAction(attacker);
       const distance = attackDistance(attackerSquare, targetSquare);
-
-      // --- NUEVO: Bloqueo por Sigilo (> 3 casillas) ---
-      if (distance > 3 && hasPassive(defenderStats, 'sigilo')) {
-          const blockedMessage = `${defenderStats.name} está oculto por Sigilo (demasiado lejos).`;
-          addHistoryEntry(attacker.dataset.team, blockedMessage, { attacker, defenders: [defender] });
-          pendingAttackInfo = null;
-          updateCombatInfo();
-          if (!skipTurnAdvance) {
-            await showTurnPopup(blockedMessage);
-            // Opcional: ¿Gasta el turno o le dejas volver a intentar? 
-            // Si quieres que gaste turno: finishTurn(attacker);
-            // Si quieres que pueda elegir otro objetivo (mejor jugabilidad):
-            hideTooltip();
-            attackButton.classList.remove('button--pulse');
-          }
-          return;
-      }
 
       // 1. Chequeo de Distancia Máxima
       if (distance > maxRange) {
@@ -1869,26 +1531,7 @@ async function resolveAttack(attacker, defender, actionKey = 'attack', options =
         return;
       }
 
-      // 2. Chequeo de Barreras (Vuelo)
-      const lineOfSightBlocked = distance > 1 && !hasLineOfSight(attackerSquare, targetSquare);
-      if (lineOfSightBlocked) {
-        const attackerFlies = hasPassive(attackerStats, 'volar') || hasPassive(attackerStats, 'vuelo');
-        const defenderFlies = hasPassive(defenderStats, 'volar') || hasPassive(defenderStats, 'vuelo');
-        
-        if (!attackerFlies || !defenderFlies) {
-            const blockedMessage = 'La barrera bloquea el ataque (se requiere Volar vs Volar).';
-            addHistoryEntry(attacker.dataset.team, blockedMessage, { attacker, defenders: [defender] });
-            pendingAttackInfo = null;
-            updateCombatInfo();
-            if (!skipTurnAdvance) {
-              await showTurnPopup(blockedMessage);
-              registerActionUsage(attacker, { showPopup: false });
-            }
-            return;
-        }
-      }
-
-      // 3. CÁLCULOS
+      // 2. CÁLCULOS
       const die1 = Math.floor(Math.random() * 6) + 1;
       const die2 = Math.floor(Math.random() * 6) + 1;
       const roll = die1 + die2;
@@ -1900,87 +1543,28 @@ async function resolveAttack(attacker, defender, actionKey = 'attack', options =
       if (critical) playEffectSound(criticoSound);
       if (isPifia) playEffectSound(pifiaSound);
 
-      const { totalDamage, clawsRoll, isMelee, resistance, rawDamage, baseDamageBeforeClaws, baseDamageAfterClaws } = 
-        calculateDamage(attackerStats, defenderStats, distance, critical);
-      const effectiveDefense = (!isMelee && hasPassive(defenderStats, 'defensa a/d'))
-        ? defenderStats.defensa + 2
-        : defenderStats.defensa;
-      const needed = Math.max(2, effectiveDefense - attackerStats.ataque);
+      const { totalDamage, isMelee } = calculateDamage(attackerStats, distance, critical);
+      const needed = Math.max(2, defenderStats.defensa - attackerStats.ataque);
+      const damageApplied = success ? totalDamage : 0;
 
-      const isStatusAttack = actionKey === 'incapacitar' || actionKey === 'control mental';
-      const damageApplied = success && !isStatusAttack ? totalDamage : 0;
-
-      // 4. APLICAR EFECTOS
-      let specialEffectMessage = ''; 
-
-      if (success) {
-        if (actionKey === 'incapacitar') {
-          setIncapacitated(defender, 1);
-          if (isEnemy(attacker, defender)) addPoints(attacker, 10);
-          playEffectSound(incapacitarSound);
-        } 
-        else if (actionKey === 'control mental') {
-          const currentTeam = defender.dataset.team;
-          defenderStats.originalTeam = currentTeam; 
-          const newTeam = currentTeam === 'aliado' ? 'enemigo' : 'aliado';
-          defenderStats.team = newTeam;
-          defender.dataset.team = newTeam;
-          defenderStats.mindControlled = true;
-          if (isEnemy(attacker, defender)) addPoints(attacker, 10);
-          playEffectSound(controlMentalSound);
-        }
-        else if (damageApplied > 0) {
-          defenderStats.currentVida = Math.max(defenderStats.currentVida - damageApplied, 0);
-          if (isEnemy(attacker, defender)) addPoints(attacker, damageApplied * SCORE_PER_DAMAGE);
-
-          if (hasPassive(attackerStats, 'robo de vida')) {
-            const missing = attackerStats.maxVida - attackerStats.currentVida;
-            const heal = Math.min(damageApplied, missing);
-            if (heal > 0) {
-              attackerStats.currentVida += heal;
-              specialEffectMessage = ` ${attackerStats.name} roba vida (+${heal}).`;
-            }
-          }
-        }
+      if (success && damageApplied > 0) {
+        defenderStats.currentVida = Math.max(defenderStats.currentVida - damageApplied, 0);
+        if (isEnemy(attacker, defender)) addPoints(attacker, damageApplied * SCORE_PER_DAMAGE);
       }
 
-      // 5. PREPARAR MENSAJE
-      // Guardamos referencia al objeto ANTES de borrarlo para pasarlo al texto
-      const usedObject = attackerStats.heldObject ? { ...attackerStats.heldObject } : null;
+      // 3. PREPARAR MENSAJE
 
       let popupMessage = buildAttackPopupMessage({
         attackerStats, defenderStats, roll, success, damage: damageApplied,
-        isMelee, resistance, rawDamage, actionKey, clawsRoll, critical,
-        baseDamageBeforeClaws, baseDamageAfterClaws, heldObject: usedObject 
+        isMelee, critical
       });
-      
-      popupMessage += specialEffectMessage; 
-      
-      // --- LÓGICA DE ROMPER OBJETO (SOLO LÓGICA, NO TEXTO) ---
-      // Aquí estaba el error. Hemos quitado las líneas que añadían texto repetido.
-      if (attackerStats.heldObject) {
-          // Restaurar stats originales
-          attackerStats.dano = attackerStats.originalDano;
-          attackerStats.rango = attackerStats.originalRango;
-          attacker.dataset.rango = attackerStats.rango; 
-          
-          // Borrar objeto
-          delete attackerStats.heldObject;
-          attacker.classList.remove('piece--holding');
-      }
-      // -------------------------------------------------------
 
       if (logHistory) {
         addHistoryEntry(attacker.dataset.team, popupMessage, { attacker, defenders: [defender] });
       }
 
       // Gestión de Muerte
-      if (success && !isStatusAttack && defenderStats.currentVida <= 0) {
-        if (defenderStats.mindControlled) {
-            defenderStats.team = defenderStats.originalTeam;
-            defender.dataset.team = defenderStats.originalTeam;
-            defenderStats.mindControlled = false;
-        }
+      if (success && defenderStats.currentVida <= 0) {
         queueDeathMessage(`${defenderStats.name} eliminado por ${attackerStats.name}.`);
         if (isEnemy(attacker, defender)) addPoints(attacker, SCORE_PER_KILL);
         eliminatePiece(defender);
@@ -1988,7 +1572,7 @@ async function resolveAttack(attacker, defender, actionKey = 'attack', options =
 
       // Sonido e Interfaz
       const skipFailureSound = isPifia; 
-      const isZeroDamageHit = success && damageApplied === 0 && !isStatusAttack;
+      const isZeroDamageHit = success && damageApplied === 0;
       registerTurnSound({ 
         damageDealt: damageApplied, 
         attackFailed: !success && !skipFailureSound, 
@@ -2016,23 +1600,6 @@ async function resolveAttack(attacker, defender, actionKey = 'attack', options =
         return { success, damageApplied, roll, needed, effectiveDefense };
       }
 
-      const hasDoubleAttack = hasPassive(attackerStats, 'doble ataque c/c');
-      if (isMelee && hasDoubleAttack && !isSecondAttack && !options.actionLabelOverride && !isStatusAttack &&
-          defenderStats.currentVida > 0 && defender.dataset.eliminated !== 'true' &&
-          attackerStats.currentVida > 0 && attacker.dataset.eliminated !== 'true') {
-        
-        if (showPopup) {
-          await showTurnPopup(`${popupMessage}\n\n[DOBLE ATAQUE]\n(Clic para el segundo golpe)`);
-          await sleep(300);
-        }
-        await resolveAttack(attacker, defender, actionKey, {
-          ...options,
-          isSecondAttack: true, 
-          actionLabelOverride: '2º Ataque c/c'
-        });
-        return { success, damageApplied, roll, needed, effectiveDefense }; 
-      }
-
       if (!skipTurnAdvance && showPopup) {
         hideTooltip();
         clearRangeHighlights();
@@ -2041,7 +1608,7 @@ async function resolveAttack(attacker, defender, actionKey = 'attack', options =
         await showTurnPopup(popupMessage);
         registerActionUsage(attacker, { showPopup: false });
       }
-      return { success, damageApplied, roll, needed, effectiveDefense };
+      return { success, damageApplied, roll, needed, effectiveDefense: defenderStats.defensa };
     }
 
 async function resolveExplosion(attacker, centerTarget) {
@@ -2515,152 +2082,30 @@ async function resolveHeal(attacker, target) {
       const square = event.target.closest('.square');
       if (!square) return;
 
-      // ==================================================================
-      // A) RESOLVER TELEKINESIS ACTIVA (Fase de soltar/lanzar)
-      // ==================================================================
-      if (pendingTelekinesis) {
-          const { attacker, victim } = pendingTelekinesis;
-          const isObject = victim.classList.contains('object-token');
-          
-          // OPCIÓN 1: MOVER (Casilla Azul)
-          if (square.classList.contains('square--placement')) {
-              await animatePieceToSquare(victim, square);
-              playEffectSound(telekinesisSound);
-              
-              const attackerName = pieceMap.get(attacker).name;
-              const victimName = isObject ? victim.dataset.name : pieceMap.get(victim).name;
-
-              // 10 PUNTOS POR MOVER
-              addPoints(attacker, 10);
-
-              const conector = isObject ? '' : ' a';
-              const msg = `${attackerName} usa Telekinesis para mover${conector} ${victimName}.`;
-              
-              addHistoryEntry(attacker.dataset.team, msg, { attacker, defenders: isObject ? [] : [victim] });
-              
-              if (!isObject) await showTurnPopup(msg);
-
-              cancelTelekinesis();
-              registerActionUsage(attacker, { showPopup: false });
-              return;
-          }
-
-          // OPCIÓN 2: LANZAR (Clic en Enemigo)
-          const targetEnemy = square.querySelector('.piece');
-          if (targetEnemy && (targetEnemy.classList.contains('valid-target') || targetEnemy.classList.contains('valid-target-blue'))) {
-              if (isObject) {
-                  await resolveObjectThrow(attacker, victim, targetEnemy);
-              } else {
-                  await resolveTelekinesisThrow(attacker, victim, targetEnemy);
-              }
-              return;
-          }
-          
-          cancelTelekinesis();
-          return;
-      }
-      
-      // ==================================================================
-      // B) LÓGICA NORMAL
-      // ==================================================================
       const activePiece = turnOrder[turnIndex];
       if (isCPUControlledPiece(activePiece)) return;
 
-      let targetPiece = square.querySelector('.piece');
-      const targetObject = square.querySelector('.object-token');
+      const targetPiece = square.querySelector('.piece');
 
-      // --- BARRERAS ---
-      if (pendingBarrierPlacement) {
-          if (!areAdjacentSquares(pendingBarrierPlacement.lastSquare, square)) {
-             if (typeof showTurnPopup === 'function') showTurnPopup('La barrera solo puede crecer en casillas adyacentes.');
-             return;
-          }
-          if (!placeBarrierBlock(square, pendingBarrierPlacement.attacker)) {
-             if (typeof showTurnPopup === 'function') showTurnPopup('No se puede colocar la barrera aquí.');
-             return;
-          }
-          pendingBarrierPlacement.created += 1;
-          pendingBarrierPlacement.remaining -= 1;
-          pendingBarrierPlacement.lastSquare = square;
-          updateBarrierPreview(square);
-          if (pendingBarrierPlacement.remaining <= 0 || barrierPreviewSquares.length === 0) {
-            await finalizeBarrierPlacement(pendingBarrierPlacement.attacker, pendingBarrierPlacement.created);
-          }
-          return;
-      }
-
-      if (currentAction === 'barrera' && !targetPiece) {
+      if (targetPiece) {
         const isOrange = square.classList.contains('square--range');
-        if (!isOrange || isBarrierSquare(square)) {
-             alert('Fuera de rango.'); return;
-        }
-        await resolveBarrier(activePiece, square);
-        return;
-      }
-
-      // --- SELECCIÓN DE OBJETIVO ---
-      let selectionTarget = targetPiece;
-      if (currentAction === 'telekinesis' && !targetPiece && targetObject) {
-          selectionTarget = targetObject;
-      }
-
-      if (selectionTarget) {
-        if (currentAction === 'barrera') {
-             alert('La barrera requiere casilla vacía.'); return;
-        }
-
-        const isObject = selectionTarget.classList.contains('object-token');
-        const targetStats = isObject ? null : pieceMap.get(selectionTarget);
-        
-        if (isObject && currentAction !== 'telekinesis') return;
-
-        const isOrange = square.classList.contains('square--range');
-        const isPurple = square.classList.contains('square--range-special');
-        
-        if (!isOrange && !isPurple) {
+        if (!isOrange) {
           clearTargetSelection();
           return;
         }
 
-        // --- NUEVO BLOQUEO: Verificar Sigilo en el CLIC ---
-        // Si es un enemigo, está lejos (>3) y tiene Sigilo, impedimos seleccionarlo.
-        // (Nota: Calculamos distancia desde la pieza activa)
-        if (!isObject && targetStats && isEnemy(activePiece, selectionTarget)) {
-             const dist = attackDistance(getPieceSquare(activePiece), square);
-             // Si tiene sigilo y está lejos
-             if (dist > 3 && hasPassive(targetStats, 'sigilo')) {
-                 // Bloqueamos silenciosamente o mostramos aviso
-                 // (Opcional: alert("Objetivo oculto por Sigilo"))
-                 return; 
-             }
-        }
-        // --------------------------------------------------
-
         clearTargetSelection();
         square.classList.add('square--target');
-        
-        if (isObject) selectionTarget.classList.add('object-selected');
-        else selectionTarget.classList.add('piece--selected');
-
-        selectedTarget = selectionTarget;
-
-        if (currentAction === 'telekinesis' || isSupportPower(currentAction)) {
-            if (isSupportPower(currentAction)) {
-                playEffectSound(bonusConfirmSound);
-            }
-            handleActionClick(currentAction);
-            return;
-        }
+        targetPiece.classList.add('piece--selected');
+        selectedTarget = targetPiece;
 
         const attackerStats = pieceMap.get(activePiece);
-        let noteText = 'Objetivo seleccionado';
-        if (targetStats?.mindControlled) noteText = 'Marioneta (Fuego Amigo)';
-
+        const targetStats = pieceMap.get(targetPiece);
         pendingAttackInfo = {
           action: actionLabel(currentAction),
           attackerName: attackerStats?.name,
-          defenderName: targetStats?.name || 'Objeto',
-          note: noteText,
+          defenderName: targetStats?.name,
+          note: 'Objetivo seleccionado',
         };
         updateCombatInfo();
         attackButton.classList.add('button--pulse');
@@ -2831,61 +2276,14 @@ function handleActionClick(actionKey, options = {}) {
     }
 
     async function finishTurn(piece, options = {}) {
-      const { skipRegeneration = false, summaryOverride = null, showPopup = null } = options;
+      const { summaryOverride = null, showPopup = null } = options;
       
       const stats = pieceMap.get(piece);
-      
-      // 1. Regeneración
-      const regenResult = skipRegeneration ? { regenerated: false, message: '' } : applyRegeneration(piece);
-      
-      // --- CORRECCIÓN: ACTUALIZAR FOTO DEL POPUP SI HUBO REGENERACIÓN ---
-      if (regenResult.regenerated && latestPopupContext) {
-          // Buscamos al personaje en las listas del popup y actualizamos sus datos (vida nueva)
-          const updateList = (list) => {
-              for (let i = 0; i < list.length; i++) {
-                  if (list[i].key === piece.dataset.key) {
-                      // Hacemos una nueva foto conservando su rol
-                      list[i] = snapshotCharacter(piece, list[i].role);
-                  }
-              }
-          };
-          updateList(latestPopupContext.allies);
-          updateList(latestPopupContext.enemies);
-      }
-      // ------------------------------------------------------------------
-
-      // 2. Probabilidad
-      const probabilityResult = consumeProbabilidadTurn(piece);
-      
-      // 3. Buffos
-      const buffMessages = consumeStatBuffs(piece);
-
-      // 4. Recuperación de Control Mental (Fin de turno normal)
-      let mindControlMsg = '';
-      if (stats && stats.mindControlled) {
-        stats.team = stats.originalTeam;
-        piece.dataset.team = stats.originalTeam;
-        stats.mindControlled = false;
-        delete stats.originalTeam;
-        mindControlMsg = ` ${stats.name} se libera del control mental.`;
-      }
-
-      // Construcción del mensaje final
-      const summaryParts = [
-        summaryOverride || latestActionMessage || (stats ? `${stats.name} finaliza su turno.` : 'Turno completado.'),
-      ];
-      if (regenResult?.regenerated) summaryParts.push(regenResult.message);
-      if (probabilityResult?.expired) summaryParts.push(probabilityResult.message);
-      buffMessages.forEach((msg) => summaryParts.push(msg));
-      if (mindControlMsg) summaryParts.push(mindControlMsg);
-
-      const summary = summaryParts.join(' ').trim();
+      const summary = summaryOverride || latestActionMessage || (stats ? `${stats.name} finaliza su turno.` : 'Turno completado.');
       latestActionMessage = null;
 
       if (latestPopupContext) {
         latestPopupContext.message = summary;
-      } else if (regenResult?.regenerated || mindControlMsg) {
-        setLatestPopupContext(summary, [{ piece, role: piece.dataset.team === 'aliado' ? 'attacker' : 'defender' }]);
       }
 
       const shouldShowPopup = showPopup ?? Boolean(latestPopupContext);
@@ -2916,34 +2314,7 @@ function startTurn(piece) {
       const stats = pieceMap.get(piece);
       if (!stats) return;
 
-      // --- NUEVO: Limpieza de barreras del turno anterior ---
-      activeBarriers = activeBarriers.filter(b => {
-        if (b.creator === piece) {
-          b.element.remove();
-          b.square.classList.remove('square--barrier');
-          return false; // Lo sacamos de la lista
-        }
-        return true; // Lo mantenemos
-      });
-      // -----------------------------------------------------
-
-      pendingBarrierPlacement = null;
-      clearBarrierPreview();
-
-      // 1. Verificar Incapacitado
-      if (stats.incapacitatedTurns && stats.incapacitatedTurns > 0) {
-        const incapMessage = `${stats.name} pierde el turno por estar incapacitado.`;
-        addHistoryEntry(piece.dataset.team, incapMessage, { attacker: piece });
-        stats.incapacitatedTurns -= 1;
-        if (stats.incapacitatedTurns <= 0) {
-          piece.classList.remove('piece--incapacitated');
-        }
-        renderLifeCards();
-        finishTurn(piece, { summaryOverride: incapMessage });
-        return;
-      }
-
-      // 2. Configuración Estándar
+      // Configuración Estándar
       resetMovement(piece);
       actionUsedThisTurn = false;
       setActivePiece(piece); 
@@ -2952,7 +2323,7 @@ function startTurn(piece) {
       highlightMovement(piece);
       highlightRange(piece);
 
-      // 3. Bloqueo para IA
+      // Bloqueo para IA
       if (isCPUControlledPiece(piece)) {
         passButton.disabled = true;
         attackButton.disabled = true;
