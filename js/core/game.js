@@ -1581,12 +1581,14 @@ async function resolveAttack(attacker, defender, actionKey = 'attack', options =
         return { success, damageApplied, roll, needed, effectiveDefense };
       }
 
-      if (!skipTurnAdvance && showPopup) {
+      if (showPopup) {
+        await showTurnPopup(popupMessage);
+      }
+      if (!skipTurnAdvance) {
         hideTooltip();
         clearRangeHighlights();
         selectedTarget = null;
         attackButton.classList.remove('button--pulse');
-        await showTurnPopup(popupMessage);
         registerActionUsage(attacker, { showPopup: false });
       }
       return { success, damageApplied, roll, needed, effectiveDefense };
