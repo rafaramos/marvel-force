@@ -16,9 +16,9 @@
     <div id="modeSelection" class="start-screen__modes" hidden>
       <p class="start-screen__subtitle">Selecciona el modo</p>
       <div class="start-screen__buttons">
-        <button class="button" type="button" data-mode="pvp" onclick="handleModeSelection('pvp')">1 vs 1</button>
-        <button class="button button--primary" type="button" data-mode="ai" onclick="handleModeSelection('ai')">1 vs IA</button>
-        <button class="button" type="button" data-mode="aivai" onclick="handleModeSelection('aivai')">IA vs IA</button>
+        <button class="button" id="btn-mode-pvp" type="button" data-mode="pvp">1 vs 1</button>
+        <button class="button button--primary" id="btn-mode-ai" type="button" data-mode="ai">1 vs IA</button>
+        <button class="button" id="btn-mode-aivai" type="button" data-mode="aivai">IA vs IA</button>
       </div>
     </div>
   </div>
@@ -102,11 +102,12 @@
     </div>
   </div>
 
-    <script src="js/data/maps.js"></script>
-    <script src="js/data/characters.js"></script>
-    <script src="js/systems/abilities.js"></script>
-    <script src="js/systems/ai.js"></script>
-    <script src="js/core/game.js"></script>
+  <script src="js/data/maps.js"></script>
+  <script src="js/data/characters.js"></script>
+  <script src="js/systems/abilities.js"></script>
+  <script src="js/systems/ai.js"></script>
+  <script src="js/core/game.js"></script>
+  <script src="js/main.js"></script>
 
 </body>
 </html>

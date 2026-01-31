@@ -3202,8 +3202,14 @@ function startTurn(piece) {
         picks.forEach((key) => ownership.set(key, playerId));
       });
 
-      availableCharacters.forEach((key) => {
-        const stats = pieceStats[key];
+      const scoredCharacters = availableCharacters.map((key) => {
+        const stats = pieceStats[key] || {};
+        const score = evaluateCombatValue(key, stats, []);
+        return { key, score, stats };
+      });
+      scoredCharacters.sort((a, b) => b.score - a.score);
+
+      scoredCharacters.forEach(({ key, score, stats }) => {
         const card = document.createElement('button');
         card.type = 'button';
         card.className = 'draft-card';
@@ -3211,6 +3217,7 @@ function startTurn(piece) {
         card.dataset.key = key; 
         
         card.innerHTML = `
+          <span class="combat-score">${score}</span>
           <img class="draft-card__image" src="${stats?.imagen || ''}" alt="${stats?.name || key}" loading="lazy" />
           <div class="draft-card__body">
             <p class="draft-card__title">${stats?.name || key}</p>
