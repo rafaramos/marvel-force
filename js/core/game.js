@@ -621,28 +621,8 @@ function registerTurnSound({ damageDealt = 0, attackFailed = false, zeroDamageHi
       renderLifeCards();
     }
 
-    const ANIMATION_OVERRIDES = {
-      antorcha: 'animaciones/antorcha-humana.webp',
-      avispa: 'animaciones/avispa.webp',
-      bruja: 'animaciones/bruja-escarlata.webp',
-      'bruja-escarlata': 'animaciones/bruja-escarlata.webp',
-      capitan: 'animaciones/capitan-america.webp',
-      cosa: 'animaciones/la-cosa.webp',
-      duende: 'animaciones/duende.webp',
-      hulk: 'animaciones/hulk.webp',
-      hulka: 'animaciones/hulka.webp',
-      'iron-man': 'animaciones/iron-man.webp',
-      lobezno: 'animaciones/lobezno.webp',
-      spider: 'animaciones/spider-man.webp',
-      thor: 'animaciones/thor.webp',
-      ciclope: 'animaciones/ciclope.webp',
-    };
-
     function animationImageForPiece(piece, stats) {
       const key = piece?.dataset?.key || '';
-      if (key && ANIMATION_OVERRIDES[key]) {
-        return ANIMATION_OVERRIDES[key];
-      }
       const candidate = key ? `assets/images/animations/${key}.webp` : null;
       return stats?.animacion || stats?.imagen || candidate || '';
     }
