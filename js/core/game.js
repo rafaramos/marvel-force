@@ -1429,7 +1429,9 @@ function attachTooltipEvents(piece) {
         }
 
         const damageLabel = damage === 1 ? 'Punto' : 'Puntos';
-        let sentence3 = `${attackerStats.name} le causa ${damage} ${damageLabel} de Daño a ${defenderStats.name}.`;
+        const baseDamage = attackerStats.dano ?? 0;
+        const damageBreakdown = critical ? ` (${baseDamage} X 2)` : '';
+        let sentence3 = `${attackerStats.name} le causa ${damage}${damageBreakdown} ${damageLabel} de Daño a ${defenderStats.name}.`;
         if (defenderStats.currentVida <= 0) {
           sentence3 += ` ${defenderStats.name} es ELIMINADO.`;
         }
