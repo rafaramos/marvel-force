@@ -17,12 +17,12 @@ function hasPower(stats, powerName) {
 
 function evaluateCombatValue(key, stats, enemySelections) {
     let value = 0;
-    value += (stats.dano || 0) * 50;
+    value += (stats.dano || 0) * 70;
     value += (stats.ataque || 0) * 30;
     value += (stats.defensa || 0) * 10;
-    value += (stats.vida || 0) * 20;
+    value += (stats.vida || 0) * 30;
     value += (stats.rango || 0) * 10;
-    value += (stats.movimiento || 0) * 10;
+    value += (stats.movimiento || 0) * 7;
     value += (stats.agilidad || 0) * 0.25;
 
     if (hasPower(stats, 'Sigilo')) value += 20;
@@ -42,14 +42,14 @@ function evaluateCombatValue(key, stats, enemySelections) {
     if (hasPower(stats, 'Curar')) value += 30;
     if (hasPower(stats, 'Incapacitar')) value += 20;
     if (hasPower(stats, 'Explosión')) value += 40;
-    if (hasPower(stats, 'Telekinesis')) value += 40;
-    if (hasPower(stats, 'Control Mental')) value += 40;
+    if (hasPower(stats, 'Telekinesis')) value += 50;
+    if (hasPower(stats, 'Control Mental')) value += 50;
     if (hasPower(stats, 'Pulso')) value += 10;
     if (hasPower(stats, 'Barrera')) value += 10;
-    if (hasPower(stats, 'Mejora de Ataque')) value += 50;
-    if (hasPower(stats, 'Mejora de Agilidad')) value += 50;
-    if (hasPower(stats, 'Mejora de Defensa')) value += 50;
-    if (hasPower(stats, 'Mejora de Crítico')) value += 50;
+    if (hasPower(stats, 'Mejora de Ataque')) value += 40;
+    if (hasPower(stats, 'Mejora de Agilidad')) value += 40;
+    if (hasPower(stats, 'Mejora de Defensa')) value += 40;
+    if (hasPower(stats, 'Mejora de Crítico')) value += 40;
 
     return value;
 }
