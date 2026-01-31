@@ -1586,6 +1586,7 @@ async function resolveAttack(attacker, defender, actionKey = 'attack', options =
       // Flujo de Pifia / Doble Ataque / Fin de Turno
       if (shouldCounter && defenderStats.currentVida > 0 && defender.dataset.eliminated !== 'true') {
         if (showPopup) {
+          await showTurnPopup(popupMessage);
           await showTurnPopup(`${defenderStats.name} prepara su contraataque.\n(Haz clic para resolver la réplica)`);
           await sleep(300);
         }
