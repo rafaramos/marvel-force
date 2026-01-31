@@ -415,16 +415,11 @@ let activeBarriers = []; // Nueva lista para rastrear barreras activas
     }
 
     function hasPassive(stats, key) {
-      const search = normalizePowerKey(key);
-      const powerList = resolvePowerSets(stats).pasivos;
-      const normalized = powerList.map((entry) => normalizePowerKey(entry?.nombre ?? entry));
-      return normalized.includes(search);
+      return false;
     }
 
     function hasActive(stats, key) {
-      const search = normalizePowerKey(key);
-      const list = resolvePowerSets(stats).activos;
-      return list.map((entry) => normalizePowerKey(entry?.nombre ?? entry)).includes(search);
+      return false;
     }
 
     function pieceColor(element) {
@@ -842,61 +837,7 @@ function registerTurnSound({ damageDealt = 0, attackFailed = false, zeroDamageHi
 
     function renderPowerButtons(piece) {
       powerControls.innerHTML = '';
-      const stats = pieceMap.get(piece);
-      if (!stats) return;
-      const actives = stats.poderes?.activos || [];
-      const activeKeys = new Set(
-        actives.map((ability) => normalizePowerKey(ability?.nombre ?? ability))
-      );
-      const labels = {
-        incapacitar: 'Incapacitar',
-        'control mental': 'Control Mental',
-        explosion: 'Explosión',
-        pulso: 'Pulso',
-        barrera: 'Barrera',
-        probabilidad: 'Probabilidad',
-        'mejora de ataque': 'Mejora de Ataque',
-        'mejora de defensa': 'Mejora de Defensa',
-        'mejora de agilidad': 'Mejora de Agilidad',
-        'mejora de critico': 'Mejora de Crítico',
-        curar: 'Curar',
-        telekinesis: 'Telekinesis',
-      };
-      const allPowers = [
-        'incapacitar',
-        'control mental',
-        'explosion',
-        'pulso',
-        'barrera',
-        'probabilidad',
-        'mejora de ataque',
-        'mejora de defensa',
-        'mejora de agilidad',
-        'mejora de critico',
-        'curar',
-        'telekinesis',
-      ];
-      const activePowers = allPowers.filter((key) => activeKeys.has(key));
-      const inactivePowers = allPowers.filter((key) => !activeKeys.has(key));
-      const splitIndex = Math.ceil(inactivePowers.length / 2);
-      const orderedPowers = [
-        ...inactivePowers.slice(0, splitIndex),
-        ...activePowers,
-        ...inactivePowers.slice(splitIndex),
-      ];
-
-      orderedPowers.forEach((key) => {
-        const hasPower = activeKeys.has(key);
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = 'button';
-        btn.textContent = labels[key] || key;
-        btn.disabled = actionUsedThisTurn || !hasPower;
-        if (hasPower) {
-          btn.addEventListener('click', () => handleActionClick(key));
-        }
-        powerControls.appendChild(btn);
-      });
+      powerControls.hidden = true;
     }
 
     let selectedTarget = null;
@@ -2767,142 +2708,10 @@ function handleActionClick(actionKey, options = {}) {
   if (actionUsedThisTurn) {
     return;
   }
-  currentAction = actionKey;
-  const attacker = turnOrder[turnIndex];
-  if (selectedTarget && selectedTarget.classList?.contains('piece')) {
-    flashTargetPiece(selectedTarget, isEnemy(attacker, selectedTarget) ? 'enemy' : 'ally');
-  }
-
-  // 1. Acciones sin objetivo (Área inmediata)
-  if (actionKey === 'pulso') {
-    markActionUsed();
-    resolvePulse(attacker);
+  if (actionKey !== 'attack') {
     return;
   }
-
-  // 2. Modo "Armar poder" (Si no hay objetivo seleccionado)
-  if (!selectedTarget) {
-    highlightRange(attacker);
-    
-    const combatBox = document.getElementById('combatInfo');
-      const labels = {
-      incapacitar: 'Incapacitar',
-      'control mental': 'Control Mental',
-      curar: 'Curar',
-      'mejora de ataque': 'Mejora de Ataque',
-      'mejora de defensa': 'Mejora de Defensa',
-      'mejora de agilidad': 'Mejora de Agilidad',
-      'mejora de critico': 'Mejora de Crítico',
-      'telekinesis': 'Telekinesis',
-      'explosion': 'Explosión',
-      'barrera': 'Barrera'
-    };
-    const nombre = labels[actionKey] || actionKey;
-
-    if (combatBox) {
-         combatBox.style.display = 'block';
-         combatBox.textContent = `Modo [${nombre}] activo. Selecciona un objetivo.`;
-    }
-    return;
-  }
-
-  if (actionKey === 'barrera' && pendingBarrierPlacement) {
-    return;
-  }
-
-  if (actionKey === 'barrera') {
-    const targetSquare = selectedTarget?.classList?.contains('square')
-      ? selectedTarget
-      : getPieceSquare(selectedTarget);
-    const isInOrangeZone = targetSquare?.classList.contains('square--range');
-    
-    // Aquí también aplicamos el bypass por si acaso la IA usa barreras en el futuro
-    if (!isInOrangeZone && !options.bypassVisuals) {
-      if (typeof showTurnPopup === 'function') showTurnPopup('El objetivo está fuera de rango.');
-      else alert('El objetivo está fuera de rango.');
-      clearTargetSelection();
-      return;
-    }
-    resolveBarrier(attacker, targetSquare);
-    return;
-  }
-
-  const targetSquare = getPieceSquare(selectedTarget);
-  
-  // 3. Validación de rango (Naranja/Púrpura)
-  const isInPurpleZone = targetSquare.classList.contains('square--range-special');
-  const isInOrangeZone = targetSquare.classList.contains('square--range');
-  
-  // Si el objetivo está en la zona Púrpura (lejos), solo permitimos poderes mentales
-  // Nota: Si bypassVisuals es true, asumimos que la IA ya ha calculado que el rango es válido para el poder usado
-  if (isInPurpleZone && !isInOrangeZone && !options.bypassVisuals) {
-      const mentalActions = ['control mental', 'telekinesis']; 
-      const normalizedKey = normalizePowerKey(actionKey); 
-
-      if (!mentalActions.includes(normalizedKey)) {
-          if (typeof showTurnPopup === 'function') showTurnPopup('El objetivo está demasiado lejos. Solo puedes usar poderes mentales aquí.');
-          else alert('Demasiado lejos.');
-          return;
-      }
-  }
-  
-  // Si no hay luz, no hay ataque (AQUÍ ESTÁ EL CAMBIO CRÍTICO VISUAL)
-  if (!isInOrangeZone && !isInPurpleZone && !options.bypassVisuals) {
-      alert('El objetivo está fuera de rango (Visual).');
-      clearTargetSelection();
-      return;
-  }
-
-  // 4. TELEKINESIS: Iniciar fase de colocación
-  if (actionKey === 'telekinesis') {
-      markActionUsed();
-      startTelekinesisPlacement(attacker, selectedTarget);
-      return; 
-  }
-
-  // 5. Resto de poderes
-  const supportAction = normalizePowerKey(actionKey);
-
-  if (supportAction === 'probabilidad') { markActionUsed(); applyProbabilidad(attacker, selectedTarget); return; }
-  if (supportAction === 'mejora de ataque') { markActionUsed(); applyStatBuff(attacker, selectedTarget, { stat: 'ataque', label: 'Mejora de Ataque' }); return; }
-  if (supportAction === 'mejora de defensa') { markActionUsed(); applyStatBuff(attacker, selectedTarget, { stat: 'defensa', label: 'Mejora de Defensa' }); return; }
-  if (supportAction === 'mejora de agilidad') { markActionUsed(); applyStatBuff(attacker, selectedTarget, { stat: 'agilidad', label: 'Mejora de Agilidad' }); return; }
-  if (supportAction === 'mejora de critico') { markActionUsed(); applyStatBuff(attacker, selectedTarget, { stat: 'critico', label: 'Mejora de Crítico' }); return; }
-  if (supportAction === 'curar') { markActionUsed(); resolveHeal(attacker, selectedTarget); return; }
-
-  if (actionKey === 'incapacitar') {
-    markActionUsed();
-    const tStats = pieceMap.get(selectedTarget);
-    if (tStats.incapacitatedTurns > 0) {
-       showTurnPopup(`¡${tStats.name} ya está incapacitado!`);
-       return;
-    }
-    resolveAttack(attacker, selectedTarget, 'incapacitar', { allowCounter: false });
-    return;
-  }
-
-  if (actionKey === 'control mental') {
-    markActionUsed();
-    const tStats = pieceMap.get(selectedTarget);
-    if (tStats.mindControlled) {
-        showTurnPopup(`¡${tStats.name} ya está bajo control mental!`);
-        return;
-    }
-    // FIX: Añadido { allowCounter: false } para evitar contragolpe
-    resolveAttack(attacker, selectedTarget, 'control mental', { allowCounter: false });
-    return;
-  }
-
-  // 6. Ataque estándar y Explosión
-  prepareAttackInfo(attacker, selectedTarget, actionKey);
-  
-  if (actionKey === 'explosion') {
-    markActionUsed();
-    resolveExplosion(attacker, selectedTarget);
-  } else {
-    markActionUsed();
-    resolveAttack(attacker, selectedTarget, actionKey);
-  }
+  currentAction = 'attack';
 }
 
 
@@ -3861,21 +3670,12 @@ function startGame() {
       // Efecto visual del botón
       attackButton.classList.remove('button--pulse');
 
-      // Ejecutar la acción según lo que esté seleccionado
-      if (currentAction === 'explosion') {
-        if (selectedTarget && selectedTarget.classList?.contains('piece')) {
-          flashTargetPiece(selectedTarget, isEnemy(activePiece, selectedTarget) ? 'enemy' : 'ally');
-        }
-        markActionUsed();
-        resolveExplosion(activePiece, selectedTarget);
-      } else {
-        // Ataques normales, Incapacitar, Control Mental, etc.
-        if (selectedTarget && selectedTarget.classList?.contains('piece')) {
-          flashTargetPiece(selectedTarget, isEnemy(activePiece, selectedTarget) ? 'enemy' : 'ally');
-        }
-        markActionUsed();
-        resolveAttack(activePiece, selectedTarget, currentAction);
+      currentAction = 'attack';
+      if (selectedTarget && selectedTarget.classList?.contains('piece')) {
+        flashTargetPiece(selectedTarget, isEnemy(activePiece, selectedTarget) ? 'enemy' : 'ally');
       }
+      markActionUsed();
+      resolveAttack(activePiece, selectedTarget, 'attack');
     });
 
     // -----------------------------------------------------------

@@ -191,37 +191,11 @@ function selectBestEnemyAction(piece, targetPiece) {
 }
 
 async function performEnemyTurn(piece) {
-    const stats = pieceMap.get(piece);
-    if (!stats) {
-        await sleep(ENEMY_ACTION_DELAY_MS);
-        playEffectSound(passTurnSound);
-        finishTurn(piece);
-        return;
-    }
+    if (!piece) return;
     await waitForPopupsToClose();
     await sleep(ENEMY_ACTION_DELAY_MS);
-    const highDamageProfile = isHighDamageProfile(stats);
-    const mediumDamageProfile = isMediumDamageProfile(stats);
-    const enemiesInRange = getEnemiesInRange(piece);
-    const alliesInRange = getAlliesInRange(piece);
-    const enemiesReachable = getEnemiesInMoveRange(piece);
-    const allEnemies = getVisibleEnemies(piece, { requireVisibility: false });
-
-    if (allEnemies.length === 0) {
-        return;
-    }
-
-    if (highDamageProfile) {
-        await handleHighDamageFlow(piece, stats, { enemiesInRange, alliesInRange, enemiesReachable });
-        return;
-    }
-
-    if (mediumDamageProfile) {
-        await handleMediumDamageFlow(piece, stats, { enemiesInRange, alliesInRange, enemiesReachable });
-        return;
-    }
-
-    await handleLowDamageFlow(piece, stats, { enemiesInRange, alliesInRange, enemiesReachable });
+    playEffectSound(passTurnSound);
+    finishTurn(piece);
 }
 
 async function waitForPopupsToClose() {
