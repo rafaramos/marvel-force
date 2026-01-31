@@ -77,8 +77,86 @@ function performAIPick() {
    2. LÓGICA DE TURNO (IA EN PARTIDA)
    ========================================================================== */
 
-function performEnemyTurn(piece) {
+async function performEnemyTurn(piece) {
     if (!piece) return;
+    const origin = getPieceSquare(piece);
+    if (!origin) {
+        playEffectSound(passTurnSound);
+        finishTurn(piece);
+        return;
+    }
+
+    const enemies = pieces
+        .map((p) => p.element)
+        .filter((element) => element && element.dataset.team !== piece.dataset.team && element.dataset.eliminated !== 'true');
+    if (enemies.length === 0) {
+        playEffectSound(passTurnSound);
+        finishTurn(piece);
+        return;
+    }
+
+    const attackRange = rangeForPiece(piece);
+    const enemiesInRange = enemies.filter((enemy) => {
+        const targetSquare = getPieceSquare(enemy);
+        return targetSquare && isWithinAttackRange(origin, targetSquare, attackRange);
+    });
+
+    computeReachableSquares(piece);
+    const reachableSquares = Array.from(movementDistances.keys());
+    reachableSquares.push(origin);
+
+    const moveToSquare = async (square) => {
+        if (!square || square === origin) return;
+        const distance = movementDistances.get(square);
+        if (distance === undefined) return;
+        await animatePieceToSquare(piece, square);
+        spendMovement(piece, distance);
+    };
+
+    if (enemiesInRange.length > 0) {
+        let best = null;
+        enemiesInRange.forEach((enemy) => {
+            const enemySquare = getPieceSquare(enemy);
+            if (!enemySquare) return;
+            reachableSquares.forEach((square) => {
+                if (!isWithinAttackRange(square, enemySquare, attackRange)) return;
+                const distance = attackDistance(square, enemySquare);
+                const moveCost = square === origin ? 0 : (movementDistances.get(square) ?? Infinity);
+                if (!best || distance > best.distance || (distance === best.distance && moveCost < best.moveCost)) {
+                    best = { enemy, square, distance, moveCost };
+                }
+            });
+        });
+
+        if (best) {
+            await moveToSquare(best.square);
+            await resolveAttack(piece, best.enemy, 'attack');
+            return;
+        }
+    }
+
+    let gapCloser = null;
+    enemies.forEach((enemy) => {
+        const enemySquare = getPieceSquare(enemy);
+        if (!enemySquare) return;
+        const enemyDistFromOrigin = attackDistance(origin, enemySquare);
+        reachableSquares.forEach((square) => {
+            if (!isWithinAttackRange(square, enemySquare, attackRange)) return;
+            const moveCost = square === origin ? 0 : (movementDistances.get(square) ?? Infinity);
+            if (!gapCloser || moveCost < gapCloser.moveCost ||
+                (moveCost === gapCloser.moveCost && enemyDistFromOrigin < gapCloser.enemyDistFromOrigin)) {
+                gapCloser = { enemy, square, moveCost, enemyDistFromOrigin };
+            }
+        });
+    });
+
+    if (gapCloser) {
+        await moveToSquare(gapCloser.square);
+        await resolveAttack(piece, gapCloser.enemy, 'attack');
+        return;
+    }
+
+    clearHighlights();
     playEffectSound(passTurnSound);
     finishTurn(piece);
 }
