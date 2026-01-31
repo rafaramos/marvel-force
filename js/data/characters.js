@@ -197,7 +197,7 @@ const personajes = {
     imagen: 'assets/images/tokens/boomerang.webp',
     animacion: 'assets/images/animations/boomerang.webp',
     poderes: poderesFuente.boomerang,
-    habilidades: { activas: ['Incapacitar','Explosión', 'Experto a/d', 'Defensa a/d'], pasivas: [] }
+    habilidades: { activas: ['Incapacitar','Explosión', 'Defensa a/d'], pasivas: ['Experto a/d'] }
   },
   kingpin: {
     nombre: 'Kingpin',
@@ -239,6 +239,20 @@ const personajes = {
     imagen: 'assets/images/tokens/jeanGrey.webp',
     animacion: 'assets/images/animations/jeanGrey.webp',
     poderes: poderesFuente.jeanGrey,
+    habilidades: { activas: ['Telekinesis', 'Curar'], pasivas: ['Defensa a/d'] }
+  },
+  phoenix: {
+    nombre: 'Phoenix',
+    movimiento: 5,
+    ataque: 9,
+    defensa: 16,
+    dano: 2,
+    rango: 5,
+    vida: 7,
+    agilidad: 10,
+    imagen: 'assets/images/tokens/phoenix.webp',
+    animacion: 'assets/images/animations/phoenix.webp',
+    poderes: poderesFuente.phoenix,
     habilidades: { activas: ['Telekinesis', 'Curar'], pasivas: ['Defensa a/d'] }
   },
   duende: {
@@ -289,7 +303,7 @@ const personajes = {
     ataque: 7,
     defensa: 15,
     dano: 1,
-    rango: 2,
+    rango: 1,
     vida: 5,
     agilidad: 10,
     imagen: 'assets/images/tokens/maestroMarionetas.webp',
@@ -309,7 +323,7 @@ const personajes = {
     imagen: 'assets/images/tokens/annihilus.webp',
     animacion: 'assets/images/animations/annihilus.webp',
     poderes: poderesFuente.annihilus,
-    habilidades: { activas: [], pasivas: ['Invulnerable','Volar'] }
+    habilidades: { activas: [], pasivas: ['Invulnerabilidad','Volar'] }
   },
   capitanAmerica: {
     nombre: 'Capitán América',
@@ -331,7 +345,7 @@ const personajes = {
     ataque: 12,
     defensa: 18,
     dano: 2,
-    rango: 3,
+    rango: 2,
     vida: 9,
     agilidad: 50,
     imagen: 'assets/images/tokens/spiderMan.webp',
@@ -339,12 +353,26 @@ const personajes = {
     poderes: poderesFuente.spiderMan,
     habilidades: { activas: ['Incapacitar'], pasivas: ['Saltar/Trepar','Astucia','Doble ataque c/c','Mejora de Defensa'] }
   },
+  spiderManTrajeNegro: {
+    nombre: 'Spider-Man',
+    movimiento: 5,
+    ataque: 12,
+    defensa: 18,
+    dano: 3,
+    rango: 2,
+    vida: 9,
+    agilidad: 30,
+    imagen: 'assets/images/tokens/spiderManTrajeNegro.webp',
+    animacion: 'assets/images/animations/spiderManTrajeNegro.webp',
+    poderes: poderesFuente.spiderManTrajeNegro,
+    habilidades: { activas: ['Incapacitar'], pasivas: ['Saltar/Trepar','Astucia','Doble ataque c/c','Mejora de Defensa','Superfuerza','Dureza'] }
+  },
   lobezno: {
     nombre: 'Lobezno',
     movimiento: 4,
-    ataque: 12,
+    ataque: 10,
     defensa: 16,
-    dano: 2,
+    dano: 3,
     rango: 1,
     vida: 8,
     agilidad: 30,
@@ -353,8 +381,8 @@ const personajes = {
     poderes: poderesFuente.lobezno,
     habilidades: { activas: [], pasivas: ['Sigilo','Filo','Dureza','Regeneración' ] }
   },
-  profesorXavier: {
-    nombre: 'Profesor Xavier',
+  profesorX: {
+    nombre: 'Profesor X',
     movimiento: 3,
     ataque: 11,
     defensa: 16,
@@ -362,9 +390,9 @@ const personajes = {
     rango: 5,
     vida: 7,
     agilidad: 10,
-    imagen: 'assets/images/tokens/profesorXavier.webp',
-    animacion: 'assets/images/animations/profesorXavier.webp',
-    poderes: poderesFuente.profesorXavier,
+    imagen: 'assets/images/tokens/profesorX.webp',
+    animacion: 'assets/images/animations/profesorX.webp',
+    poderes: poderesFuente.profesorX,
     habilidades: { activas: ['Control Mental','Mejora de Defensa','Mejora de Agilidad'], pasivas: [] }
   },
   juggernaut: {
@@ -379,7 +407,7 @@ const personajes = {
     imagen: 'assets/images/tokens/juggernaut.webp',
     animacion: 'assets/images/animations/juggernaut.webp',
     poderes: poderesFuente.juggernaut,
-    habilidades: { activas: [], pasivas: ['Superfuerza','Invulnerable'] }
+    habilidades: { activas: [], pasivas: ['Superfuerza','Invulnerabilidad'] }
   },
   ciclope: {
     nombre: 'Cíclope',
@@ -463,7 +491,7 @@ const personajes = {
     imagen: 'assets/images/tokens/daredevil.webp',
     animacion: 'assets/images/animations/daredevil.webp',
     poderes: poderesFuente.daredevil,
-    habilidades: { activas: ['Incapacitar'], pasivas: [] }
+    habilidades: { activas: ['Incapacitar'], pasivas: ['Saltar/Trepar','Astucia','Sigilo'] }
   },
   bullseye: {
     nombre: 'Bullseye',
@@ -575,7 +603,7 @@ const personajes = {
     imagen: 'assets/images/tokens/picara.webp',
     animacion: 'assets/images/animations/picara.webp',
     poderes: poderesFuente.picara,
-    habilidades: { activas: [], pasivas: ['Robo de Vida','Invulnerable','Volar'] }
+    habilidades: { activas: [], pasivas: ['Robo de Vida','Invulnerabilidad','Volar'] }
   },
   drExtrano: {
     nombre: 'Dr Extraño',
@@ -617,7 +645,7 @@ const personajes = {
     imagen: 'assets/images/tokens/kang.webp',
     animacion: 'assets/images/animations/kang.webp',
     poderes: poderesFuente.kang,
-    habilidades: { activas: ['Incapacitar','Pulso'], pasivas: ['Invulnerable','Experto a/d','Fase'] }
+    habilidades: { activas: ['Incapacitar','Pulso'], pasivas: ['Invulnerabilidad','Experto a/d','Fase'] }
   },
   ultron: {
     nombre: 'Ultrón',
@@ -631,7 +659,7 @@ const personajes = {
     imagen: 'assets/images/tokens/ultron.webp',
     animacion: 'assets/images/animations/ultron.webp',
     poderes: poderesFuente.ultron,
-    habilidades: { activas: ['Explosión'], pasivas: ['Invulnerable','Volar'] }
+    habilidades: { activas: ['Explosión'], pasivas: ['Invulnerabilidad','Volar'] }
   },
   firelord: {
     nombre: 'Firelord',
@@ -659,7 +687,7 @@ const personajes = {
     imagen: 'assets/images/tokens/vision.webp',
     animacion: 'assets/images/animations/vision.webp',
     poderes: poderesFuente.vision,
-    habilidades: { activas: [], pasivas: ['Volar','Superfuerza','Invulnerable'] }
+    habilidades: { activas: [], pasivas: ['Volar','Superfuerza','Invulnerabilidad'] }
   },
   quasar: {
     nombre: 'Quasar',
@@ -687,7 +715,7 @@ const personajes = {
     imagen: 'assets/images/tokens/thanos.webp',
     animacion: 'assets/images/animations/thanos.webp',
     poderes: poderesFuente.thanos,
-    habilidades: { activas: [], pasivas: ['Invulnerable','Regeneración','Volar'] }
+    habilidades: { activas: [], pasivas: ['Invulnerabilidad','Regeneración','Volar'] }
   },
   pesadilla: {
     nombre: 'Pesadilla',
@@ -701,7 +729,7 @@ const personajes = {
     imagen: 'assets/images/tokens/pesadilla.webp',
     animacion: 'assets/images/animations/pesadilla.webp',
     poderes: poderesFuente.pesadilla,
-    habilidades: { activas: ['Incapacitar','Mejora de Ataque'], pasivas: ['Robo de Vida','Invulnerable'] }
+    habilidades: { activas: ['Incapacitar','Mejora de Ataque'], pasivas: ['Robo de Vida','Invulnerabilidad'] }
   },
   centinela: {
     nombre: 'Centinela',
