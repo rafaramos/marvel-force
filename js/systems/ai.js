@@ -105,25 +105,21 @@ async function performEnemyTurn(piece) {
     const reachableSquares = Array.from(movementDistances.keys());
     reachableSquares.push(origin);
 
+    const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+    const flashAITarget = async (target) => {
+        if (!target) return;
+        target.classList.add('piece--ai-target-enemy');
+        await sleep(500);
+        target.classList.remove('piece--ai-target-enemy');
+    };
+
     const moveToSquare = async (square) => {
         if (!square || square === origin) return;
         const distance = movementDistances.get(square);
         if (distance === undefined) return;
         await animatePieceToSquare(piece, square);
         spendMovement(piece, distance);
-    };
-
-    const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-
-    const flashAITarget = async (target) => {
-        if (!target) return;
-        const attackerTeam = piece.dataset.team;
-        const className = target.dataset.team === attackerTeam
-            ? 'piece--ai-target-ally'
-            : 'piece--ai-target-enemy';
-        target.classList.add(className);
-        await sleep(500);
-        target.classList.remove(className);
     };
 
     if (enemiesInRange.length > 0) {
@@ -142,7 +138,12 @@ async function performEnemyTurn(piece) {
         });
 
         if (best) {
-            await moveToSquare(best.square);
+            if (best.square === origin) {
+                await sleep(500);
+            } else {
+                await moveToSquare(best.square);
+                await sleep(300);
+            }
             await flashAITarget(best.enemy);
             await resolveAttack(piece, best.enemy, 'attack');
             return;
@@ -166,6 +167,7 @@ async function performEnemyTurn(piece) {
 
     if (gapCloser) {
         await moveToSquare(gapCloser.square);
+        await sleep(300);
         await flashAITarget(gapCloser.enemy);
         await resolveAttack(piece, gapCloser.enemy, 'attack');
         return;
