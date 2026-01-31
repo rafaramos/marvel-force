@@ -105,7 +105,7 @@ const board = document.querySelector('.board');
       
       let pendingPopupSound = null;
       const BOARD_ROWS = 10;
-      const BOARD_COLS = 16;
+      const BOARD_COLS = 10;
       const backgroundMusic = new Audio('assets/audio/music/Endgame.mp3');
       backgroundMusic.loop = true;
       backgroundMusic.volume = 0.35;
@@ -1231,8 +1231,8 @@ function rangeForAction(attacker) {
       const attackValue = attackerStats.ataque + roll;
       const success = attackValue >= effectiveDefense;
 
-      const critical = roll === 12;
-      const isPifia = roll === 2;
+      const critical = roll >= 10;
+      const isPifia = roll <= 4;
 
       const defenderRange = effectiveRangeFromStats(defenderStats);
       const shouldCounter = allowCounter && isPifia && distance <= defenderRange;
@@ -1242,7 +1242,7 @@ function rangeForAction(attacker) {
     
 
     function isCriticalRoll(roll) {
-      return roll === 12;
+      return roll >= 10;
     }
 
     function queueDeathMessage(message) {
