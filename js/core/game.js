@@ -1593,7 +1593,7 @@ async function resolveAttack(attacker, defender, actionKey = 'attack', options =
           allowCounter: false,
           skipTurnAdvance: true,
           actionLabelOverride: 'Réplica',
-          showPopup,
+          showPopup: true,
           logHistory,
         });
         if (!skipTurnAdvance && showPopup) registerActionUsage(attacker, { showPopup: false });
