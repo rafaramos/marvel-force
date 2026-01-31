@@ -979,7 +979,7 @@ body {
   width: calc(100% - 32px);
   max-width: none;
   padding: clamp(14px, 1.8vw, 28px) clamp(18px, 2vw, 32px);
-  background: linear-gradient(120deg, rgba(0, 0, 0, 0.78), rgba(15, 77, 32, 0.9));
+  background: linear-gradient(120deg, rgba(0, 0, 0, 0.78), rgba(0, 0, 0, 0.9));
   border-radius: 14px;
   box-shadow: 0 16px 30px rgba(0, 0, 0, 0.45);
   z-index: 5;
@@ -1086,11 +1086,11 @@ body {
 }
 
 .duel-card__overlay--attacker {
-  background: linear-gradient(200deg, rgba(24, 114, 255, 0.55), rgba(11, 40, 94, 0.9));
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0.85));
 }
 
 .duel-card__overlay--defender {
-  background: linear-gradient(200deg, rgba(255, 71, 102, 0.65), rgba(115, 16, 35, 0.9));
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0.85));
 }
 
 .duel-card__label {
