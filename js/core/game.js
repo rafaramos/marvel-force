@@ -394,20 +394,36 @@ let activeBarriers = []; // Nueva lista para rastrear barreras activas
         .replace(/[\u0300-\u036f]/g, '');
     }
 
+    function mergePowerLists(primaryList = [], fallbackList = []) {
+      const seen = new Set();
+      return [...primaryList, ...fallbackList].filter((entry) => {
+        const key = normalizePowerKey(entry?.nombre ?? entry);
+        if (!key) return false;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+    }
+
+    function resolvePowerSets(stats) {
+      const powers = stats?.poderes || { activos: [], pasivos: [] };
+      const legacy = stats?.habilidades || { activas: [], pasivas: [] };
+      return {
+        activos: mergePowerLists(powers.activos || [], legacy.activas || []),
+        pasivos: mergePowerLists(powers.pasivos || [], legacy.pasivas || []),
+      };
+    }
+
     function hasPassive(stats, key) {
       const search = normalizePowerKey(key);
-      const powerList = stats?.poderes?.pasivos || [];
-      const legacyList = stats?.habilidades?.pasivas || [];
-      const normalized = [
-        ...powerList.map((entry) => normalizePowerKey(entry?.nombre ?? entry)),
-        ...legacyList.map((entry) => normalizePowerKey(entry?.nombre ?? entry)),
-      ];
+      const powerList = resolvePowerSets(stats).pasivos;
+      const normalized = powerList.map((entry) => normalizePowerKey(entry?.nombre ?? entry));
       return normalized.includes(search);
     }
 
     function hasActive(stats, key) {
       const search = normalizePowerKey(key);
-      const list = stats?.poderes?.activos || [];
+      const list = resolvePowerSets(stats).activos;
       return list.map((entry) => normalizePowerKey(entry?.nombre ?? entry)).includes(search);
     }
 
@@ -477,7 +493,7 @@ function registerTurnSound({ damageDealt = 0, attackFailed = false, zeroDamageHi
       const stats = pieceStats[key];
       if (!stats) return;
 
-      const rawPowers = stats.poderes || { activos: [], pasivos: [] };
+      const rawPowers = resolvePowerSets(stats);
 
       // Filtramos las listas eliminando los que estén en la lista negra
       const filteredPowers = {
@@ -1478,7 +1494,7 @@ function showTooltip(target, isDraft = false) {
           baseAtaque: raw.ataque,
           baseDefensa: raw.defensa,
           baseAgilidad: raw.agilidad,
-          poderes: raw.poderes || { activos: [], pasivos: [] }
+          poderes: resolvePowerSets(raw)
       };
   } else {
       stats = pieceMap.get(target);
