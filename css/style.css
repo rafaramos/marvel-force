@@ -3,7 +3,7 @@
    ========================================= */
 :root {
   --square-size: 70px;
-  --board-columns: 16;
+  --board-columns: 10;
   --board-rows: 10;
   --board-width: calc(var(--square-size) * var(--board-columns));
   --board-height: calc(var(--square-size) * var(--board-rows));
@@ -1315,7 +1315,7 @@ body {
 
 @media (max-width: 900px) {
   :root {
-    --square-size: calc(95vw / 16); 
+    --square-size: calc(95vw / 10); 
   }
 
   .board {
