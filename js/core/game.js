@@ -42,33 +42,33 @@ const board = document.querySelector('.board');
       const SCORE_PER_DAMAGE = 10;
       const SCORE_PER_KILL = 50;
       
-      const punchSound = new Audio('sonidos/efectos/punch.mp3');
-      const ohSound = new Audio('sonidos/efectos/oh.mp3');
-      const failureSound = new Audio('sonidos/efectos/failure.mp3');
-      const passTurnSound = new Audio('sonidos/efectos/pasar.wav');
-      const deathSound = new Audio('sonidos/efectos/muerte.wav');
+      const punchSound = new Audio('assets/audio/sfx/punch.mp3');
+      const ohSound = new Audio('assets/audio/sfx/oh.mp3');
+      const failureSound = new Audio('assets/audio/sfx/failure.mp3');
+      const passTurnSound = new Audio('assets/audio/sfx/pasar.wav');
+      const deathSound = new Audio('assets/audio/sfx/muerte.wav');
 
-      const criticoSound = new Audio('sonidos/efectos/critico.mp3');
-      const pifiaSound = new Audio('sonidos/efectos/pifia.mp3');
+      const criticoSound = new Audio('assets/audio/sfx/critico.mp3');
+      const pifiaSound = new Audio('assets/audio/sfx/pifia.mp3');
 
-      const bonusConfirmSound = new Audio('sonidos/efectos/click.wav');
+      const bonusConfirmSound = new Audio('assets/audio/sfx/click.wav');
 
-      const controlMentalSound = new Audio('sonidos/efectos/controlMental.mp3');
-      const curarSound = new Audio('sonidos/efectos/curar.mp3');
-      const explosionSound = new Audio('sonidos/efectos/explosion.mp3');
-      const incapacitarSound = new Audio('sonidos/efectos/incapacitar.wav');
-      const pulsoSound = new Audio('sonidos/efectos/pulso.wav');
-      const telekinesisSound = new Audio('sonidos/efectos/telekinesis.wav');
-      const barrierSound = new Audio('sonidos/efectos/barrera.wav');
+      const controlMentalSound = new Audio('assets/audio/sfx/controlMental.mp3');
+      const curarSound = new Audio('assets/audio/sfx/curar.mp3');
+      const explosionSound = new Audio('assets/audio/sfx/explosion.mp3');
+      const incapacitarSound = new Audio('assets/audio/sfx/incapacitar.wav');
+      const pulsoSound = new Audio('assets/audio/sfx/pulso.wav');
+      const telekinesisSound = new Audio('assets/audio/sfx/telekinesis.wav');
+      const barrierSound = new Audio('assets/audio/sfx/barrera.wav');
 
       // --- NUEVO: Configuración de Objetos ---
-    const objectSound = new Audio('sonidos/efectos/objeto.wav');
+    const objectSound = new Audio('assets/audio/sfx/objeto.wav');
     
     const MAP_OBJECTS = [
-        { name: 'Autobús', type: 'heavy', img: 'objetos/autobus.webp' },
-        { name: 'Coche', type: 'heavy', img: 'objetos/coche.webp' },
-        { name: 'Moto', type: 'light', img: 'objetos/moto.webp' },
-        { name: 'Semáforo', type: 'light', img: 'objetos/semaforo.webp' }
+        { name: 'Autobús', type: 'heavy', img: 'assets/images/objects/autobus.webp' },
+        { name: 'Coche', type: 'heavy', img: 'assets/images/objects/coche.webp' },
+        { name: 'Moto', type: 'light', img: 'assets/images/objects/moto.webp' },
+        { name: 'Semáforo', type: 'light', img: 'assets/images/objects/semaforo.webp' }
     ];
 
     function placeGameObjects() {
@@ -105,11 +105,11 @@ const board = document.querySelector('.board');
       let pendingPopupSound = null;
       const BOARD_ROWS = 10;
       const BOARD_COLS = 16;
-      const backgroundMusic = new Audio('sonidos/sintonias/Endgame.mp3');
+      const backgroundMusic = new Audio('assets/audio/music/Endgame.mp3');
       backgroundMusic.loop = true;
       backgroundMusic.volume = 0.35;
 
-      const introMusic = new Audio('sonidos/sintonias/introduccion.wav');
+      const introMusic = new Audio('assets/audio/music/introduccion.wav');
       introMusic.loop = true; // Para que se repita si tardas mucho en elegir
       introMusic.volume = 0.4; // Ajusta el volumen si quieres
 
@@ -636,7 +636,7 @@ function registerTurnSound({ damageDealt = 0, attackFailed = false, zeroDamageHi
       if (key && ANIMATION_OVERRIDES[key]) {
         return ANIMATION_OVERRIDES[key];
       }
-      const candidate = key ? `animaciones/${key}.webp` : null;
+      const candidate = key ? `assets/images/animations/${key}.webp` : null;
       return stats?.animacion || stats?.imagen || candidate || '';
     }
 
