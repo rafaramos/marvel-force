@@ -95,16 +95,6 @@ async function performEnemyTurn(piece) {
         return;
     }
 
-    const attackRange = rangeForPiece(piece);
-    const enemiesInRange = enemies.filter((enemy) => {
-        const targetSquare = getPieceSquare(enemy);
-        return targetSquare && isWithinAttackRange(origin, targetSquare, attackRange);
-    });
-
-    computeReachableSquares(piece);
-    const reachableSquares = Array.from(movementDistances.keys());
-    reachableSquares.push(origin);
-
     const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
     const flashAITarget = async (target) => {
@@ -122,6 +112,25 @@ async function performEnemyTurn(piece) {
         spendMovement(piece, distance);
     };
 
+    const attackRange = rangeForPiece(piece);
+    const distanceToEnemy = (enemy) => {
+        const enemySquare = getPieceSquare(enemy);
+        return enemySquare ? attackDistance(origin, enemySquare) : Infinity;
+    };
+    const closestEnemy = enemies
+        .slice()
+        .sort((a, b) => distanceToEnemy(a) - distanceToEnemy(b))[0];
+
+    const enemiesInRange = enemies.filter((enemy) => {
+        const targetSquare = getPieceSquare(enemy);
+        return targetSquare && isWithinAttackRange(origin, targetSquare, attackRange);
+    });
+
+    computeReachableSquares(piece);
+    const reachableSquares = Array.from(movementDistances.keys());
+    reachableSquares.push(origin);
+
+    // Regla 1: Kiting
     if (enemiesInRange.length > 0) {
         let best = null;
         enemiesInRange.forEach((enemy) => {
@@ -151,28 +160,44 @@ async function performEnemyTurn(piece) {
         }
     }
 
-    let gapCloser = null;
-    enemies.forEach((enemy) => {
-        const enemySquare = getPieceSquare(enemy);
-        if (!enemySquare) return;
-        const enemyDistFromOrigin = attackDistance(origin, enemySquare);
+    // Regla 2: Gap Closer
+    if (closestEnemy) {
+        let gapCloser = null;
+        const closestEnemySquare = getPieceSquare(closestEnemy);
+        if (closestEnemySquare) {
+            reachableSquares.forEach((square) => {
+                if (!isWithinAttackRange(square, closestEnemySquare, attackRange)) return;
+                const moveCost = square === origin ? 0 : (movementDistances.get(square) ?? Infinity);
+                if (!gapCloser || moveCost < gapCloser.moveCost) {
+                    gapCloser = { enemy: closestEnemy, square, moveCost };
+                }
+            });
+        }
+
+        if (gapCloser) {
+            await moveToSquare(gapCloser.square);
+            await sleep(300);
+            highlightRange(piece);
+            await flashAITarget(gapCloser.enemy);
+            await resolveAttack(piece, gapCloser.enemy, 'attack');
+            return;
+        }
+    }
+
+    // Regla 3: Avance agresivo
+    if (closestEnemy) {
+        const closestEnemySquare = getPieceSquare(closestEnemy);
+        let advanceSquare = origin;
+        let bestDistance = closestEnemySquare ? attackDistance(origin, closestEnemySquare) : Infinity;
         reachableSquares.forEach((square) => {
-            if (!isWithinAttackRange(square, enemySquare, attackRange)) return;
-            const moveCost = square === origin ? 0 : (movementDistances.get(square) ?? Infinity);
-            if (!gapCloser || moveCost < gapCloser.moveCost ||
-                (moveCost === gapCloser.moveCost && enemyDistFromOrigin < gapCloser.enemyDistFromOrigin)) {
-                gapCloser = { enemy, square, moveCost, enemyDistFromOrigin };
+            if (!closestEnemySquare) return;
+            const distance = attackDistance(square, closestEnemySquare);
+            if (distance < bestDistance) {
+                bestDistance = distance;
+                advanceSquare = square;
             }
         });
-    });
-
-    if (gapCloser) {
-        await moveToSquare(gapCloser.square);
-        await sleep(300);
-        highlightRange(piece);
-        await flashAITarget(gapCloser.enemy);
-        await resolveAttack(piece, gapCloser.enemy, 'attack');
-        return;
+        await moveToSquare(advanceSquare);
     }
 
     clearHighlights();
