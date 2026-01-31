@@ -113,6 +113,19 @@ async function performEnemyTurn(piece) {
         spendMovement(piece, distance);
     };
 
+    const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+    const flashAITarget = async (target) => {
+        if (!target) return;
+        const attackerTeam = piece.dataset.team;
+        const className = target.dataset.team === attackerTeam
+            ? 'piece--ai-target-ally'
+            : 'piece--ai-target-enemy';
+        target.classList.add(className);
+        await sleep(500);
+        target.classList.remove(className);
+    };
+
     if (enemiesInRange.length > 0) {
         let best = null;
         enemiesInRange.forEach((enemy) => {
@@ -130,6 +143,7 @@ async function performEnemyTurn(piece) {
 
         if (best) {
             await moveToSquare(best.square);
+            await flashAITarget(best.enemy);
             await resolveAttack(piece, best.enemy, 'attack');
             return;
         }
@@ -152,6 +166,7 @@ async function performEnemyTurn(piece) {
 
     if (gapCloser) {
         await moveToSquare(gapCloser.square);
+        await flashAITarget(gapCloser.enemy);
         await resolveAttack(piece, gapCloser.enemy, 'attack');
         return;
     }

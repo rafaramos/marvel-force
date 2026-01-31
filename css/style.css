@@ -869,14 +869,15 @@ body {
   inset: 0;
   z-index: 2;
   pointer-events: none;
+  box-shadow: 0 0 12px rgba(255, 255, 255, 0.5);
 }
 
 .piece--ai-target-ally::before {
-  background: rgba(255, 0, 0, 0.35);
+  background: rgba(0, 200, 140, 0.4);
 }
 
 .piece--ai-target-enemy::before {
-  background: rgba(0, 0, 0, 0.45);
+  background: rgba(255, 40, 40, 0.45);
 }
 
 .life-card--eliminated {
