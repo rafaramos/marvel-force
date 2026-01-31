@@ -50,7 +50,6 @@ const board = document.querySelector('.board');
       const deathSound = new Audio('assets/audio/sfx/muerte.wav');
 
       const criticoSound = new Audio('assets/audio/sfx/critico.mp3');
-      const pifiaSound = new Audio('assets/audio/sfx/pifia.mp3');
 
       const bonusConfirmSound = new Audio('assets/audio/sfx/click.wav');
 
@@ -1232,12 +1231,10 @@ function rangeForAction(attacker) {
       const success = attackValue >= effectiveDefense;
 
       const critical = roll >= 10;
-      const isPifia = roll <= 4;
-
       const defenderRange = effectiveRangeFromStats(defenderStats);
-      const shouldCounter = allowCounter && isPifia && distance <= defenderRange;
+      const shouldCounter = allowCounter && roll <= 4 && distance <= defenderRange;
       
-      return { success, critical, isPifia, shouldCounter };
+      return { success, critical, shouldCounter };
     }
     
 
@@ -1537,12 +1534,11 @@ async function resolveAttack(attacker, defender, actionKey = 'attack', options =
       const die2 = Math.floor(Math.random() * 6) + 1;
       const roll = die1 + die2;
       
-      const { success, critical, isPifia, shouldCounter } = evaluateAttackRoll(
+      const { success, critical, shouldCounter } = evaluateAttackRoll(
         attackerStats, defenderStats, roll, distance, { allowCounter }
       );
 
       if (critical) playEffectSound(criticoSound);
-      if (isPifia) playEffectSound(pifiaSound);
 
       const { totalDamage, isMelee } = calculateDamage(attackerStats, distance, critical);
       const needed = Math.max(2, defenderStats.defensa - attackerStats.ataque);
@@ -1572,7 +1568,7 @@ async function resolveAttack(attacker, defender, actionKey = 'attack', options =
       }
 
       // Sonido e Interfaz
-      const skipFailureSound = isPifia; 
+      const skipFailureSound = false; 
       const isZeroDamageHit = success && damageApplied === 0;
       registerTurnSound({ 
         damageDealt: damageApplied, 
@@ -1587,7 +1583,7 @@ async function resolveAttack(attacker, defender, actionKey = 'attack', options =
       // Flujo de Pifia / Doble Ataque / Fin de Turno
       if (shouldCounter && defenderStats.currentVida > 0 && defender.dataset.eliminated !== 'true') {
         if (showPopup) {
-          await showTurnPopup(`¡PIFIA! ${attackerStats.name} ha fallado estrepitosamente.\n${defenderStats.name} prepara su contraataque.\n(Haz clic para resolver la réplica)`);
+          await showTurnPopup(`${defenderStats.name} prepara su contraataque.\n(Haz clic para resolver la réplica)`);
           await sleep(300);
         }
         await resolveAttack(defender, attacker, 'attack', {
