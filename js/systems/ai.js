@@ -144,6 +144,7 @@ async function performEnemyTurn(piece) {
                 await moveToSquare(best.square);
                 await sleep(300);
             }
+            highlightRange(piece);
             await flashAITarget(best.enemy);
             await resolveAttack(piece, best.enemy, 'attack');
             return;
@@ -168,6 +169,7 @@ async function performEnemyTurn(piece) {
     if (gapCloser) {
         await moveToSquare(gapCloser.square);
         await sleep(300);
+        highlightRange(piece);
         await flashAITarget(gapCloser.enemy);
         await resolveAttack(piece, gapCloser.enemy, 'attack');
         return;
