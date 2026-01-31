@@ -1,19 +1,19 @@
 const poderes = {
-  agenteShield: {
+  shieldAgente: {
     activos: [],
     pasivos: [],
   },
-  medicoShield: {
+  shieldMedico: {
     activos: [
       { nombre: 'Curar', descripcion: 'El personaje selecciona un compañero al que curar. Es como un ataque cuerpo a cuerpo con el modificador de los puntos de daño recibidos. Los puntos de daño recibidos es la diferencia entre los puntos de vida base y los actuales. Así que la tirada es ataque del atacante + daño recibido por el defensor + 2d6 deben ser iguales o mayores que la defensa del defensor. Si la tirada es acertada, el atacante tirará un 1d6 para calcular los puntos de vida que recupera el defensor, que nunca podrán ser superiores al daño recibido por el defensor.' }
     ],
     pasivos: [],
   },
-  agenteHydra: {
+  hydraAgente: {
     activos: [],
     pasivos: [],
   },
-  medicoHydra: {
+  hydraMedico: {
     activos: [
       { nombre: 'Curar', descripcion: 'El personaje selecciona un compañero al que curar. Es como un ataque cuerpo a cuerpo con el modificador de los puntos de daño recibidos. Los puntos de daño recibidos es la diferencia entre los puntos de vida base y los actuales. Así que la tirada es ataque del atacante + daño recibido por el defensor + 2d6 deben ser iguales o mayores que la defensa del defensor. Si la tirada es acertada, el atacante tirará un 1d6 para calcular los puntos de vida que recupera el defensor, que nunca podrán ser superiores al daño recibido por el defensor.' }
     ],
@@ -27,11 +27,11 @@ const poderes = {
     activos: [],
     pasivos: [],
   },
-  agenteSkrull: {
+  skrullAgente: {
     activos: [],
     pasivos: [],
   },
-  guerreroSkrull: {
+  skrullGuerrero: {
     activos: [],
     pasivos: [],
   },
@@ -39,21 +39,21 @@ const poderes = {
     activos: [],
     pasivos: [
       { nombre: 'Sigilo', descripcion: 'El personaje tiene +2 a la defensa si está detrás de un objeto o detrás de un arbusto, en una tirada de ataque contra él.' },
-      { nombre: 'Cuchillas/Garras/Colmillos', descripcion: 'Si el personaje consigue una tirada de ataque exitosa, su daño base para este turno se actualizará con una nueva tirada de 1d6. El nuevo daño base no podrá ser menor que el daño base del personaje. Tras pasar el turno, el personaje recupera su daño base antiguo.' },
+      { nombre: 'Filo', descripcion: 'Si el personaje consigue una tirada de ataque exitosa, su daño base para este turno se actualizará con una nueva tirada de 1d6. El nuevo daño base no podrá ser menor que el daño base del personaje. Tras pasar el turno, el personaje recupera su daño base antiguo.' },
       { nombre: 'Dureza', descripcion: 'Reducción del daño recibido de 1 para todos los ataques c/c y a/d.' }
     ],
   },
   lobaVenenosa: {
     activos: [],
     pasivos: [
-      { nombre: 'Cuchillas/Garras/Colmillos', descripcion: 'Si el personaje consigue una tirada de ataque exitosa, su daño base para este turno se actualizará con una nueva tirada de 1d6. El nuevo daño base no podrá ser menor que el daño base del personaje. Tras pasar el turno, el personaje recupera su daño base antiguo.' }
+      { nombre: 'Filo', descripcion: 'Si el personaje consigue una tirada de ataque exitosa, su daño base para este turno se actualizará con una nueva tirada de 1d6. El nuevo daño base no podrá ser menor que el daño base del personaje. Tras pasar el turno, el personaje recupera su daño base antiguo.' }
     ],
   },
   elektra: {
     activos: [],
     pasivos: [
       { nombre: 'Sigilo', descripcion: 'El personaje tiene +2 a la defensa si está detrás de un objeto o detrás de un arbusto, en una tirada de ataque contra él.' },
-      { nombre: 'Cuchillas/Garras/Colmillos', descripcion: 'Si el personaje consigue una tirada de ataque exitosa, su daño base para este turno se actualizará con una nueva tirada de 1d6. El nuevo daño base no podrá ser menor que el daño base del personaje. Tras pasar el turno, el personaje recupera su daño base antiguo.' }
+      { nombre: 'Filo', descripcion: 'Si el personaje consigue una tirada de ataque exitosa, su daño base para este turno se actualizará con una nueva tirada de 1d6. El nuevo daño base no podrá ser menor que el daño base del personaje. Tras pasar el turno, el personaje recupera su daño base antiguo.' }
     ],
   },
   avispa: {
@@ -117,7 +117,7 @@ const poderes = {
     activos: [],
     pasivos: [
       { nombre: 'Sigilo', descripcion: 'El personaje tiene +2 a la defensa si está detrás de un objeto o detrás de un arbusto, en una tirada de ataque contra él.' },
-      { nombre: 'Cuchillas/Garras/Colmillos', descripcion: 'Si el personaje consigue una tirada de ataque exitosa, su daño base para este turno se actualizará con una nueva tirada de 1d6. El nuevo daño base no podrá ser menor que el daño base del personaje. Tras pasar el turno, el personaje recupera su daño base antiguo.' },
+      { nombre: 'Filo', descripcion: 'Si el personaje consigue una tirada de ataque exitosa, su daño base para este turno se actualizará con una nueva tirada de 1d6. El nuevo daño base no podrá ser menor que el daño base del personaje. Tras pasar el turno, el personaje recupera su daño base antiguo.' },
       { nombre: 'Dureza', descripcion: 'Reducción del daño recibido de 1 para todos los ataques c/c y a/d.' },
       { nombre: 'Regeneración', descripcion: 'El personaje recupera un 1 punto de vida tras finalizar su turno, siempre que esté por debajo de sus puntos de vida base.' }
     ],
@@ -170,7 +170,7 @@ const poderes = {
     activos: [],
     pasivos: [
       { nombre: 'Sigilo', descripcion: 'El personaje tiene +2 a la defensa si está detrás de un objeto o detrás de un arbusto, en una tirada de ataque contra él.' },
-      { nombre: 'Cuchillas/Garras/Colmillos', descripcion: 'Si el personaje consigue una tirada de ataque exitosa, su daño base para este turno se actualizará con una nueva tirada de 1d6. El nuevo daño base no podrá ser menor que el daño base del personaje. Tras pasar el turno, el personaje recupera su daño base antiguo.' },
+      { nombre: 'Filo', descripcion: 'Si el personaje consigue una tirada de ataque exitosa, su daño base para este turno se actualizará con una nueva tirada de 1d6. El nuevo daño base no podrá ser menor que el daño base del personaje. Tras pasar el turno, el personaje recupera su daño base antiguo.' },
       { nombre: 'Dureza', descripcion: 'Reducción del daño recibido de 1 para todos los ataques c/c y a/d.' },
       { nombre: 'Regeneración', descripcion: 'El personaje recupera un 1 punto de vida tras finalizar su turno, siempre que esté por debajo de sus puntos de vida base.' }
     ],
@@ -203,7 +203,7 @@ const poderes = {
       { nombre: 'Sigilo', descripcion: 'El personaje tiene +2 a la defensa si está detrás de un objeto o detrás de un arbusto, en una tirada de ataque contra él.' },
       { nombre: 'Saltar/Trepar', descripcion: 'El personaje puede pasar por encima de obstáculos y enemigos para mover.' },
       { nombre: 'Astucia', descripcion: 'Estos personajes obtienen un crítico no sólo sacando un 12 en una tirada de 2d6, también lo consiguen con 11.' },
-      { nombre: 'Cuchillas/Garras/Colmillos', descripcion: 'Si el personaje consigue una tirada de ataque exitosa, su daño base para este turno se actualizará con una nueva tirada de 1d6. El nuevo daño base no podrá ser menor que el daño base del personaje. Tras pasar el turno, el personaje recupera su daño base antiguo.' }
+      { nombre: 'Filo', descripcion: 'Si el personaje consigue una tirada de ataque exitosa, su daño base para este turno se actualizará con una nueva tirada de 1d6. El nuevo daño base no podrá ser menor que el daño base del personaje. Tras pasar el turno, el personaje recupera su daño base antiguo.' }
     ],
   },
   ventisca: {

@@ -3,8 +3,8 @@ const poderesFuente =
   (typeof poderes !== 'undefined' ? poderes : {});
 
 const personajes = {
-  agenteShield: {
-    nombre: 'Agente SHIELD',
+  shieldAgente: {
+    nombre: 'SHIELD Agente',
     movimiento: 3,
     ataque: 7,
     defensa: 15,
@@ -12,13 +12,13 @@ const personajes = {
     rango: 3,
     vida: 4,
     agilidad: 0,
-    imagen: 'assets/images/tokens/agenteShield.webp',
-    animacion: 'assets/images/animations/agenteShield.webp',
-    poderes: poderesFuente.agenteShield,
+    imagen: 'assets/images/tokens/shieldAgente.webp',
+    animacion: 'assets/images/animations/shieldAgente.webp',
+    poderes: poderesFuente.shieldAgente,
     habilidades: { activas: [], pasivas: [] }
   },
-  medicoShield: {
-    nombre: 'Médico SHIELD',
+  shieldMedico: {
+    nombre: 'SHIELD Médico',
     movimiento: 3,
     ataque: 6,
     defensa: 14,
@@ -26,13 +26,13 @@ const personajes = {
     rango: 2,
     vida: 4,
     agilidad: 0,
-    imagen: 'assets/images/tokens/medicoShield.webp',
-    animacion: 'assets/images/animations/medicoShield.webp',
-    poderes: poderesFuente.medicoShield,
+    imagen: 'assets/images/tokens/shieldMedico.webp',
+    animacion: 'assets/images/animations/shieldMedico.webp',
+    poderes: poderesFuente.shieldMedico,
     habilidades: { activas: ['Curar'], pasivas: [] }
   },
-  agenteHydra: {
-    nombre: 'Agente HYDRA',
+  hydraAgente: {
+    nombre: 'HYDRA Agente',
     movimiento: 3,
     ataque: 7,
     defensa: 14,
@@ -40,13 +40,13 @@ const personajes = {
     rango: 3,
     vida: 4,
     agilidad: 0,
-    imagen: 'assets/images/tokens/agenteHydra.webp',
-    animacion: 'assets/images/animations/agenteHydra.webp',
-    poderes: poderesFuente.agenteHydra,
+    imagen: 'assets/images/tokens/hydraAgente.webp',
+    animacion: 'assets/images/animations/hydraAgente.webp',
+    poderes: poderesFuente.hydraAgente,
     habilidades: { activas: [], pasivas: [] }
   },
-  medicoHydra: {
-    nombre: 'Médico HYDRA',
+  hydraMedico: {
+    nombre: 'HYDRA Médico',
     movimiento: 3,
     ataque: 7,
     defensa: 14,
@@ -54,9 +54,9 @@ const personajes = {
     rango: 2,
     vida: 4,
     agilidad: 0,
-    imagen: 'assets/images/tokens/medicoHydra.webp',
-    animacion: 'assets/images/animations/medicoHydra.webp',
-    poderes: poderesFuente.medicoHydra,
+    imagen: 'assets/images/tokens/hydraMedico.webp',
+    animacion: 'assets/images/animations/hydraMedico.webp',
+    poderes: poderesFuente.hydraMedico,
     habilidades: { activas: ['Curar'], pasivas: [] }
   },
   maton: {
@@ -87,8 +87,8 @@ const personajes = {
     poderes: poderesFuente.esbirro,
     habilidades: { activas: [], pasivas: [] }
   },
-  agenteSkrull: {
-    nombre: 'Agente Skrull',
+  skrullAgente: {
+    nombre: 'Skrull Agente',
     movimiento: 4,
     ataque: 7,
     defensa: 15,
@@ -96,13 +96,13 @@ const personajes = {
     rango: 3,
     vida: 4,
     agilidad: 0,
-    imagen: 'assets/images/tokens/agenteSkrull.webp',
-    animacion: 'assets/images/animations/agenteSkrull.webp',
-    poderes: poderesFuente.agenteSkrull,
+    imagen: 'assets/images/tokens/skrullAgente.webp',
+    animacion: 'assets/images/animations/skrullAgente.webp',
+    poderes: poderesFuente.skrullAgente,
     habilidades: { activas: [], pasivas: [] }
   },
-  guerreroSkrull: {
-    nombre: 'Guerrero Skrull',
+  skrullGuerrero: {
+    nombre: 'Skrull Guerrero',
     movimiento: 4,
     ataque: 8,
     defensa: 16,
@@ -110,9 +110,9 @@ const personajes = {
     rango: 4,
     vida: 4,
     agilidad: 0,
-    imagen: 'assets/images/tokens/guerreroSkrull.webp',
-    animacion: 'assets/images/animations/guerreroSkrull.webp',
-    poderes: poderesFuente.guerreroSkrull,
+    imagen: 'assets/images/tokens/skrullGuerrero.webp',
+    animacion: 'assets/images/animations/skrullGuerrero.webp',
+    poderes: poderesFuente.skrullGuerrero,
     habilidades: { activas: [], pasivas: [] }
   },
   blade: {
@@ -127,7 +127,7 @@ const personajes = {
     imagen: 'assets/images/tokens/blade.webp',
     animacion: 'assets/images/animations/blade.webp',
     poderes: poderesFuente.blade,
-    habilidades: { activas: [], pasivas: ['Sigilo', 'Cuchillas/Garras/Colmillos', 'Dureza'] }
+    habilidades: { activas: [], pasivas: ['Sigilo', 'Filo', 'Dureza'] }
   },
   lobaVenenosa: {
     nombre: 'Loba Venenosa',
@@ -141,7 +141,7 @@ const personajes = {
     imagen: 'assets/images/tokens/lobaVenenosa.webp',
     animacion: 'assets/images/animations/lobaVenenosa.webp',
     poderes: poderesFuente.lobaVenenosa,
-    habilidades: { activas: [], pasivas: ['Cuchillas/Garras/Colmillos'] }
+    habilidades: { activas: [], pasivas: ['Filo'] }
   },
   elektra: {
     nombre: 'Elektra',
@@ -155,7 +155,7 @@ const personajes = {
     imagen: 'assets/images/tokens/elektra.webp',
     animacion: 'assets/images/animations/elektra.webp',
     poderes: poderesFuente.elektra,
-    habilidades: { activas: [], pasivas: ['Sigilo', 'Cuchillas/Garras/Colmillos'] }
+    habilidades: { activas: [], pasivas: ['Sigilo', 'Filo'] }
   },
   avispa: {
     nombre: 'Avispa',
@@ -267,7 +267,7 @@ const personajes = {
     imagen: 'assets/images/tokens/dientesDeSable.webp',
     animacion: 'assets/images/animations/dientesDeSable.webp',
     poderes: poderesFuente.dientesDeSable,
-    habilidades: { activas: [], pasivas: ['Sigilo', 'Cuchillas/Garras/Colmillos', 'Dureza','Regeneración'] }
+    habilidades: { activas: [], pasivas: ['Sigilo', 'Filo', 'Dureza','Regeneración'] }
   },
   hulk: {
     nombre: 'Hulk',
@@ -351,7 +351,7 @@ const personajes = {
     imagen: 'assets/images/tokens/lobezno.webp',
     animacion: 'assets/images/animations/lobezno.webp',
     poderes: poderesFuente.lobezno,
-    habilidades: { activas: [], pasivas: ['Sigilo','Cuchillas/Garras/Colmillos','Dureza','Regeneración' ] }
+    habilidades: { activas: [], pasivas: ['Sigilo','Filo','Dureza','Regeneración' ] }
   },
   profesorXavier: {
     nombre: 'Profesor Xavier',
@@ -407,7 +407,7 @@ const personajes = {
     imagen: 'assets/images/tokens/panteraNegra.webp',
     animacion: 'assets/images/animations/panteraNegra.webp',
     poderes: poderesFuente.panteraNegra,
-    habilidades: { activas: [], pasivas: ['Saltar/Trepar','Astucia','Cuchillas/Garras/Colmillos','Sigilo'] }
+    habilidades: { activas: [], pasivas: ['Saltar/Trepar','Astucia','Filo','Sigilo'] }
   },
   ventisca: {
     nombre: 'Ventisca',
