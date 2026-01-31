@@ -1431,7 +1431,8 @@ function attachTooltipEvents(piece) {
           return `${sentence1} ${sentence2} ${attackerStats.name} falla el ataque contra ${defenderStats.name}.`;
         }
 
-        let sentence3 = `${attackerStats.name} le causa ${damage} puntos de Daño a ${defenderStats.name}.`;
+        const damageLabel = damage === 1 ? 'Punto' : 'Puntos';
+        let sentence3 = `${attackerStats.name} le causa ${damage} ${damageLabel} de Daño a ${defenderStats.name}.`;
         if (defenderStats.currentVida <= 0) {
           sentence3 += ` ${defenderStats.name} es ELIMINADO.`;
         }
