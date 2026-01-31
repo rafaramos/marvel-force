@@ -1541,7 +1541,8 @@ async function resolveAttack(attacker, defender, actionKey = 'attack', options =
       if (critical) playEffectSound(criticoSound);
 
       const { totalDamage, isMelee } = calculateDamage(attackerStats, distance, critical);
-      const needed = Math.max(2, defenderStats.defensa - attackerStats.ataque);
+      const effectiveDefense = defenderStats.defensa;
+      const needed = Math.max(2, effectiveDefense - attackerStats.ataque);
       const damageApplied = success ? totalDamage : 0;
 
       if (success && damageApplied > 0) {
@@ -1605,7 +1606,7 @@ async function resolveAttack(attacker, defender, actionKey = 'attack', options =
         await showTurnPopup(popupMessage);
         registerActionUsage(attacker, { showPopup: false });
       }
-      return { success, damageApplied, roll, needed, effectiveDefense: defenderStats.defensa };
+      return { success, damageApplied, roll, needed, effectiveDefense };
     }
 
 async function resolveExplosion(attacker, centerTarget) {
