@@ -309,6 +309,17 @@ body {
   font-weight: 800;
 }
 
+.combat-score {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  font-weight: bold;
+  color: #ffd700;
+  text-shadow: 2px 2px 0 #000;
+  z-index: 10;
+  pointer-events: none;
+}
+
 .draft-card--taken {
   opacity: 0.45;
   pointer-events: none;
