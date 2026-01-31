@@ -15,6 +15,20 @@ function hasPower(stats, powerName) {
     return activos.includes(search) || pasivos.includes(search) || legacy.includes(search);
 }
 
+function hasPassive(stats, powerName) {
+    const search = normalizeKey(powerName);
+    if (!search) return false;
+    const pasivos = (stats.poderes?.pasivos || []).map(p => normalizeKey(p.nombre || p));
+    const legacy = (stats.habilidades?.pasivas || []).map(p => normalizeKey(p.nombre || p)); 
+    return pasivos.includes(search) || legacy.includes(search);
+}
+
+function isVisibleTarget(target, distance) {
+    const targetStats = pieceMap.get(target);
+    if (distance > 3 && hasPassive(targetStats, 'Sigilo')) return false;
+    return true;
+}
+
 function evaluateCombatValue(key, stats, enemySelections) {
     let value = 0;
     value += (stats.dano || 0) * 50;
@@ -123,7 +137,10 @@ async function performEnemyTurn(piece) {
 
     const enemiesInRange = enemies.filter((enemy) => {
         const targetSquare = getPieceSquare(enemy);
-        return targetSquare && isWithinAttackRange(origin, targetSquare, attackRange);
+        if (!targetSquare) return false;
+        if (!isWithinAttackRange(origin, targetSquare, attackRange)) return false;
+        const distance = attackDistance(origin, targetSquare);
+        return isVisibleTarget(enemy, distance);
     });
 
     computeReachableSquares(piece);
@@ -139,6 +156,7 @@ async function performEnemyTurn(piece) {
             reachableSquares.forEach((square) => {
                 if (!isWithinAttackRange(square, enemySquare, attackRange)) return;
                 const distance = attackDistance(square, enemySquare);
+                if (!isVisibleTarget(enemy, distance)) return;
                 const moveCost = square === origin ? 0 : (movementDistances.get(square) ?? Infinity);
                 if (!best || distance > best.distance || (distance === best.distance && moveCost < best.moveCost)) {
                     best = { enemy, square, distance, moveCost };
@@ -167,6 +185,8 @@ async function performEnemyTurn(piece) {
         if (closestEnemySquare) {
             reachableSquares.forEach((square) => {
                 if (!isWithinAttackRange(square, closestEnemySquare, attackRange)) return;
+                const distance = attackDistance(square, closestEnemySquare);
+                if (!isVisibleTarget(closestEnemy, distance)) return;
                 const moveCost = square === origin ? 0 : (movementDistances.get(square) ?? Infinity);
                 if (!gapCloser || moveCost < gapCloser.moveCost) {
                     gapCloser = { enemy: closestEnemy, square, moveCost };

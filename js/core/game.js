@@ -414,7 +414,10 @@ let activeBarriers = []; // Nueva lista para rastrear barreras activas
     }
 
     function hasPassive(stats, key) {
-      return false;
+      const search = normalizePowerKey(key);
+      if (!search) return false;
+      const { pasivos } = resolvePowerSets(stats);
+      return pasivos.some((entry) => normalizePowerKey(entry?.nombre ?? entry) === search);
     }
 
     function hasActive(stats, key) {
@@ -1045,10 +1048,15 @@ function highlightRange(piece) {
         const blockedByLOS = dist > 1 && !hasLineOfSight(origin, square);
         if (blockedByLOS) return;
 
+        const targetPiece = square.querySelector('.piece');
+        if (targetPiece && targetPiece.dataset.team !== piece.dataset.team) {
+          const targetStats = pieceMap.get(targetPiece);
+          if (dist > 3 && hasPassive(targetStats, 'sigilo')) return;
+        }
+
         square.classList.add('square--range');
         rangeSquaresFound = true;
 
-        const targetPiece = square.querySelector('.piece');
         if (targetPiece && targetPiece.dataset.team !== piece.dataset.team) {
           targetPiece.classList.add('valid-target');
           targetsFound = true;
